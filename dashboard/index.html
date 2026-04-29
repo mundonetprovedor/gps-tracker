@@ -129,9 +129,13 @@
             backdrop-filter: blur(5px);
         }
         .marker-icon-img {
-            width: 45px;
-            height: auto;
-            filter: drop-shadow(0 4px 5px rgba(0,0,0,0.5));
+            width: 42px !important;
+            height: 42px !important;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid var(--m-light);
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
     </style>
 </head>
