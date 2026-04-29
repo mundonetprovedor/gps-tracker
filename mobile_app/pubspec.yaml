@@ -1,7 +1,7 @@
 name: gps_tracker
 description: A real-time background GPS tracking application.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -13,6 +13,10 @@ dependencies:
   socket_io_client: ^2.0.3+1
   shared_preferences: ^2.2.1
   wakelock_plus: ^1.1.4
+  flutter_foreground_task: ^6.1.1
+  permission_handler: ^11.3.1
+  battery_plus: ^5.0.3
+  connectivity_plus: ^5.0.2
 
 dev_dependencies:
   flutter_test:
@@ -21,3 +25,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo.png
