@@ -15,22 +15,32 @@
         #app { display:flex; width:100vw; height:100vh; }
 
         /* ── SIDEBAR ── */
-        #sidebar {
-            width: 340px;
-            flex-shrink: 0;
-            background: #1a1d27;
+        .sidebar {
+            width: 320px;
+            background: #002d62; /* Mundonet Blue */
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #2d3148;
-            z-index: 10;
+            border-right: 1px solid #1e293b;
+            z-index: 1000;
         }
-        #sidebar-header {
-            padding: 20px 18px 14px;
-            background: linear-gradient(135deg, #4318FF 0%, #39B8FF 100%);
-            flex-shrink: 0;
+        .sidebar-header {
+            padding: 25px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        #sidebar-header h1 { font-size: 18px; font-weight: 700; color: #fff; }
-        #sidebar-header p  { font-size: 11px; color: rgba(255,255,255,.75); margin-top: 2px; }
+        .sidebar-header img {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #fff;
+            margin: 0;
+        }
 
         #stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:12px; flex-shrink:0; border-bottom:1px solid #2d3148; }
         .sbox { background:#23263a; border-radius:8px; padding:10px; text-align:center; }
@@ -93,10 +103,11 @@
 </head>
 <body>
 <div id="app">
-    <div id="sidebar">
-        <div id="sidebar-header">
-            <h1>📡 GPS Tracker</h1>
-            <p>Monitoramento em tempo real</p>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="logo.png" alt="Mundonet Telecom">
+            <h1>GPS Tracker</h1>
+            <p style="font-size: 11px; opacity: 0.7;">Monitoramento de Equipes</p>
         </div>
         <div id="stats">
             <div class="sbox"><b id="cnt-on">0</b><small>Online</small></div>
