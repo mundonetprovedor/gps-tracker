@@ -175,9 +175,9 @@ class IxcApi {
             'query': tecnicoId,
             'oper': '=',
             'page': '1',
-            'rp': '200',
-            'sortname': 'su_oss_chamado.data_agenda',
-            'sortorder': 'asc'
+            'rp': '500',
+            'sortname': 'su_oss_chamado.id',
+            'sortorder': 'desc'
           }),
         ),
       ]);
