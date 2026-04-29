@@ -120,12 +120,18 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 io.on('connection', (socket) => {
+  // Enviar lista atual assim que o Dashboard (ou qualquer um) conectar
+  socket.emit('update_teams', teams);
+
   socket.on('register_team', (data) => {
     const teamId = data.teamId;
     socketToTeam[socket.id] = teamId;
+    
     if (!teams[teamId]) {
       teams[teamId] = { id: teamId, name: data.name, status: 'Online', lastUpdate: new Date(), history: [], stops: [] };
     } else {
+      // ATUALIZAÇÃO: Agora atualiza o nome também, caso tenha mudado no app
+      teams[teamId].name = data.name; 
       teams[teamId].status = 'Online';
       teams[teamId].lastUpdate = new Date();
     }

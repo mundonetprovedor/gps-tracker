@@ -104,6 +104,35 @@
         }
         .litem { display: flex; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 4px; }
         .lline { width: 20px; height: 3px; border-radius: 2px; }
+
+        /* ── CUSTOM MARKER ── */
+        .custom-marker {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 80px !important;
+            height: 80px !important;
+        }
+        .marker-label {
+            background: rgba(0, 45, 98, 0.9);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            white-space: nowrap;
+            border: 1px solid var(--m-light);
+            margin-bottom: 2px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            text-transform: uppercase;
+            backdrop-filter: blur(5px);
+        }
+        .marker-icon-img {
+            width: 45px;
+            height: auto;
+            filter: drop-shadow(0 4px 5px rgba(0,0,0,0.5));
+        }
     </style>
 </head>
 <body>
@@ -209,7 +238,12 @@ function setMapLayer(type) {
 // ── SOCKET & DATA ──
 function initSocket() {
     const socket = io();
-    socket.on('update_teams', data => { teams = data; renderList(); });
+    socket.on('update_teams', data => { 
+        teams = data; 
+        renderList(); 
+        // Desenhar todos os marcadores já conhecidos
+        Object.keys(teams).forEach(id => updateMarker(id, teams[id]));
+    });
     socket.on('team_location_update', data => {
         const team = data.team;
         teams[data.socketId] = team;
@@ -220,16 +254,43 @@ function initSocket() {
 
 function updateMarker(id, team) {
     if (!team.lastLocation) return;
-    const pos = [team.lastLocation.lat, team.lastLocation.lng];
+    const newPos = [team.lastLocation.lat, team.lastLocation.lng];
+
+    const customIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `
+            <div class="marker-label">${team.name}</div>
+            <img src="car_icon.png" class="marker-icon-img">
+        `,
+        iconSize: [80, 80],
+        iconAnchor: [40, 80]
+    });
 
     if (!markers[id]) {
-        markers[id] = L.marker(pos).addTo(map).bindPopup(team.name);
+        markers[id] = L.marker(newPos, { icon: customIcon }).addTo(map).bindPopup(team.name);
         paths[id] = L.polyline([], { color: '#39B8FF', weight: 3 }).addTo(map);
     } else {
-        markers[id].setLatLng(pos);
+        // Atualizar ícone (caso o nome mude) e animar
+        markers[id].setIcon(customIcon);
+        const from = markers[id].getLatLng();
+        const to = L.latLng(newPos);
+        animateMarker(markers[id], from, to, 2000);
     }
 
-    if (selectedTeamId === id) map.panTo(pos);
+    if (selectedTeamId === id) map.panTo(newPos);
+}
+
+function animateMarker(marker, from, to, duration) {
+    const start = performance.now();
+    function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const lat = from.lat + (to.lat - from.lat) * progress;
+        const lng = from.lng + (to.lng - from.lng) * progress;
+        marker.setLatLng([lat, lng]);
+        if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
 }
 
 function filterTeams() {
