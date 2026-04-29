@@ -12,24 +12,43 @@ class ServiceOrdersTab extends StatefulWidget {
 
 class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
   final ImagePicker _picker = ImagePicker();
-  final TextEditingController _techIdController = TextEditingController();
+  
+  List<dynamic> _funcionarios = [];
+  String? _selectedFuncionarioId;
   List<dynamic> _orders = [];
   bool _isLoading = false;
+  bool _isLoadingFuncionarios = true;
 
-  void _loadOrders() async {
-    if (_techIdController.text.isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _carregarFuncionarios();
+  }
 
+  void _carregarFuncionarios() async {
+    final func = await IxcApi.buscarFuncionarios();
+    if (mounted) {
+      setState(() {
+        _funcionarios = func;
+        _isLoadingFuncionarios = false;
+      });
+    }
+  }
+
+  void _loadOrders(String tecnicoId) async {
     setState(() {
       _isLoading = true;
       _orders = [];
     });
 
-    final resultados = await IxcApi.buscarMinhasOS(_techIdController.text);
+    final resultados = await IxcApi.buscarMinhasOS(tecnicoId);
 
-    setState(() {
-      _isLoading = false;
-      _orders = resultados;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _orders = resultados;
+      });
+    }
   }
 
   Future<void> _takePictureAndAttach(String osId) async {
@@ -38,16 +57,13 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
       if (photo != null) {
         if (!mounted) return;
         
-        // Mostra um aviso de que está enviando
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Enviando foto para o IXC...', style: TextStyle(color: Colors.white)), backgroundColor: Colors.blue, duration: Duration(seconds: 2)),
         );
 
-        // Converte a imagem para base64
         final bytes = await photo.readAsBytes();
         final base64Image = base64Encode(bytes);
 
-        // Envia para o IXC
         final sucesso = await IxcApi.anexarImagemOS(osId, base64Image);
 
         if (!mounted) return;
@@ -82,38 +98,44 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
               ),
               const SizedBox(height: 5),
               const Text(
-                'Digite seu ID de Técnico para listar O.S. abertas',
+                'Selecione seu perfil para ver as O.S.',
                 style: TextStyle(fontSize: 12, color: Colors.white30),
               ),
               const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _techIdController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'ID do Técnico',
-                        hintStyle: const TextStyle(color: Colors.white24),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.05),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      ),
+              
+              if (_isLoadingFuncionarios)
+                const Center(child: CircularProgressIndicator(color: Color(0xFF39B8FF)))
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF1E1E1E),
+                      value: _selectedFuncionarioId,
+                      hint: const Text('Selecione o Técnico', style: TextStyle(color: Colors.white54)),
+                      items: _funcionarios.map((func) {
+                        return DropdownMenuItem<String>(
+                          value: func['id'].toString(),
+                          child: Text(func['funcionario'] ?? 'Sem Nome', style: const TextStyle(color: Colors.white)),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedFuncionarioId = value;
+                        });
+                        if (value != null) {
+                          _loadOrders(value);
+                        }
+                      },
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: _loadOrders,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF39B8FF),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Icon(Icons.search, color: Color(0xFF002D62)),
-                  ),
-                ],
-              ),
+                ),
+              
               const SizedBox(height: 25),
               if (_isLoading)
                 const Center(child: CircularProgressIndicator(color: Color(0xFF39B8FF)))
@@ -177,7 +199,7 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
                     },
                   ),
                 )
-              else if (_techIdController.text.isNotEmpty)
+              else if (_selectedFuncionarioId != null)
                 const Center(child: Text('Nenhuma O.S. encontrada', style: TextStyle(color: Colors.white54))),
             ],
           ),

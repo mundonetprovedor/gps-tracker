@@ -45,6 +45,66 @@ class IxcApi {
     }
   }
 
+  // Busca lista de colaboradores (técnicos/funcionários)
+  static Future<List<dynamic>> buscarFuncionarios() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/funcionarios'),
+        headers: _headers,
+        body: jsonEncode({
+          'qtype': 'funcionarios.id',
+          'query': '1',
+          'oper': '>=',
+          'page': '1',
+          'rp': '1000',
+          'sortname': 'funcionarios.id',
+          'sortorder': 'asc' // Melhor em ordem crescente para a lista
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['registros'] != null) {
+          return data['registros'];
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Erro ao buscar funcionarios: $e');
+      return [];
+    }
+  }
+
+  // Busca o setor do colaborador
+  static Future<List<dynamic>> buscarSetores(String usuarioId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/funcionario_setores'),
+        headers: _headers,
+        body: jsonEncode({
+          'qtype': 'funcionario_setores.usuario',
+          'query': usuarioId,
+          'oper': '=',
+          'page': '1',
+          'rp': '1000',
+          'sortname': 'funcionario_setores.id',
+          'sortorder': 'desc'
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['registros'] != null) {
+          return data['registros'];
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Erro ao buscar setores: $e');
+      return [];
+    }
+  }
+
   // Busca O.S. (Suporte) associadas ao técnico logado
   static Future<List<dynamic>> buscarMinhasOS(String tecnicoId) async {
     try {
