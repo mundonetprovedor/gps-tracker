@@ -138,7 +138,18 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            Text(os['cliente_razao'] ?? 'Cliente Desconhecido', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text(
+                              os['cliente_razao'] ?? 'Cliente #${os['id_cliente']}', 
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+                            ),
+                            if (os['cliente_telefone'] != null && os['cliente_telefone'].toString().isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  os['cliente_telefone'].toString(),
+                                  style: const TextStyle(color: Color(0xFF39B8FF), fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              ),
                             const SizedBox(height: 6),
                             // Data de agendamento
                             if (os['data_agenda'] != null && os['data_agenda'].toString().isNotEmpty)
@@ -160,6 +171,22 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
                                 Expanded(child: Text(os['assunto_nome'] ?? os['assunto'] ?? 'Assunto não definido', style: const TextStyle(color: Colors.white54, fontSize: 12))),
                               ],
                             ),
+                            const SizedBox(height: 8),
+                            // Endereço
+                            if (os['endereco'] != null && os['endereco'].toString().isNotEmpty)
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.location_on, size: 12, color: Colors.redAccent),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      os['endereco'].toString(),
+                                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             const SizedBox(height: 15),
                             SizedBox(
                               width: double.infinity,

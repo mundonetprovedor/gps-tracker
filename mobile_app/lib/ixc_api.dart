@@ -162,6 +162,37 @@ class IxcApi {
     }
   }
 
+  // Busca dados do cliente pelo ID (Nome e Telefone)
+  static Future<Map<String, String>> buscarDadosCliente(String clienteId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/cliente'),
+        headers: _headers,
+        body: jsonEncode({
+          'qtype': 'cliente.id',
+          'query': clienteId,
+          'oper': '=',
+          'page': '1',
+          'rp': '1',
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['registros'] != null && (data['registros'] as List).isNotEmpty) {
+          final c = data['registros'][0];
+          return {
+            'razao': c['razao']?.toString() ?? 'Cliente #$clienteId',
+            'telefone': c['telefone_celular']?.toString() ?? c['telefone_comercial']?.toString() ?? '',
+          };
+        }
+      }
+      return {'razao': 'Cliente #$clienteId', 'telefone': ''};
+    } catch (e) {
+      return {'razao': 'Cliente #$clienteId', 'telefone': ''};
+    }
+  }
+
   // Busca O.S. (Suporte) com status AGENDADA do técnico logado, dentro de ±3 dias
   static Future<List<dynamic>> buscarMinhasOS(String tecnicoId) async {
     try {
@@ -205,11 +236,20 @@ class IxcApi {
             }
           }).toList();
 
-          // Substitui id_assunto pelo nome real
-          for (var os in filtradas) {
+          // Resolve nomes de Assuntos e Dados de Clientes em paralelo
+          await Future.wait(filtradas.map((os) async {
+            // Assunto
             final idAssunto = os['id_assunto']?.toString() ?? '';
             os['assunto_nome'] = assuntos[idAssunto] ?? 'Assunto #$idAssunto';
-          }
+
+            // Cliente (Busca o nome e telefone)
+            final idCliente = os['id_cliente']?.toString() ?? '';
+            if (idCliente.isNotEmpty) {
+              final dados = await buscarDadosCliente(idCliente);
+              os['cliente_razao'] = dados['razao'];
+              os['cliente_telefone'] = dados['telefone'];
+            }
+          }));
 
           return filtradas;
         }
