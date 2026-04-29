@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../ixc_api.dart';
 
 class ServiceOrdersTab extends StatefulWidget {
@@ -13,34 +14,30 @@ class ServiceOrdersTab extends StatefulWidget {
 class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
   final ImagePicker _picker = ImagePicker();
   
-  List<dynamic> _funcionarios = [];
-  String? _selectedFuncionarioId;
+  String? _tecnicoNome;
   List<dynamic> _orders = [];
-  bool _isLoading = false;
-  bool _isLoadingFuncionarios = true;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _carregarFuncionarios();
+    _carregarDadosDoTecnico();
   }
 
-  void _carregarFuncionarios() async {
-    final func = await IxcApi.buscarFuncionarios();
-    if (mounted) {
+  void _carregarDadosDoTecnico() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? id = prefs.getString('tecnico_id');
+    final String? nome = prefs.getString('tecnico_nome');
+
+    if (id != null) {
       setState(() {
-        _funcionarios = func;
-        _isLoadingFuncionarios = false;
+        _tecnicoNome = nome;
       });
+      _loadOrders(id);
     }
   }
 
   void _loadOrders(String tecnicoId) async {
-    setState(() {
-      _isLoading = true;
-      _orders = [];
-    });
-
     final resultados = await IxcApi.buscarMinhasOS(tecnicoId);
 
     if (mounted) {
@@ -97,45 +94,10 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1.5),
               ),
               const SizedBox(height: 5),
-              const Text(
-                'Selecione seu perfil para ver as O.S.',
-                style: TextStyle(fontSize: 12, color: Colors.white30),
+              Text(
+                _tecnicoNome != null ? 'Técnico: $_tecnicoNome' : 'Carregando perfil...',
+                style: const TextStyle(fontSize: 14, color: Color(0xFF39B8FF), fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 15),
-              
-              if (_isLoadingFuncionarios)
-                const Center(child: CircularProgressIndicator(color: Color(0xFF39B8FF)))
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      dropdownColor: const Color(0xFF1E1E1E),
-                      value: _selectedFuncionarioId,
-                      hint: const Text('Selecione o Técnico', style: TextStyle(color: Colors.white54)),
-                      items: _funcionarios.map((func) {
-                        return DropdownMenuItem<String>(
-                          value: func['id'].toString(),
-                          child: Text(func['funcionario'] ?? 'Sem Nome', style: const TextStyle(color: Colors.white)),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedFuncionarioId = value;
-                        });
-                        if (value != null) {
-                          _loadOrders(value);
-                        }
-                      },
-                    ),
-                  ),
-                ),
-              
               const SizedBox(height: 25),
               if (_isLoading)
                 const Center(child: CircularProgressIndicator(color: Color(0xFF39B8FF)))
@@ -163,10 +125,10 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.2),
+                                    color: _getStatusColor(os['status']).withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text(os['status'] == 'A' ? 'Aberta' : os['status'], style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  child: Text(_getStatusText(os['status']), style: TextStyle(color: _getStatusColor(os['status']), fontSize: 10, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
@@ -199,7 +161,7 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
                     },
                   ),
                 )
-              else if (_selectedFuncionarioId != null)
+              else if (_tecnicoNome != null)
                 const Center(child: Text('Nenhuma O.S. encontrada', style: TextStyle(color: Colors.white54))),
             ],
           ),
@@ -207,4 +169,35 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
       ),
     );
   }
+
+  String _getStatusText(String? code) {
+    switch (code) {
+      case 'A': return 'Aberta';
+      case 'AN': return 'Análise';
+      case 'EN': return 'Encaminhada';
+      case 'AS': return 'Assumida';
+      case 'AG': return 'Agendada';
+      case 'DS': return 'Deslocamento';
+      case 'EX': return 'Execução';
+      case 'F': return 'Finalizada';
+      case 'RAG': return 'Aguardando Agendamento';
+      default: return code ?? 'Desconhecido';
+    }
+  }
+
+  Color _getStatusColor(String? code) {
+    switch (code) {
+      case 'A': return Colors.orange;
+      case 'AN': return Colors.purpleAccent;
+      case 'EN': return Colors.blueAccent;
+      case 'AS': return Colors.cyanAccent;
+      case 'AG': return Colors.teal;
+      case 'DS': return Colors.yellowAccent;
+      case 'EX': return Colors.lightGreen;
+      case 'F': return Colors.green;
+      case 'RAG': return Colors.redAccent;
+      default: return Colors.white54;
+    }
+  }
 }
+

@@ -58,7 +58,7 @@ class IxcApi {
           'page': '1',
           'rp': '1000',
           'sortname': 'funcionarios.id',
-          'sortorder': 'asc' // Melhor em ordem crescente para a lista
+          'sortorder': 'asc' 
         }),
       );
 
@@ -74,6 +74,31 @@ class IxcApi {
       return [];
     }
   }
+
+  // Faz o login verificando se o CPF existe na tabela de funcionários
+  static Future<Map<String, dynamic>?> loginFuncionarioPorCPF(String cpf) async {
+    try {
+      // Limpa tudo o que não for número do CPF digitado
+      String cleanCpfDigitado = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+      
+      // Busca a lista de funcionários (limitado a 1000, suficiente para a maioria dos provedores)
+      final listaFuncionarios = await buscarFuncionarios();
+
+      // Procura na lista localmente comparando apenas os números
+      for (var func in listaFuncionarios) {
+        String cpfBanco = (func['cpf'] ?? func['cnpj_cpf'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
+        
+        if (cpfBanco == cleanCpfDigitado && cleanCpfDigitado.isNotEmpty) {
+          return func; // Encontrou o funcionário!
+        }
+      }
+      return null; // CPF não encontrado
+    } catch (e) {
+      print('Erro ao fazer login: $e');
+      return null;
+    }
+  }
+
 
   // Busca o setor do colaborador
   static Future<List<dynamic>> buscarSetores(String usuarioId) async {

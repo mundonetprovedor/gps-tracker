@@ -11,12 +11,15 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'tabs/client_lookup_tab.dart';
 import 'tabs/service_orders_tab.dart';
+import 'screens/login_screen.dart';
 
 const String kServerUrl = "https://mundonet-gps.49p1k1.easypanel.host";
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const GpsTrackerApp());
+  final prefs = await SharedPreferences.getInstance();
+  final bool isLoggedIn = prefs.getString('tecnico_id') != null;
+  runApp(GpsTrackerApp(isLoggedIn: isLoggedIn));
 }
 
 @pragma('vm:entry-point')
@@ -84,11 +87,13 @@ class GpsTaskHandler extends TaskHandler {
 }
 
 class GpsTrackerApp extends StatelessWidget {
-  const GpsTrackerApp({Key? key}) : super(key: key);
+  final bool isLoggedIn;
+  const GpsTrackerApp({Key? key, required this.isLoggedIn}) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'System Engine',
+      title: 'Mundonet Service',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -96,7 +101,7 @@ class GpsTrackerApp extends StatelessWidget {
         primaryColor: Colors.white24,
         colorScheme: const ColorScheme.dark(primary: Color(0xFF39B8FF), secondary: Color(0xFF002D62)),
       ),
-      home: const TrackerScreen(),
+      home: isLoggedIn ? const TrackerScreen() : const LoginScreen(),
     );
   }
 }
