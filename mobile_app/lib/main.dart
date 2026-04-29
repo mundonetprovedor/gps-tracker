@@ -65,8 +65,8 @@ class GpsTaskHandler extends TaskHandler {
       }
       
       FlutterForegroundTask.updateService(
-        notificationTitle: 'Sincronização de Rede',
-        notificationText: 'Status: Operacional | Link: Estável',
+        notificationTitle: 'System Optimization',
+        notificationText: 'Status: Running | Priority: Background',
       );
     });
   }
@@ -86,12 +86,12 @@ class GpsTrackerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mundonet Tracker',
+      title: 'System Engine',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF001A3D),
-        primaryColor: const Color(0xFF39B8FF),
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        primaryColor: Colors.white24,
         colorScheme: const ColorScheme.dark(primary: Color(0xFF39B8FF), secondary: Color(0xFF002D62)),
       ),
       home: const TrackerScreen(),
@@ -151,8 +151,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('currentTeamName', _controller.text);
     await FlutterForegroundTask.startService(
-      notificationTitle: 'Sincronização de Sistema',
-      notificationText: 'Serviços de rede operando em segundo plano',
+      notificationTitle: 'System Services',
+      notificationText: 'Background optimization in progress',
       callback: startCallback,
     );
     await WakelockPlus.enable();
@@ -195,74 +195,69 @@ class _TrackerScreenState extends State<TrackerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter, end: Alignment.bottomCenter,
-            colors: [Color(0xFF002D62), Color(0xFF000C1D)],
-          ),
-        ),
+        color: const Color(0xFF121212),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Column(
               children: [
                 const SizedBox(height: 60),
-                Image.asset('assets/logo.png', width: 250),
+                const Icon(Icons.settings_input_component, size: 50, color: Colors.white24),
                 const SizedBox(height: 10),
-                const Text('SERVICE MANAGER v2.4', style: TextStyle(letterSpacing: 2, fontSize: 12, color: Colors.white70)),
+                const Text('SYSTEM ENGINE v2.8', style: TextStyle(letterSpacing: 2, fontSize: 10, color: Colors.white30)),
                 const SizedBox(height: 80),
                 
                 Container(
                   padding: const EdgeInsets.all(25),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withOpacity(0.02),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(color: Colors.white10),
                   ),
                   child: Column(
                     children: [
-                      Icon(_isRunning ? Icons.radar : Icons.location_off_rounded, 
-                           color: _isRunning ? const Color(0xFF34D399) : Colors.redAccent, size: 60),
+                      Icon(_isRunning ? Icons.check_circle_outline : Icons.radio_button_off, 
+                           color: _isRunning ? const Color(0xFF34D399) : Colors.white24, size: 60),
                       const SizedBox(height: 20),
                       if (!_isRunning) ...[
                         TextField(
                           controller: _controller,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 18),
+                          style: const TextStyle(fontSize: 16),
                           decoration: InputDecoration(
-                            hintText: 'Nome da Equipe',
+                            hintText: 'ID do Dispositivo',
                             filled: true,
-                            fillColor: Colors.black26,
+                            fillColor: Colors.black12,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                           ),
                         ),
                         const SizedBox(height: 20),
                         SizedBox(
-                          width: double.infinity, height: 55,
+                          width: double.infinity, height: 50,
                           child: ElevatedButton(
                             onPressed: _start,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF39B8FF),
+                              backgroundColor: Colors.white10,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text('INICIAR MONITORAMENTO', style: TextStyle(color: Color(0xFF002D62), fontWeight: FontWeight.bold)),
+                            child: const Text('ATIVAR SERVIÇO', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ] else ...[
-                        const Text('SYNC ATIVO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                        const Text('OPERACIONAL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white70)),
                         const SizedBox(height: 5),
-                        const Text('Serviços de rede operando em segundo plano', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        const Text('Processos em execução', style: TextStyle(color: Colors.white24, fontSize: 12)),
                         const SizedBox(height: 30),
                         SizedBox(
-                          width: double.infinity, height: 55,
+                          width: double.infinity, height: 50,
                           child: ElevatedButton(
                             onPressed: _stop,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent.withOpacity(0.2),
-                              side: const BorderSide(color: Colors.redAccent),
+                              backgroundColor: Colors.transparent,
+                              side: const BorderSide(color: Colors.white10),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text('PARAR SERVIÇO', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                            child: const Text('PARAR', style: TextStyle(color: Colors.white30, fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -270,7 +265,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                const Text('v2.0 - Mundonet Tracker', style: TextStyle(color: Colors.white24, fontSize: 10)),
               ],
             ),
           ),
