@@ -53,13 +53,17 @@ app.post('/auth/login', async (req, res) => {
   res.status(401).json({ error: 'Login inválido' });
 });
 
-// Route to create initial admin (Access this once to setup)
-app.post('/auth/setup', async (req, res) => {
-  const count = await User.countDocuments();
-  if (count > 0) return res.status(400).json({ error: 'Já configurado' });
-  const hashedPassword = await bcrypt.hash('admin123', 10);
-  await User.create({ username: 'admin', password: hashedPassword });
-  res.json({ message: 'Admin criado: admin / admin123' });
+// Route to create initial admin (Access this via browser)
+app.get('/auth/setup', async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    if (count > 0) return res.status(400).send('<h1>Sistema já configurado</h1>');
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    await User.create({ username: 'admin', password: hashedPassword });
+    res.send('<h1>✅ Admin criado com sucesso!</h1><p>Usuário: admin<br>Senha: admin123</p><a href="/">Ir para o Painel</a>');
+  } catch (e) {
+    res.status(500).send('<h1>❌ Erro no Banco de Dados</h1><p>Verifique se o MongoDB está rodando no EasyPanel.</p>');
+  }
 });
 
 // Middleware to protect routes
@@ -115,13 +119,17 @@ io.on('connection', (socket) => {
     const team = teams[teamId];
     const now = new Date();
     
-    // Save to Database (History)
-    const log = new Location({
-      teamId, name: team.name, lat: data.lat, lng: data.lng,
-      speed: data.speed || 0, battery: data.battery || 100,
-      network: data.network || 'Unknown', timestamp: now
-    });
-    await log.save();
+    // Save to Database (History) - Protected by try/catch
+    try {
+      const log = new Location({
+        teamId, name: team.name, lat: data.lat, lng: data.lng,
+        speed: data.speed || 0, battery: data.battery || 100,
+        network: data.network || 'Unknown', timestamp: now
+      });
+      await log.save();
+    } catch (e) {
+      console.error('DB Save Error: Database not connected');
+    }
 
     // Update RAM state for real-time dashboard
     team.lastLocation = { lat: data.lat, lng: data.lng, timestamp: now };
