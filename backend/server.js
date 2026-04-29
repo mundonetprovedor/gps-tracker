@@ -15,10 +15,24 @@ app.use(express.json());
 const JWT_SECRET = process.env.JWT_SECRET || 'mundonet-super-secret-key';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://mongo:27017/mundonet_gps';
 
+// Desativar buffering para evitar erros de timeout se o banco estiver fora do ar
+mongoose.set('bufferCommands', false);
+
 // ── DB CONNECTION ──
-mongoose.connect(MONGO_URL)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+const connectWithRetry = () => {
+  console.log('Tentando conectar ao MongoDB...');
+  mongoose.connect(MONGO_URL, {
+    serverSelectionTimeoutMS: 5000, // Timeout após 5s se não encontrar o servidor
+  })
+  .then(() => console.log('✅ Conectado ao MongoDB com sucesso'))
+  .catch(err => {
+    console.error('❌ Erro de conexão com MongoDB:', err.message);
+    console.log('Nova tentativa em 5 segundos...');
+    setTimeout(connectWithRetry, 5000);
+  });
+};
+
+connectWithRetry();
 
 // ── MODELS ──
 const LocationSchema = new mongoose.Schema({
@@ -44,6 +58,9 @@ app.use(express.static(path.join(__dirname, '../dashboard')));
 
 // ── AUTH ENDPOINTS ──
 app.post('/auth/login', async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ error: 'Banco de dados offline. Tente novamente em instantes.' });
+  }
   const { username, password } = req.body;
   const user = await User.findOne({ username });
   if (user && await bcrypt.compare(password, user.password)) {
@@ -55,6 +72,9 @@ app.post('/auth/login', async (req, res) => {
 
 // Route to create initial admin (Access this via browser)
 app.get('/auth/setup', async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).send('<h1>⏳ Banco de dados em inicialização...</h1><p>Por favor, aguarde alguns segundos e atualize a página.</p>');
+  }
   try {
     const count = await User.countDocuments();
     if (count > 0) return res.status(400).send('<h1>Sistema já configurado</h1>');
