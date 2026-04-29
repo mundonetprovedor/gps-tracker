@@ -259,6 +259,7 @@ function initSocket() {
 function updateMarker(id, team) {
     if (!team.lastLocation) return;
     const newPos = [team.lastLocation.lat, team.lastLocation.lng];
+    const newHeading = team.lastLocation.heading || 0;
 
     const customIcon = L.divIcon({
         className: 'custom-marker',
@@ -272,26 +273,44 @@ function updateMarker(id, team) {
 
     if (!markers[id]) {
         markers[id] = L.marker(newPos, { icon: customIcon }).addTo(map).bindPopup(team.name);
+        markers[id]._currentHeading = newHeading;
         paths[id] = L.polyline([], { color: '#39B8FF', weight: 3 }).addTo(map);
     } else {
-        // Atualizar ícone (caso o nome mude) e animar
         markers[id].setIcon(customIcon);
         const from = markers[id].getLatLng();
         const to = L.latLng(newPos);
-        animateMarker(markers[id], from, to, 2000);
+        const fromHeading = markers[id]._currentHeading || 0;
+        
+        animateMarker(markers[id], from, to, fromHeading, newHeading, 2000);
+        markers[id]._currentHeading = newHeading;
     }
 
     if (selectedTeamId === id) map.panTo(newPos);
 }
 
-function animateMarker(marker, from, to, duration) {
+function animateMarker(marker, from, to, fromHeading, toHeading, duration) {
     const start = performance.now();
+    
+    // Normalizar rotação para o caminho mais curto
+    if (Math.abs(toHeading - fromHeading) > 180) {
+        if (toHeading > fromHeading) fromHeading += 360;
+        else toHeading += 360;
+    }
+
     function tick(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
+        
+        // Posição
         const lat = from.lat + (to.lat - from.lat) * progress;
         const lng = from.lng + (to.lng - from.lng) * progress;
         marker.setLatLng([lat, lng]);
+
+        // Rotação
+        const rot = fromHeading + (toHeading - fromHeading) * progress;
+        const img = marker.getElement()?.querySelector('.marker-icon-img');
+        if (img) img.style.transform = `rotate(${rot}deg)`;
+
         if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);

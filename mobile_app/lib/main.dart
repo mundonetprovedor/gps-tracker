@@ -57,6 +57,7 @@ class GpsTaskHandler extends TaskHandler {
           'lat': position.latitude, 
           'lng': position.longitude, 
           'speed': position.speed * 3.6, // Converter para km/h
+          'heading': position.heading, // Enviar direção para o mapa
           'battery': battLevel,
           'network': network,
           'status': 'Online'
