@@ -98,7 +98,12 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
                 _tecnicoNome != null ? 'Técnico: $_tecnicoNome' : 'Carregando perfil...',
                 style: const TextStyle(fontSize: 14, color: Color(0xFF39B8FF), fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 25),
+              const SizedBox(height: 3),
+              const Text(
+                '📅 Agendadas — janela de ±3 dias',
+                style: TextStyle(fontSize: 11, color: Colors.white30),
+              ),
+              const SizedBox(height: 20),
               if (_isLoading)
                 const Center(child: CircularProgressIndicator(color: Color(0xFF39B8FF)))
               else if (_orders.isNotEmpty)
@@ -134,12 +139,25 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
                             ),
                             const SizedBox(height: 10),
                             Text(os['cliente_razao'] ?? 'Cliente Desconhecido', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            // Data de agendamento
+                            if (os['data_agenda'] != null && os['data_agenda'].toString().isNotEmpty)
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 12, color: Colors.teal),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    _formatarData(os['data_agenda'].toString()),
+                                    style: const TextStyle(color: Colors.teal, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
                             const SizedBox(height: 5),
                             Row(
                               children: [
                                 const Icon(Icons.build, size: 12, color: Colors.white30),
                                 const SizedBox(width: 5),
-                                Expanded(child: Text(os['assunto'] ?? 'Assunto não definido', style: const TextStyle(color: Colors.white54, fontSize: 12))),
+                                Expanded(child: Text(os['assunto_nome'] ?? os['assunto'] ?? 'Assunto não definido', style: const TextStyle(color: Colors.white54, fontSize: 12))),
                               ],
                             ),
                             const SizedBox(height: 15),
@@ -168,6 +186,15 @@ class _ServiceOrdersTabState extends State<ServiceOrdersTab> {
         ),
       ),
     );
+  }
+
+  String _formatarData(String dataStr) {
+    try {
+      final d = DateTime.parse(dataStr);
+      return '${d.day.toString().padLeft(2,'0')}/${d.month.toString().padLeft(2,'0')}/${d.year} às ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+    } catch (_) {
+      return dataStr;
+    }
   }
 
   String _getStatusText(String? code) {

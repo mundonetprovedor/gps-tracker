@@ -86,7 +86,8 @@ class IxcApi {
 
       // Procura na lista localmente comparando apenas os números
       for (var func in listaFuncionarios) {
-        String cpfBanco = (func['cpf'] ?? func['cnpj_cpf'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
+        // IXC usa o campo 'cpf_cnpj' para armazenar o CPF de funcionários
+        String cpfBanco = (func['cpf_cnpj'] ?? func['cpf'] ?? func['cnpj_cpf'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
         
         if (cpfBanco == cleanCpfDigitado && cleanCpfDigitado.isNotEmpty) {
           return func; // Encontrou o funcionário!
@@ -130,27 +131,87 @@ class IxcApi {
     }
   }
 
-  // Busca O.S. (Suporte) associadas ao técnico logado
-  static Future<List<dynamic>> buscarMinhasOS(String tecnicoId) async {
+  // Busca todos os assuntos de O.S. e retorna como mapa {id -> nome}
+  static Future<Map<String, String>> buscarAssuntos() async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/su_oss_chamado'),
+        Uri.parse('$baseUrl/su_oss_assunto'),
         headers: _headers,
         body: jsonEncode({
-          'qtype': 'su_oss_chamado.id_tecnico', // Busca pelo ID do técnico
-          'query': tecnicoId,
-          'oper': '=',
+          'qtype': 'su_oss_assunto.id',
+          'query': '1',
+          'oper': '>=',
           'page': '1',
-          'rp': '50',
-          'sortname': 'su_oss_chamado.id',
-          'sortorder': 'desc'
+          'rp': '1000',
+          'sortname': 'su_oss_assunto.id',
+          'sortorder': 'asc'
         }),
       );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final Map<String, String> mapa = {};
+        for (var item in (data['registros'] ?? [])) {
+          mapa[item['id'].toString()] = item['assunto']?.toString() ?? '';
+        }
+        return mapa;
+      }
+      return {};
+    } catch (e) {
+      print('Erro ao buscar assuntos: $e');
+      return {};
+    }
+  }
+
+  // Busca O.S. (Suporte) com status AGENDADA do técnico logado, dentro de ±3 dias
+  static Future<List<dynamic>> buscarMinhasOS(String tecnicoId) async {
+    try {
+      // Busca assuntos e OS em paralelo para economizar tempo
+      final resultados = await Future.wait([
+        http.post(
+          Uri.parse('$baseUrl/su_oss_chamado'),
+          headers: _headers,
+          body: jsonEncode({
+            'qtype': 'su_oss_chamado.id_tecnico',
+            'query': tecnicoId,
+            'oper': '=',
+            'page': '1',
+            'rp': '200',
+            'sortname': 'su_oss_chamado.data_agenda',
+            'sortorder': 'asc'
+          }),
+        ),
+      ]);
+
+      final assuntos = await buscarAssuntos();
+      final response = resultados[0];
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['registros'] != null) {
-          return data['registros'];
+          final List<dynamic> todas = data['registros'];
+          final agora = DateTime.now();
+          final limitePassado = agora.subtract(const Duration(days: 3));
+          final limiteFuturo = agora.add(const Duration(days: 3));
+
+          final filtradas = todas.where((os) {
+            if (os['status'] != 'AG') return false;
+            final String? dataStr = os['data_agenda'];
+            if (dataStr == null || dataStr.isEmpty) return false;
+            try {
+              final dataAgenda = DateTime.parse(dataStr);
+              return dataAgenda.isAfter(limitePassado) && dataAgenda.isBefore(limiteFuturo);
+            } catch (_) {
+              return false;
+            }
+          }).toList();
+
+          // Substitui id_assunto pelo nome real
+          for (var os in filtradas) {
+            final idAssunto = os['id_assunto']?.toString() ?? '';
+            os['assunto_nome'] = assuntos[idAssunto] ?? 'Assunto #$idAssunto';
+          }
+
+          return filtradas;
         }
       }
       return [];
