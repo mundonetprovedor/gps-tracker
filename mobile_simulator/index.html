@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador - App Técnico</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f0f2f5; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        input, select, button { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { background: #4318FF; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #320dd1; }
+        .log { background: #333; color: #0f0; padding: 10px; border-radius: 8px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="card" id="mainCard">
+        <h2>📱 App do Técnico</h2>
+        
+        <div id="setupView">
+            <input type="text" id="teamName" placeholder="Nome da Equipe (ex: Equipe Alpha)" value="Equipe Alpha">
+            <button id="connectBtn" onclick="connect()">Iniciar App</button>
+        </div>
+
+        <div id="trackingView" style="display:none;">
+            <p style="color: #059669; font-weight: bold;">Rastreamento em andamento (Oculto)</p>
+            <button id="stopBtn" onclick="requestStop()" style="background: #e53e3e;">Parar App</button>
+            
+            <div id="passwordSection" style="display:none; margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px;">
+                <p style="font-size: 14px; margin-bottom: 10px; color: #666;">Digite a senha para desativar o GPS:</p>
+                <input type="password" id="stopPassword" placeholder="Senha Administrativa">
+                <button onclick="confirmStop()" style="background: #e53e3e;">Confirmar</button>
+                <button onclick="cancelStop()" style="background: #888;">Cancelar</button>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h3 style="font-size: 14px; color: #666;">Log do Sistema (Visível para debug)</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let locationInterval;
+        let currentLat = -23.5505;
+        let currentLng = -46.6333;
+        const ADMIN_PASSWORD = "123"; // Senha para parar o app
+
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.innerHTML += `> ${msg}<br>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function connect() {
+            const teamName = document.getElementById('teamName').value;
+            if (!teamName.trim()) {
+                alert("Por favor, informe o nome da equipe.");
+                return;
+            }
+            
+            socket = io('http://localhost:3000');
+            
+            socket.on('connect', () => {
+                log('Conectado! Rastreador ativo.');
+                socket.emit('register_team', {
+                    teamId: 'team_' + Math.floor(Math.random() * 1000),
+                    name: teamName
+                });
+                
+                // Muda a interface para o modo "escondido"
+                document.getElementById('setupView').style.display = 'none';
+                document.getElementById('trackingView').style.display = 'block';
+
+                locationInterval = setInterval(sendLocation, 3000);
+                sendLocation();
+            });
+            
+            socket.on('disconnect', () => {
+                log('Desconectado do servidor');
+            });
+        }
+
+        function sendLocation() {
+            currentLat += (Math.random() - 0.5) * 0.005;
+            currentLng += (Math.random() - 0.5) * 0.005;
+
+            // Envia o status sempre como "Online" já que não há mais seleção manual
+            socket.emit('update_location', {
+                lat: currentLat,
+                lng: currentLng,
+                status: "Online"
+            });
+            
+            log(`Coordenada: ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`);
+        }
+
+        function requestStop() {
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('passwordSection').style.display = 'block';
+            document.getElementById('stopPassword').value = '';
+            document.getElementById('stopPassword').focus();
+        }
+
+        function cancelStop() {
+            document.getElementById('passwordSection').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
+        }
+
+        function confirmStop() {
+            const pwd = document.getElementById('stopPassword').value;
+            if (pwd === ADMIN_PASSWORD) {
+                if (socket) socket.disconnect();
+                if (locationInterval) clearInterval(locationInterval);
+                
+                log('Rastreamento finalizado pelo administrador.');
+                
+                // Reseta a interface
+                document.getElementById('passwordSection').style.display = 'none';
+                document.getElementById('trackingView').style.display = 'none';
+                document.getElementById('setupView').style.display = 'block';
+                document.getElementById('stopBtn').style.display = 'block';
+            } else {
+                alert("Senha incorreta!");
+            }
+        }
+    </script>
+</body>
+</html>

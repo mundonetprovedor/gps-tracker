@@ -1,0 +1,29 @@
+# Node.js
+node_modules/
+npm-debug.log*
+.env
+
+# Flutter / Dart
+mobile_app/.dart_tool/
+mobile_app/build/
+mobile_app/.flutter-plugins
+mobile_app/.flutter-plugins-dependencies
+mobile_app/.packages
+mobile_app/pubspec.lock
+C:/GPS_Temp_Build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# APK output (track source, not binaries)
+*.apk
+*.aab
+
+# Dashboard server (helper script, not needed in prod)
+backend/dashboard-server.js
