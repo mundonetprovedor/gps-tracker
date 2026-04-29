@@ -9,6 +9,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'tabs/client_lookup_tab.dart';
+import 'tabs/service_orders_tab.dart';
 
 const String kServerUrl = "https://mundonet-gps.49p1k1.easypanel.host";
 
@@ -106,6 +108,7 @@ class TrackerScreen extends StatefulWidget {
 }
 
 class _TrackerScreenState extends State<TrackerScreen> {
+  int _currentIndex = 0;
   final TextEditingController _controller = TextEditingController();
   bool _isRunning = false;
   StreamSubscription<Position>? _uiPositionStream;
@@ -200,12 +203,39 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> tabs = [
+      _buildDiagnosticTab(),
+      const ClientLookupTab(),
+      const ServiceOrdersTab(),
+    ];
+
     return Scaffold(
-      body: Container(
-        color: const Color(0xFF121212),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
+      body: tabs[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xFF121212),
+        selectedItemColor: const Color(0xFF39B8FF),
+        unselectedItemColor: Colors.white30,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.settings_system_daydream), label: 'Sistema'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_search), label: 'Raio-X'),
+          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Minhas O.S.'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiagnosticTab() {
+    return Container(
+      color: const Color(0xFF121212),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Column(
               children: [
                 const SizedBox(height: 60),
@@ -304,8 +334,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildDiagInfo(String label, String value, IconData icon) {
