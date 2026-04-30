@@ -37,61 +37,76 @@ class GpsTaskHandler extends TaskHandler {
   @override
   void onStart(DateTime timestamp, SendPort? sendPort) async {
     _sendPort = sendPort;
-    _sendLog('Serviço iniciado');
+    _sendLog('1. Isolate iniciado');
     
-    final customData = await FlutterForegroundTask.getData<Map<String, dynamic>>(key: 'trackingData');
-    final String teamId = customData?['teamId'] ?? 'device_${DateTime.now().millisecondsSinceEpoch}';
-    final String teamName = customData?['teamName'] ?? "Técnico";
+    try {
+      final customData = await FlutterForegroundTask.getData<Map<String, dynamic>>(key: 'trackingData');
+      _sendLog('2. Dados carregados: ${customData?['teamName']}');
 
-    _socket = IO.io(kServerUrl, <String, dynamic>{
-      'transports': ['websocket', 'polling'],
-      'autoConnect': true,
-      'forceNew': true,
-      'reconnection': true,
-      'reconnectionAttempts': 100,
-    });
+      final String teamId = customData?['teamId'] ?? 'device_${DateTime.now().millisecondsSinceEpoch}';
+      final String teamName = customData?['teamName'] ?? "Técnico";
 
-    _socket?.onConnect((_) {
-      _sendLog('Socket: CONECTADO ✅');
-      _socket?.emit('register_team', {'teamId': teamId, 'name': teamName});
-    });
+      _sendLog('3. Conectando: $kServerUrl');
+      _socket = IO.io(kServerUrl, <String, dynamic>{
+        'transports': ['websocket', 'polling'],
+        'autoConnect': true,
+        'forceNew': true,
+        'reconnection': true,
+        'reconnectionDelay': 1000,
+        'reconnectionAttempts': 500,
+      });
 
-    _socket?.onConnectError((err) => _sendLog('Socket Erro: $err ❌'));
-    _socket?.onDisconnect((_) => _sendLog('Socket: DESCONECTADO ⚠️'));
+      _socket?.onConnect((_) {
+        _sendLog('4. Socket: CONECTADO ✅');
+        _socket?.emit('register_team', {'teamId': teamId, 'name': teamName});
+      });
 
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: AndroidSettings(
-        accuracy: LocationAccuracy.best,
-        distanceFilter: 0,
-        intervalDuration: const Duration(seconds: 5),
-      )
-    ).listen((Position position) async {
-      _sendLog('GPS: Localização OK 📍');
+      _socket?.onConnectError((err) => _sendLog('Erro Socket: $err'));
+      _socket?.onConnectTimeout((_) => _sendLog('Timeout Socket ⏳'));
+
+      _sendLog('5. Ativando GPS...');
       
-      int battLevel = await _battery.batteryLevel;
-      var connResult = await _connectivity.checkConnectivity();
-      String network = connResult.toString().split('.').last;
+      // Verificar permissão antes de ouvir
+      LocationPermission permission = await Geolocator.checkPermission();
+      _sendLog('6. Permissão GPS: $permission');
 
-      if (_socket != null && _socket!.connected) {
-        _socket!.emit('update_location', {
-          'lat': position.latitude, 
-          'lng': position.longitude, 
-          'speed': position.speed * 3.6,
-          'heading': position.heading,
-          'battery': battLevel,
-          'network': network,
-          'status': 'Online'
-        });
-        _sendLog('Dados: Enviados com sucesso 🚀');
-      } else {
-        _sendLog('Dados: Socket offline ⏳');
-      }
+      _positionStream = Geolocator.getPositionStream(
+        locationSettings: AndroidSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 0,
+          intervalDuration: const Duration(seconds: 5),
+        )
+      ).listen((Position position) async {
+        _sendLog('7. GPS: Localização OK 📍');
+        
+        int battLevel = await _battery.batteryLevel;
+        var connResult = await _connectivity.checkConnectivity();
+        String network = connResult.toString().split('.').last;
+
+        if (_socket != null && _socket!.connected) {
+          _socket!.emit('update_location', {
+            'lat': position.latitude, 
+            'lng': position.longitude, 
+            'speed': position.speed * 3.6,
+            'heading': position.heading,
+            'battery': battLevel,
+            'network': network,
+            'status': 'Online'
+          });
+          _sendLog('8. Dados: ENVIADOS 🚀');
+        } else {
+          _sendLog('Aguardando Socket... ⏳');
+        }
+        
+        FlutterForegroundTask.updateService(
+          notificationTitle: 'Mundonet Tracker • OK',
+          notificationText: 'Sincronizado às ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
+        );
+      }, onError: (err) => _sendLog('ERRO GPS: $err ❌'));
       
-      FlutterForegroundTask.updateService(
-        notificationTitle: 'Mundonet Tracker • OK',
-        notificationText: 'Sincronizado às ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
-      );
-    }, onError: (err) => _sendLog('GPS Erro: $err ❌'));
+    } catch (e) {
+      _sendLog('ERRO FATAL: $e');
+    }
   }
 
   @override
