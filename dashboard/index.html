@@ -240,14 +240,24 @@ function setMapLayer(type) {
 }
 
 // ── SOCKET & DATA ──
+// ── SOCKET & DATA ──
 function initSocket() {
-    const socket = io();
+    // Tenta conectar ao servidor correto, mesmo que o index.html seja aberto localmente
+    const serverUrl = window.location.hostname === 'localhost' || window.location.hostname === '' 
+        ? 'https://mundonet-gps.49p1k1.easypanel.host' 
+        : window.location.origin;
+        
+    console.log('Conectando ao servidor:', serverUrl);
+    const socket = io(serverUrl);
+    
+    socket.on('connect', () => console.log('✅ Dashboard conectado ao Socket.io'));
+
     socket.on('update_teams', data => { 
         teams = data; 
         renderList(); 
-        // Desenhar todos os marcadores já conhecidos
         Object.keys(teams).forEach(id => updateMarker(id, teams[id]));
     });
+
     socket.on('team_location_update', data => {
         const team = data.team;
         teams[data.socketId] = team;
@@ -257,7 +267,7 @@ function initSocket() {
 }
 
 function updateMarker(id, team) {
-    if (!team.lastLocation) return;
+    if (!team.lastLocation || !team.lastLocation.lat) return;
     const newPos = [team.lastLocation.lat, team.lastLocation.lng];
     const newHeading = team.lastLocation.heading || 0;
 
@@ -265,14 +275,14 @@ function updateMarker(id, team) {
         className: 'custom-marker',
         html: `
             <div class="marker-label">${team.name}</div>
-            <img src="car_icon.png" class="marker-icon-img">
+            <img src="car_icon.png" class="marker-icon-img" style="transform: rotate(${newHeading}deg)">
         `,
         iconSize: [80, 80],
         iconAnchor: [40, 80]
     });
 
     if (!markers[id]) {
-        markers[id] = L.marker(newPos, { icon: customIcon }).addTo(map).bindPopup(team.name);
+        markers[id] = L.marker(newPos, { icon: customIcon }).addTo(map).bindPopup(`<b>${team.name}</b><br>Velocidade: ${team.lastLocation.speed?.toFixed(1)} km/h`);
         markers[id]._currentHeading = newHeading;
         paths[id] = L.polyline([], { color: '#39B8FF', weight: 3 }).addTo(map);
     } else {
@@ -290,8 +300,6 @@ function updateMarker(id, team) {
 
 function animateMarker(marker, from, to, fromHeading, toHeading, duration) {
     const start = performance.now();
-    
-    // Normalizar rotação para o caminho mais curto
     if (Math.abs(toHeading - fromHeading) > 180) {
         if (toHeading > fromHeading) fromHeading += 360;
         else toHeading += 360;
@@ -300,17 +308,12 @@ function animateMarker(marker, from, to, fromHeading, toHeading, duration) {
     function tick(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
-        
-        // Posição
         const lat = from.lat + (to.lat - from.lat) * progress;
         const lng = from.lng + (to.lng - from.lng) * progress;
         marker.setLatLng([lat, lng]);
-
-        // Rotação
         const rot = fromHeading + (toHeading - fromHeading) * progress;
         const img = marker.getElement()?.querySelector('.marker-icon-img');
         if (img) img.style.transform = `rotate(${rot}deg)`;
-
         if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -319,6 +322,18 @@ function animateMarker(marker, from, to, fromHeading, toHeading, duration) {
 function filterTeams() {
     currentSearch = document.getElementById('search-input').value.toLowerCase();
     renderList();
+}
+
+function focusTeam(id) {
+    selectedTeamId = id;
+    const team = teams[id];
+    renderList();
+    if (team && team.lastLocation && team.lastLocation.lat) {
+        map.setView([team.lastLocation.lat, team.lastLocation.lng], 17);
+        if (markers[id]) markers[id].openPopup();
+    } else {
+        alert('Aguardando sinal GPS deste dispositivo...');
+    }
 }
 
 function renderList() {
@@ -333,7 +348,7 @@ function renderList() {
 
         const card = document.createElement('div');
         card.className = `tcard ${selectedTeamId === id ? 'active' : ''}`;
-        card.onclick = () => { selectedTeamId = id; renderList(); if(team.lastLocation) map.setView([team.lastLocation.lat, team.lastLocation.lng], 16); };
+        card.onclick = () => focusTeam(id);
         
         const batColor = team.battery < 20 ? '#ff4d4d' : (team.battery < 50 ? '#ffae00' : '#34d399');
 
@@ -343,15 +358,15 @@ function renderList() {
                 <span class="status-badge ${team.status === 'Online' ? 'badge-on' : 'badge-off'}">${team.status}</span>
             </div>
             <div class="tcard-telemetry">
-                <div class="tel-item" style="color: ${batColor}">🔋 ${team.battery || 100}%</div>
-                <div class="tel-item">📡 ${team.network || '4G'}</div>
+                <div class="tel-item" style="color: ${batColor}">🔋 ${team.battery || 0}%</div>
+                <div class="tel-item">📡 ${team.network || '---'}</div>
             </div>
             <div class="tcard-metrics">
                 <div class="tm"><b>${(team.lastLocation?.speed || 0).toFixed(0)}</b><small>KM/H</small></div>
                 <div class="tm"><b>${(team.totalDistance || 0).toFixed(1)}</b><small>Dist.</small></div>
                 <div class="tm"><b>${team.stops?.length || 0}</b><small>Paradas</small></div>
             </div>
-            <button class="btn-focus">VER NO MAPA</button>
+            <button class="btn-focus" onclick="event.stopPropagation(); focusTeam('${id}')">VER NO MAPA</button>
         `;
         list.appendChild(card);
     });
