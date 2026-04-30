@@ -27,43 +27,47 @@ class GpsTaskHandler extends TaskHandler {
   StreamSubscription<Position>? _positionStream;
   final Battery _battery = Battery();
   final Connectivity _connectivity = Connectivity();
+  SendPort? _sendPort;
+
+  void _sendLog(String msg) {
+    print('LOG: $msg');
+    _sendPort?.send({'log': msg});
+  }
 
   @override
   void onStart(DateTime timestamp, SendPort? sendPort) async {
-    // Pegar dados passados pelo processo principal
+    _sendPort = sendPort;
+    _sendLog('Serviço iniciado');
+    
     final customData = await FlutterForegroundTask.getData<Map<String, dynamic>>(key: 'trackingData');
     final String teamId = customData?['teamId'] ?? 'device_${DateTime.now().millisecondsSinceEpoch}';
     final String teamName = customData?['teamName'] ?? "Técnico";
 
     _socket = IO.io(kServerUrl, <String, dynamic>{
-      'transports': ['websocket'],
+      'transports': ['websocket', 'polling'],
       'autoConnect': true,
       'forceNew': true,
+      'reconnection': true,
+      'reconnectionAttempts': 100,
     });
 
     _socket?.onConnect((_) {
-      print('Background Socket Connected');
+      _sendLog('Socket: CONECTADO ✅');
       _socket?.emit('register_team', {'teamId': teamId, 'name': teamName});
-      FlutterForegroundTask.updateService(
-        notificationTitle: 'Mundonet Tracker [ON]',
-        notificationText: 'Conectado ao servidor',
-      );
     });
 
-    _socket?.onConnectError((err) {
-      FlutterForegroundTask.updateService(
-        notificationTitle: 'Mundonet Tracker [ERRO]',
-        notificationText: 'Erro de conexão: $err',
-      );
-    });
+    _socket?.onConnectError((err) => _sendLog('Socket Erro: $err ❌'));
+    _socket?.onDisconnect((_) => _sendLog('Socket: DESCONECTADO ⚠️'));
 
     _positionStream = Geolocator.getPositionStream(
       locationSettings: AndroidSettings(
-        accuracy: LocationAccuracy.high,
+        accuracy: LocationAccuracy.best,
         distanceFilter: 0,
         intervalDuration: const Duration(seconds: 5),
       )
     ).listen((Position position) async {
+      _sendLog('GPS: Localização OK 📍');
+      
       int battLevel = await _battery.batteryLevel;
       var connResult = await _connectivity.checkConnectivity();
       String network = connResult.toString().split('.').last;
@@ -78,17 +82,21 @@ class GpsTaskHandler extends TaskHandler {
           'network': network,
           'status': 'Online'
         });
+        _sendLog('Dados: Enviados com sucesso 🚀');
+      } else {
+        _sendLog('Dados: Socket offline ⏳');
       }
       
       FlutterForegroundTask.updateService(
         notificationTitle: 'Mundonet Tracker • OK',
-        notificationText: 'Localização enviada às ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
+        notificationText: 'Sincronizado às ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
       );
-    });
+    }, onError: (err) => _sendLog('GPS Erro: $err ❌'));
   }
 
   @override
   void onDestroy(DateTime timestamp, SendPort? sendPort) async {
+    _sendLog('Serviço finalizado');
     await _positionStream?.cancel();
     _socket?.disconnect();
   }
@@ -109,10 +117,7 @@ class GpsTrackerApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0B0E14),
         primaryColor: const Color(0xFF39B8FF),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF39B8FF), 
-          secondary: Color(0xFF002D62),
-        ),
+        colorScheme: const ColorScheme.dark(primary: Color(0xFF39B8FF), secondary: Color(0xFF002D62)),
       ),
       home: const TrackerScreen(),
     );
@@ -128,6 +133,8 @@ class TrackerScreen extends StatefulWidget {
 class _TrackerScreenState extends State<TrackerScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _isRunning = false;
+  final List<String> _logs = [];
+  ReceivePort? _receivePort;
 
   @override
   void initState() {
@@ -135,6 +142,17 @@ class _TrackerScreenState extends State<TrackerScreen> {
     _loadStoredName();
     _initForegroundTask();
     _checkStatus();
+  }
+
+  @override
+  void dispose() {
+    _closeReceivePort();
+    super.dispose();
+  }
+
+  void _closeReceivePort() {
+    _receivePort?.close();
+    _receivePort = null;
   }
 
   Future<void> _loadStoredName() async {
@@ -170,57 +188,63 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   Future<void> _checkStatus() async {
     final running = await FlutterForegroundTask.isRunningService;
+    if (running) {
+      _registerReceivePort(await FlutterForegroundTask.receivePort);
+    }
     if (!await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
       await FlutterForegroundTask.requestIgnoreBatteryOptimization();
     }
     setState(() => _isRunning = running);
   }
 
+  void _registerReceivePort(ReceivePort? newReceivePort) {
+    if (newReceivePort == null) return;
+    _closeReceivePort();
+    _receivePort = newReceivePort;
+    _receivePort?.listen((data) {
+      if (data is Map && data.containsKey('log')) {
+        setState(() {
+          _logs.add(data['log']);
+          if (_logs.length > 20) _logs.removeAt(0);
+        });
+      }
+    });
+  }
+
   Future<void> _start() async {
     if (_controller.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, identifique o técnico/veículo')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Identifique o técnico')));
       return;
     }
     
-    // Solicitar permissões críticas para Android 13
     await Permission.notification.request();
     var status = await Permission.location.request();
     if (status.isDenied) return;
 
     var backgroundStatus = await Permission.locationAlways.request();
     if (backgroundStatus.isDenied) {
-      // No Android 13+ isso geralmente exige que o usuário vá nas configurações
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ative "Permitir o tempo todo" nas configurações de localização'),
-          duration: Duration(seconds: 5),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ative "Permitir o tempo todo"')));
       await openAppSettings();
       return;
     }
     
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('currentTeamName', _controller.text);
-    String? teamId = prefs.getString('deviceTeamId');
-    if (teamId == null) {
-      teamId = 'team_${DateTime.now().millisecondsSinceEpoch}';
-      await prefs.setString('deviceTeamId', teamId);
-    }
+    String? teamId = prefs.getString('deviceTeamId') ?? 'team_${DateTime.now().millisecondsSinceEpoch}';
+    if (prefs.getString('deviceTeamId') == null) await prefs.setString('deviceTeamId', teamId);
     
-    // Passar os dados para o Isolate de segundo plano
-    await FlutterForegroundTask.saveData(key: 'trackingData', value: {
-      'teamId': teamId,
-      'teamName': _controller.text
-    });
+    await FlutterForegroundTask.saveData(key: 'trackingData', value: {'teamId': teamId, 'teamName': _controller.text});
 
-    await FlutterForegroundTask.startService(
+    final bool result = await FlutterForegroundTask.startService(
       notificationTitle: 'Mundonet Tracker',
-      notificationText: 'Iniciando conexão...',
+      notificationText: 'Iniciando...',
       callback: startCallback,
     );
+
+    if (result) {
+      _registerReceivePort(await FlutterForegroundTask.receivePort);
+    }
+    
     await WakelockPlus.enable();
     _checkStatus();
   }
@@ -232,21 +256,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1F26),
         title: const Text('Confirmar Interrupção'),
-        content: TextField(
-          controller: pinController,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            hintText: 'PIN de administrador',
-            hintStyle: TextStyle(color: Colors.white24),
-          ),
-        ),
+        content: TextField(controller: pinController, obscureText: true, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'PIN administrador')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCELAR')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, pinController.text == '9910'), 
-            child: const Text('CONFIRMAR', style: TextStyle(color: Color(0xFF39B8FF))),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, pinController.text == '9910'), child: const Text('OK')),
         ],
       ),
     );
@@ -254,110 +267,36 @@ class _TrackerScreenState extends State<TrackerScreen> {
     if (confirm == true) {
       await FlutterForegroundTask.stopService();
       await WakelockPlus.disable();
+      _closeReceivePort();
       _checkStatus();
-    } else if (confirm == false) {
-      if (!mounted) return;
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN incorreto ou operação cancelada')),
-      );
+      setState(() => _logs.clear());
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF002D62), Color(0xFF0B0E14)],
+      body: WithForegroundTask(
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF002D62), Color(0xFF0B0E14)]),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: Column(
-              children: [
-                const SizedBox(height: 60),
-                Image.network(
-                  'https://mundonetbandalarga.com.br/wp-content/uploads/2021/04/logo-mundonet.png',
-                  height: 60,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.location_on, size: 60, color: Color(0xFF39B8FF)),
-                ),
-                const SizedBox(height: 10),
-                const Text('TRACKER SYSTEM v3.2', style: TextStyle(letterSpacing: 3, fontSize: 10, color: Colors.white30, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 80),
-                
-                Container(
-                  padding: const EdgeInsets.all(30),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.03),
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: Colors.white10),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      _buildStatusIndicator(),
-                      const SizedBox(height: 30),
-                      if (!_isRunning) ...[
-                        TextField(
-                          controller: _controller,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                          decoration: InputDecoration(
-                            hintText: 'Identificação (Ex: Tec. João)',
-                            hintStyle: const TextStyle(color: Colors.white24),
-                            filled: true,
-                            fillColor: Colors.black26,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                          ),
-                        ),
-                        const SizedBox(height: 25),
-                        SizedBox(
-                          width: double.infinity, height: 60,
-                          child: ElevatedButton(
-                            onPressed: _start,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF39B8FF),
-                              foregroundColor: const Color(0xFF002D62),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 0,
-                            ),
-                            child: const Text('ATIVAR RASTREAMENTO', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                          ),
-                        ),
-                      ] else ...[
-                        Text(
-                          _controller.text.toUpperCase(), 
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text('DISPOSITIVO EM MONITORAMENTO', style: TextStyle(color: Color(0xFF34D399), fontSize: 12, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 40),
-                        SizedBox(
-                          width: double.infinity, height: 55,
-                          child: OutlinedButton(
-                            onPressed: _stop,
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            child: const Text('INTERROMPER SERVIÇO', style: TextStyle(color: Colors.white30, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 40),
-                _buildDiagnosticsCard(),
-                const SizedBox(height: 40),
-              ],
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              child: Column(
+                children: [
+                  const SizedBox(height: 50),
+                  Image.network('https://mundonetbandalarga.com.br/wp-content/uploads/2021/04/logo-mundonet.png', height: 50, errorBuilder: (c, e, s) => const Icon(Icons.location_on, size: 50, color: Color(0xFF39B8FF))),
+                  const SizedBox(height: 40),
+                  _buildMainCard(),
+                  const SizedBox(height: 20),
+                  _buildDiagnosticsCard(),
+                  const SizedBox(height: 20),
+                  _buildLogCard(),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ),
@@ -365,48 +304,67 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
+  Widget _buildMainCard() {
+    return Container(
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white10)),
+      child: Column(
+        children: [
+          _buildStatusIndicator(),
+          const SizedBox(height: 20),
+          if (!_isRunning) ...[
+            TextField(controller: _controller, textAlign: TextAlign.center, decoration: InputDecoration(hintText: 'Nome do Técnico', filled: true, fillColor: Colors.black26, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+            const SizedBox(height: 20),
+            SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _start, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF39B8FF), foregroundColor: Colors.black), child: const Text('ATIVAR RASTREAMENTO', style: TextStyle(fontWeight: FontWeight.bold)))),
+          ] else ...[
+            Text(_controller.text.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const Text('SISTEMA OPERACIONAL', style: TextStyle(color: Color(0xFF34D399), fontSize: 11)),
+            const SizedBox(height: 30),
+            OutlinedButton(onPressed: _stop, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white10)), child: const Text('PARAR SERVIÇO', style: TextStyle(color: Colors.white30))),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogCard() {
+    return Container(
+      width: double.infinity, height: 150, padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: Colors.black38, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('LOG DE EVENTOS', style: TextStyle(fontSize: 9, color: Colors.white30, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.builder(
+              reverse: true,
+              itemCount: _logs.length,
+              itemBuilder: (context, index) => Text(_logs[_logs.length - 1 - index], style: const TextStyle(fontSize: 10, color: Colors.white70, fontFamily: 'monospace')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatusIndicator() {
     return Container(
-      width: 100, height: 100,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: _isRunning ? const Color(0xFF34D399).withOpacity(0.1) : Colors.white.withOpacity(0.05),
-        border: Border.all(
-          color: _isRunning ? const Color(0xFF34D399) : Colors.white10,
-          width: 2,
-        ),
-      ),
-      child: Icon(
-        _isRunning ? Icons.radar : Icons.power_settings_new, 
-        color: _isRunning ? const Color(0xFF34D399) : Colors.white24, 
-        size: 50
-      ),
+      width: 80, height: 80,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: _isRunning ? const Color(0xFF34D399).withOpacity(0.1) : Colors.white10, border: Border.all(color: _isRunning ? const Color(0xFF34D399) : Colors.white10)),
+      child: Icon(_isRunning ? Icons.radar : Icons.power_settings_new, color: _isRunning ? const Color(0xFF34D399) : Colors.white24, size: 40),
     );
   }
 
   Widget _buildDiagnosticsCard() {
     return Container(
-      padding: const EdgeInsets.all(25),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.02),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white10),
-      ),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.02), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Icon(Icons.analytics_outlined, size: 18, color: Color(0xFF39B8FF)),
-              SizedBox(width: 10),
-              Text('TELEMETRIA DO SISTEMA', style: TextStyle(fontSize: 11, color: Colors.white54, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildDiagRow('Status do Satélite', _isRunning ? 'Conectado' : 'Aguardando', Icons.satellite_alt),
-          _buildDiagRow('Precisão do GPS', _isRunning ? 'Alta' : 'N/A', Icons.location_searching),
-          _buildDiagRow('Envio de Dados', _isRunning ? 'Tempo Real' : 'Pausado', Icons.sync),
-          _buildDiagRow('Modo de Energia', 'Otimizado', Icons.battery_saver),
+          _buildDiagRow('Sinal Satélite', _isRunning ? 'OK' : '--', Icons.satellite_alt),
+          _buildDiagRow('Frequência', '5 seg', Icons.timer_outlined),
+          _buildDiagRow('Servidor', 'Mundonet', Icons.cloud_queue),
         ],
       ),
     );
@@ -414,21 +372,14 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   Widget _buildDiagRow(String label, String value, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: Colors.white24),
-              const SizedBox(width: 10),
-              Text(label, style: const TextStyle(fontSize: 13, color: Colors.white70)),
-            ],
-          ),
-          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _isRunning ? const Color(0xFF39B8FF) : Colors.white30)),
+          Row(children: [Icon(icon, size: 14, color: Colors.white24), const SizedBox(width: 8), Text(label, style: const TextStyle(fontSize: 12, color: Colors.white70))]),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF39B8FF))),
         ],
       ),
     );
   }
 }
-
