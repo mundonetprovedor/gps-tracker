@@ -30,22 +30,33 @@ class GpsTaskHandler extends TaskHandler {
 
   @override
   void onStart(DateTime timestamp, SendPort? sendPort) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String teamId = prefs.getString('deviceTeamId') ?? 'team_${DateTime.now().millisecondsSinceEpoch}';
-    if (prefs.getString('deviceTeamId') == null) await prefs.setString('deviceTeamId', teamId);
-    final String teamName = prefs.getString('currentTeamName') ?? "Técnico";
+    // Pegar dados passados pelo processo principal
+    final customData = await FlutterForegroundTask.getData<Map<String, dynamic>>(key: 'trackingData');
+    final String teamId = customData?['teamId'] ?? 'device_${DateTime.now().millisecondsSinceEpoch}';
+    final String teamName = customData?['teamName'] ?? "Técnico";
 
     _socket = IO.io(kServerUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
+      'forceNew': true,
     });
 
     _socket?.onConnect((_) {
+      print('Background Socket Connected');
       _socket?.emit('register_team', {'teamId': teamId, 'name': teamName});
     });
 
     _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 0)
+      locationSettings: AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+        intervalDuration: const Duration(seconds: 5),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationText: "Rastreamento Mundonet Ativo",
+          notificationTitle: "Localização em Tempo Real",
+          enableWakeLock: true,
+        )
+      )
     ).listen((Position position) async {
       int battLevel = await _battery.batteryLevel;
       var connResult = await _connectivity.checkConnectivity();
@@ -65,7 +76,7 @@ class GpsTaskHandler extends TaskHandler {
       
       FlutterForegroundTask.updateService(
         notificationTitle: 'Mundonet Tracker',
-        notificationText: 'Localização em tempo real ativa',
+        notificationText: 'Última att: ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
       );
     });
   }
@@ -132,8 +143,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'mundonet_tracker_v1',
         channelName: 'Mundonet Tracking Service',
-        channelImportance: NotificationChannelImportance.LOW, 
-        priority: NotificationPriority.LOW,
+        channelImportance: NotificationChannelImportance.HIGH, 
+        priority: NotificationPriority.HIGH,
         isSticky: true,
         visibility: NotificationVisibility.VISIBILITY_PUBLIC,
         iconData: const NotificationIconData(
@@ -167,13 +178,38 @@ class _TrackerScreenState extends State<TrackerScreen> {
       return;
     }
     
+    // Solicitar permissões críticas para Android 13
     await Permission.notification.request();
-    await Permission.location.request();
-    await Permission.locationAlways.request();
+    var status = await Permission.location.request();
+    if (status.isDenied) return;
+
+    var backgroundStatus = await Permission.locationAlways.request();
+    if (backgroundStatus.isDenied) {
+      // No Android 13+ isso geralmente exige que o usuário vá nas configurações
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ative "Permitir o tempo todo" nas configurações de localização'),
+          duration: Duration(seconds: 5),
+        ),
+      );
+      await openAppSettings();
+      return;
+    }
     
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('currentTeamName', _controller.text);
+    String? teamId = prefs.getString('deviceTeamId');
+    if (teamId == null) {
+      teamId = 'team_${DateTime.now().millisecondsSinceEpoch}';
+      await prefs.setString('deviceTeamId', teamId);
+    }
     
+    // Passar os dados para o Isolate de segundo plano
+    await FlutterForegroundTask.saveData(key: 'trackingData', value: {
+      'teamId': teamId,
+      'teamName': _controller.text
+    });
+
     await FlutterForegroundTask.startService(
       notificationTitle: 'Mundonet Tracker',
       notificationText: 'Serviço Iniciado',
@@ -244,7 +280,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                   errorBuilder: (context, error, stackTrace) => const Icon(Icons.location_on, size: 60, color: Color(0xFF39B8FF)),
                 ),
                 const SizedBox(height: 10),
-                const Text('TRACKER SYSTEM v3.0', style: TextStyle(letterSpacing: 3, fontSize: 10, color: Colors.white30, fontWeight: FontWeight.bold)),
+                const Text('TRACKER SYSTEM v3.1', style: TextStyle(letterSpacing: 3, fontSize: 10, color: Colors.white30, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 80),
                 
                 Container(
