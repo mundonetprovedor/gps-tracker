@@ -44,6 +44,17 @@ class GpsTaskHandler extends TaskHandler {
     _socket?.onConnect((_) {
       print('Background Socket Connected');
       _socket?.emit('register_team', {'teamId': teamId, 'name': teamName});
+      FlutterForegroundTask.updateService(
+        notificationTitle: 'Mundonet Tracker [ON]',
+        notificationText: 'Conectado ao servidor',
+      );
+    });
+
+    _socket?.onConnectError((err) {
+      FlutterForegroundTask.updateService(
+        notificationTitle: 'Mundonet Tracker [ERRO]',
+        notificationText: 'Erro de conexão: $err',
+      );
     });
 
     _positionStream = Geolocator.getPositionStream(
@@ -51,11 +62,6 @@ class GpsTaskHandler extends TaskHandler {
         accuracy: LocationAccuracy.high,
         distanceFilter: 0,
         intervalDuration: const Duration(seconds: 5),
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: "Rastreamento Mundonet Ativo",
-          notificationTitle: "Localização em Tempo Real",
-          enableWakeLock: true,
-        )
       )
     ).listen((Position position) async {
       int battLevel = await _battery.batteryLevel;
@@ -75,8 +81,8 @@ class GpsTaskHandler extends TaskHandler {
       }
       
       FlutterForegroundTask.updateService(
-        notificationTitle: 'Mundonet Tracker',
-        notificationText: 'Última att: ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
+        notificationTitle: 'Mundonet Tracker • OK',
+        notificationText: 'Localização enviada às ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
       );
     });
   }
@@ -212,7 +218,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
     await FlutterForegroundTask.startService(
       notificationTitle: 'Mundonet Tracker',
-      notificationText: 'Serviço Iniciado',
+      notificationText: 'Iniciando conexão...',
       callback: startCallback,
     );
     await WakelockPlus.enable();
@@ -280,7 +286,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                   errorBuilder: (context, error, stackTrace) => const Icon(Icons.location_on, size: 60, color: Color(0xFF39B8FF)),
                 ),
                 const SizedBox(height: 10),
-                const Text('TRACKER SYSTEM v3.1', style: TextStyle(letterSpacing: 3, fontSize: 10, color: Colors.white30, fontWeight: FontWeight.bold)),
+                const Text('TRACKER SYSTEM v3.2', style: TextStyle(letterSpacing: 3, fontSize: 10, color: Colors.white30, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 80),
                 
                 Container(
