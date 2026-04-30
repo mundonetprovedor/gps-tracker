@@ -9,17 +9,12 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'tabs/client_lookup_tab.dart';
-import 'tabs/service_orders_tab.dart';
-import 'screens/login_screen.dart';
 
 const String kServerUrl = "https://mundonet-gps.49p1k1.easypanel.host";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final bool isLoggedIn = prefs.getString('tecnico_id') != null;
-  runApp(GpsTrackerApp(isLoggedIn: isLoggedIn));
+  runApp(const GpsTrackerApp());
 }
 
 @pragma('vm:entry-point')
@@ -52,7 +47,6 @@ class GpsTaskHandler extends TaskHandler {
     _positionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 0)
     ).listen((Position position) async {
-      // Coletar telemetria
       int battLevel = await _battery.batteryLevel;
       var connResult = await _connectivity.checkConnectivity();
       String network = connResult.toString().split('.').last;
@@ -61,8 +55,8 @@ class GpsTaskHandler extends TaskHandler {
         _socket!.emit('update_location', {
           'lat': position.latitude, 
           'lng': position.longitude, 
-          'speed': position.speed * 3.6, // Converter para km/h
-          'heading': position.heading, // Enviar direção para o mapa
+          'speed': position.speed * 3.6,
+          'heading': position.heading,
           'battery': battLevel,
           'network': network,
           'status': 'Online'
@@ -70,8 +64,8 @@ class GpsTaskHandler extends TaskHandler {
       }
       
       FlutterForegroundTask.updateService(
-        notificationTitle: 'Mundonet Telecom',
-        notificationText: 'Status Operacional Ok',
+        notificationTitle: 'Mundonet Tracker',
+        notificationText: 'Localização em tempo real ativa',
       );
     });
   }
@@ -87,21 +81,23 @@ class GpsTaskHandler extends TaskHandler {
 }
 
 class GpsTrackerApp extends StatelessWidget {
-  final bool isLoggedIn;
-  const GpsTrackerApp({Key? key, required this.isLoggedIn}) : super(key: key);
+  const GpsTrackerApp({Key? key}) : super(key: key);
   
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mundonet Service',
+      title: 'Mundonet Tracker',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        primaryColor: Colors.white24,
-        colorScheme: const ColorScheme.dark(primary: Color(0xFF39B8FF), secondary: Color(0xFF002D62)),
+        scaffoldBackgroundColor: const Color(0xFF0B0E14),
+        primaryColor: const Color(0xFF39B8FF),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF39B8FF), 
+          secondary: Color(0xFF002D62),
+        ),
       ),
-      home: isLoggedIn ? const TrackerScreen() : const LoginScreen(),
+      home: const TrackerScreen(),
     );
   }
 }
@@ -113,36 +109,42 @@ class TrackerScreen extends StatefulWidget {
 }
 
 class _TrackerScreenState extends State<TrackerScreen> {
-  int _currentIndex = 0;
   final TextEditingController _controller = TextEditingController();
   bool _isRunning = false;
-  StreamSubscription<Position>? _uiPositionStream;
 
   @override
   void initState() {
     super.initState();
+    _loadStoredName();
     _initForegroundTask();
     _checkStatus();
+  }
+
+  Future<void> _loadStoredName() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _controller.text = prefs.getString('currentTeamName') ?? "";
+    });
   }
 
   void _initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'system_optimization_v1',
-        channelName: 'System Optimization Services',
-        channelImportance: NotificationChannelImportance.MIN, 
-        priority: NotificationPriority.MIN,
+        channelId: 'mundonet_tracker_v1',
+        channelName: 'Mundonet Tracking Service',
+        channelImportance: NotificationChannelImportance.LOW, 
+        priority: NotificationPriority.LOW,
         isSticky: true,
-        visibility: NotificationVisibility.VISIBILITY_SECRET,
+        visibility: NotificationVisibility.VISIBILITY_PUBLIC,
         iconData: const NotificationIconData(
           resType: ResourceType.mipmap,
           resPrefix: ResourcePrefix.ic,
           name: 'launcher',
         ),
       ),
-      iosNotificationOptions: const IOSNotificationOptions(showNotification: false),
+      iosNotificationOptions: const IOSNotificationOptions(showNotification: true),
       foregroundTaskOptions: const ForegroundTaskOptions(
-        interval: 2000, 
+        interval: 5000, 
         allowWakeLock: true,
         allowWifiLock: true,
       ),
@@ -151,7 +153,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   Future<void> _checkStatus() async {
     final running = await FlutterForegroundTask.isRunningService;
-    // Pedir para ignorar otimização de bateria (ajuda a manter vivo sem notificação visível)
     if (!await FlutterForegroundTask.isIgnoringBatteryOptimizations) {
       await FlutterForegroundTask.requestIgnoreBatteryOptimization();
     }
@@ -159,15 +160,23 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Future<void> _start() async {
-    if (_controller.text.isEmpty) return;
+    if (_controller.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, identifique o técnico/veículo')),
+      );
+      return;
+    }
+    
     await Permission.notification.request();
     await Permission.location.request();
     await Permission.locationAlways.request();
+    
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('currentTeamName', _controller.text);
+    
     await FlutterForegroundTask.startService(
-      notificationTitle: ' ',
-      notificationText: ' ',
+      notificationTitle: 'Mundonet Tracker',
+      notificationText: 'Serviço Iniciado',
       callback: startCallback,
     );
     await WakelockPlus.enable();
@@ -175,21 +184,27 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Future<void> _stop() async {
-    // Solicitar senha para parar
     final TextEditingController pinController = TextEditingController();
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar Identidade'),
+        backgroundColor: const Color(0xFF1A1F26),
+        title: const Text('Confirmar Interrupção'),
         content: TextField(
           controller: pinController,
           obscureText: true,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: 'Digite o PIN de administrador'),
+          decoration: const InputDecoration(
+            hintText: 'PIN de administrador',
+            hintStyle: TextStyle(color: Colors.white24),
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCELAR')),
-          TextButton(onPressed: () => Navigator.pop(context, pinController.text == '9910'), child: const Text('CONFIRMAR')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, pinController.text == '9910'), 
+            child: const Text('CONFIRMAR', style: TextStyle(color: Color(0xFF39B8FF))),
+          ),
         ],
       ),
     );
@@ -208,156 +223,170 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> tabs = [
-      _buildDiagnosticTab(),
-      const ClientLookupTab(),
-      const ServiceOrdersTab(),
-    ];
-
     return Scaffold(
-      body: tabs[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF121212),
-        selectedItemColor: const Color(0xFF39B8FF),
-        unselectedItemColor: Colors.white30,
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.settings_system_daydream), label: 'Sistema'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_search), label: 'Raio-X'),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Minhas O.S.'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiagnosticTab() {
-    return Container(
-      color: const Color(0xFF121212),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF002D62), Color(0xFF0B0E14)],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Column(
               children: [
                 const SizedBox(height: 60),
-                const Icon(Icons.settings_input_component, size: 50, color: Colors.white24),
+                Image.network(
+                  'https://mundonetbandalarga.com.br/wp-content/uploads/2021/04/logo-mundonet.png',
+                  height: 60,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.location_on, size: 60, color: Color(0xFF39B8FF)),
+                ),
                 const SizedBox(height: 10),
-                const Text('SYSTEM ENGINE v2.8', style: TextStyle(letterSpacing: 2, fontSize: 10, color: Colors.white30)),
+                const Text('TRACKER SYSTEM v3.0', style: TextStyle(letterSpacing: 3, fontSize: 10, color: Colors.white30, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 80),
                 
                 Container(
-                  padding: const EdgeInsets.all(25),
+                  padding: const EdgeInsets.all(30),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.02),
-                    borderRadius: BorderRadius.circular(24),
+                    color: Colors.white.withOpacity(0.03),
+                    borderRadius: BorderRadius.circular(32),
                     border: Border.all(color: Colors.white10),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+                    ],
                   ),
                   child: Column(
                     children: [
-                      Icon(_isRunning ? Icons.check_circle_outline : Icons.radio_button_off, 
-                           color: _isRunning ? const Color(0xFF34D399) : Colors.white24, size: 60),
-                      const SizedBox(height: 20),
+                      _buildStatusIndicator(),
+                      const SizedBox(height: 30),
                       if (!_isRunning) ...[
                         TextField(
                           controller: _controller,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                           decoration: InputDecoration(
-                            hintText: 'ID do Dispositivo',
+                            hintText: 'Identificação (Ex: Tec. João)',
+                            hintStyle: const TextStyle(color: Colors.white24),
                             filled: true,
-                            fillColor: Colors.black12,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            fillColor: Colors.black26,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 25),
                         SizedBox(
-                          width: double.infinity, height: 50,
+                          width: double.infinity, height: 60,
                           child: ElevatedButton(
                             onPressed: _start,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white10,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              backgroundColor: const Color(0xFF39B8FF),
+                              foregroundColor: const Color(0xFF002D62),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 0,
                             ),
-                            child: const Text('ATIVAR SERVIÇO', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                            child: const Text('ATIVAR RASTREAMENTO', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                           ),
                         ),
                       ] else ...[
-                        const Text('OPERACIONAL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white70)),
-                        const SizedBox(height: 5),
-                        const Text('Processos em execução', style: TextStyle(color: Colors.white24, fontSize: 12)),
-                        const SizedBox(height: 30),
+                        Text(
+                          _controller.text.toUpperCase(), 
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('DISPOSITIVO EM MONITORAMENTO', style: TextStyle(color: Color(0xFF34D399), fontSize: 12, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 40),
                         SizedBox(
-                          width: double.infinity, height: 50,
-                          child: ElevatedButton(
+                          width: double.infinity, height: 55,
+                          child: OutlinedButton(
                             onPressed: _stop,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
+                            style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.white10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
-                            child: const Text('PARAR', style: TextStyle(color: Colors.white30, fontWeight: FontWeight.bold)),
+                            child: const Text('INTERROMPER SERVIÇO', style: TextStyle(color: Colors.white30, fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // Seção de Diagnóstico (Disfarce)
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.02),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.analytics_outlined, size: 16, color: Colors.white30),
-                          SizedBox(width: 8),
-                          Text('DIAGNÓSTICO TÉCNICO', style: TextStyle(fontSize: 10, color: Colors.white30, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                        ],
-                      ),
-                      const SizedBox(height: 15),
-                      _buildDiagInfo('Latência de Rede', '24ms', Icons.speed),
-                      _buildDiagInfo('Sinal GPS', 'Estável', Icons.satellite_alt),
-                      _buildDiagInfo('Protocolo', 'WebSocket v3', Icons.private_connectivity),
-                      _buildDiagInfo('Criptografia', 'AES-256', Icons.lock_outline),
-                    ],
-                  ),
-                ),
+                
+                const SizedBox(height: 40),
+                _buildDiagnosticsCard(),
                 const SizedBox(height: 40),
               ],
             ),
           ),
         ),
-      );
+      ),
+    );
   }
 
-  Widget _buildDiagInfo(String label, String value, IconData icon) {
+  Widget _buildStatusIndicator() {
+    return Container(
+      width: 100, height: 100,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _isRunning ? const Color(0xFF34D399).withOpacity(0.1) : Colors.white.withOpacity(0.05),
+        border: Border.all(
+          color: _isRunning ? const Color(0xFF34D399) : Colors.white10,
+          width: 2,
+        ),
+      ),
+      child: Icon(
+        _isRunning ? Icons.radar : Icons.power_settings_new, 
+        color: _isRunning ? const Color(0xFF34D399) : Colors.white24, 
+        size: 50
+      ),
+    );
+  }
+
+  Widget _buildDiagnosticsCard() {
+    return Container(
+      padding: const EdgeInsets.all(25),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.analytics_outlined, size: 18, color: Color(0xFF39B8FF)),
+              SizedBox(width: 10),
+              Text('TELEMETRIA DO SISTEMA', style: TextStyle(fontSize: 11, color: Colors.white54, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildDiagRow('Status do Satélite', _isRunning ? 'Conectado' : 'Aguardando', Icons.satellite_alt),
+          _buildDiagRow('Precisão do GPS', _isRunning ? 'Alta' : 'N/A', Icons.location_searching),
+          _buildDiagRow('Envio de Dados', _isRunning ? 'Tempo Real' : 'Pausado', Icons.sync),
+          _buildDiagRow('Modo de Energia', 'Otimizado', Icons.battery_saver),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiagRow(String label, String value, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 15),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: Colors.white24),
-              const SizedBox(width: 8),
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.white54)),
+              Icon(icon, size: 16, color: Colors.white24),
+              const SizedBox(width: 10),
+              Text(label, style: const TextStyle(fontSize: 13, color: Colors.white70)),
             ],
           ),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white70)),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _isRunning ? const Color(0xFF39B8FF) : Colors.white30)),
         ],
       ),
     );
   }
 }
+
