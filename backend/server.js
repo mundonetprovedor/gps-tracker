@@ -189,29 +189,25 @@ app.get('/api/teams', auth, async (req, res) => res.json(teams));
 // ── TRACCAR INTEGRATION ──
 const handleTraccarUpdate = async (req, res) => {
   const data = { ...req.query, ...req.body };
+  // Extração Robusta de Dados (Suporta formatos aninhados e raiz)
+  const coords = data.coords || (data.location && data.location.coords) || data.location || data;
+  const battery = data.battery || (data.location && data.location.battery) || {};
+
   let id = data.id || data.deviceid || data.device_id || data.uniqueId;
-  let lat = data.lat || data.latitude;
-  let lon = data.lon || data.lng || data.longitude;
+  let lat = coords.lat || coords.latitude;
+  let lon = coords.lon || coords.lng || coords.longitude;
+  let speed = coords.speed || coords.velocity || coords.spd || data.speed || data.velocity || data.spd;
+  let heading = coords.heading || coords.bearing || coords.direction || data.bearing || data.heading || data.direction;
+  
+  // Trata bateria se for objeto ou valor direto
+  let batt = battery.level || battery.batt || battery.battery || 
+             (typeof data.battery === 'number' ? data.battery : undefined) || 
+             data.batt || data.level;
 
-  if (data.location && typeof data.location === 'object') {
-    const c = data.location.coords || data.location;
-    lat = lat || c.lat || c.latitude;
-    lon = lon || c.lon || c.longitude;
+  // Normalização de bateria (0.0 - 1.0 para 0 - 100)
+  if (batt !== undefined && parseFloat(batt) <= 1 && parseFloat(batt) > 0) {
+    batt = parseFloat(batt) * 100;
   }
-
-  let speed = data.speed || data.velocity || data.spd;
-  let batt = data.batt || data.battery || data.level;
-  let heading = data.bearing || data.heading || data.direction;
-
-  if (data.location && typeof data.location === 'object') {
-    const c = data.location.coords || data.location;
-    speed = speed || c.speed || c.velocity;
-    heading = heading || c.heading || c.bearing;
-    const b = data.location.battery || {};
-    batt = batt || b.level || b.batt;
-  }
-
-  if (batt !== undefined && parseFloat(batt) <= 1 && parseFloat(batt) > 0) batt = parseFloat(batt) * 100;
 
   const timestamp = data.timestamp || data.time;
   if (!id || !lat || !lon) return res.status(400).send('Missing params');
