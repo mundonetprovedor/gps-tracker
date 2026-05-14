@@ -242,12 +242,15 @@ function setMapLayer(type) {
 // ── SOCKET & DATA ──
 // ── SOCKET & DATA ──
 function initSocket() {
-    const serverUrl = window.location.hostname === 'localhost' || window.location.hostname === '' 
-        ? 'https://mundonet-gps.49p1k1.easypanel.host' 
-        : window.location.origin;
+    // Usa o origin atual (https://mundonet-gps...) para o socket
+    const serverUrl = window.location.origin;
         
-    console.log('Conectando ao servidor Socket.io:', serverUrl);
-    const socket = io(serverUrl);
+    console.log('Tentando conectar ao Socket.io em:', serverUrl);
+    
+    const socket = io(serverUrl, {
+        transports: ['polling', 'websocket'], // Tenta polling primeiro se websocket falhar
+        reconnectionAttempts: 5
+    });
     
     socket.on('connect', () => console.log('✅ Dashboard conectado ao Socket.io'));
     socket.on('connect_error', (err) => console.error('❌ Erro de conexão Socket.io:', err));
