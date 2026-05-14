@@ -103,13 +103,84 @@ const auth = (req, res, next) => {
 };
 
 // ── DATA ENDPOINTS ──
+// Helper for Distance calculation (Haversine)
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 app.get('/api/history/:teamId', auth, async (req, res) => {
   const { teamId } = req.params;
   const { start, end } = req.query;
   const filter = { teamId };
-  if (start && end) filter.timestamp = { $gte: new Date(start), $lte: new Date(end) };
-  const history = await Location.find(filter).sort({ timestamp: 1 });
-  res.json(history);
+  
+  if (start && end) {
+    filter.timestamp = { $gte: new Date(start), $lte: new Date(end) };
+  } else {
+    const dayAgo = new Date();
+    dayAgo.setHours(dayAgo.getHours() - 24);
+    filter.timestamp = { $gte: dayAgo };
+  }
+
+  try {
+    const history = await Location.find(filter).sort({ timestamp: 1 }).lean();
+    
+    if (history.length === 0) return res.json({ history: [], summary: null });
+
+    let totalDistance = 0;
+    let stops = [];
+    let movingTime = 0;
+    let firstLoc = history[0];
+    let lastLoc = history[history.length - 1];
+    let currentStop = null;
+
+    for (let i = 0; i < history.length - 1; i++) {
+      const p1 = history[i];
+      const p2 = history[i+1];
+      const d = getDistance(p1.lat, p1.lng, p2.lat, p2.lng);
+      totalDistance += d;
+
+      const timeDiff = new Date(p2.timestamp) - new Date(p1.timestamp);
+      
+      if (p2.speed < 2 && d < 0.05) {
+        if (!currentStop) {
+          currentStop = { lat: p1.lat, lng: p1.lng, startTime: p1.timestamp, endTime: p2.timestamp, duration: timeDiff };
+        } else {
+          currentStop.endTime = p2.timestamp;
+          currentStop.duration += timeDiff;
+        }
+      } else {
+        if (currentStop && currentStop.duration > 300000) stops.push(currentStop);
+        currentStop = null;
+        movingTime += timeDiff;
+      }
+    }
+    if (currentStop && currentStop.duration > 300000) stops.push(currentStop);
+
+    const totalTime = new Date(lastLoc.timestamp) - new Date(firstLoc.timestamp);
+    const idleTime = totalTime - movingTime;
+
+    res.json({
+      history,
+      summary: {
+        totalDistance: parseFloat(totalDistance.toFixed(2)),
+        stopCount: stops.length,
+        stops,
+        movingTime: Math.max(0, movingTime),
+        idleTime: Math.max(0, idleTime),
+        firstLocation: firstLoc,
+        lastLocation: lastLoc
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/teams', auth, async (req, res) => res.json(teams));
