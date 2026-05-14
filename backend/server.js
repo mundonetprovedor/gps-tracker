@@ -118,8 +118,16 @@ app.get('/health', (req, res) => res.json({ status: 'ok', db: mongoose.connectio
 
 // ── TRACCAR INTEGRATION (OsmAnd Protocol) ──
 app.get('/traccar', async (req, res) => {
-  const { id, lat, lon, speed, batt, timestamp } = req.query;
-  console.log(`[Traccar] Recebido de ${id}: lat=${lat}, lon=${lon}`);
+  // Aceita múltiplos nomes de parâmetros para maior compatibilidade
+  const id = req.query.id || req.query.deviceid || req.query.uniqueId;
+  const lat = req.query.lat || req.query.latitude;
+  const lon = req.query.lon || req.query.lng || req.query.longitude;
+  const speed = req.query.speed || req.query.velocity;
+  const batt = req.query.batt || req.query.battery || req.query.level;
+  const timestamp = req.query.timestamp || req.query.time;
+  const heading = req.query.bearing || req.query.heading || req.query.direction;
+
+  console.log(`[Traccar] Tentativa de: ${id} | Lat: ${lat} | Lon: ${lon}`);
   
   if (!id || !lat || !lon) {
     return res.status(400).send('Missing required parameters (id, lat, lon)');
@@ -144,7 +152,7 @@ app.get('/traccar', async (req, res) => {
   const lngNum = parseFloat(lon);
   const speedNum = speed ? parseFloat(speed) : 0;
   const batteryNum = batt ? parseFloat(batt) : 100;
-  const headingNum = req.query.bearing ? parseFloat(req.query.bearing) : 0;
+  const headingNum = heading ? parseFloat(heading) : 0;
 
   // Update RAM state for real-time dashboard
   teams[teamId].lastLocation = { 
