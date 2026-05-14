@@ -112,6 +112,74 @@ app.get('/api/teams', auth, async (req, res) => res.json(teams));
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', db: mongoose.connection.readyState }));
 
+// ── TRACCAR INTEGRATION (OsmAnd Protocol) ──
+app.get('/traccar', async (req, res) => {
+  const { id, lat, lon, speed, batt, timestamp } = req.query;
+  
+  if (!id || !lat || !lon) {
+    return res.status(400).send('Missing required parameters (id, lat, lon)');
+  }
+
+  const teamId = id;
+  const now = timestamp ? new Date(parseInt(timestamp) * 1000) : new Date();
+  
+  // Ensure team exists in RAM state
+  if (!teams[teamId]) {
+    teams[teamId] = { 
+      id: teamId, 
+      name: `Device ${teamId}`, 
+      status: 'Online', 
+      lastUpdate: now,
+      history: [],
+      stops: []
+    };
+  }
+
+  const latNum = parseFloat(lat);
+  const lngNum = parseFloat(lon);
+  const speedNum = speed ? parseFloat(speed) : 0;
+  const batteryNum = batt ? parseFloat(batt) : 100;
+  const headingNum = req.query.bearing ? parseFloat(req.query.bearing) : 0;
+
+  // Update RAM state for real-time dashboard
+  teams[teamId].lastLocation = { 
+    lat: latNum, 
+    lng: lngNum, 
+    speed: speedNum, 
+    heading: headingNum,
+    timestamp: now 
+  };
+  teams[teamId].status = 'Online';
+  teams[teamId].battery = batteryNum;
+  teams[teamId].network = 'Traccar';
+  teams[teamId].lastUpdate = now;
+
+  // Save to Database (History)
+  try {
+    const log = new Location({
+      teamId, 
+      name: teams[teamId].name, 
+      lat: latNum, 
+      lng: lngNum,
+      speed: speedNum, 
+      battery: batteryNum,
+      network: 'Traccar', 
+      timestamp: now
+    });
+    await log.save();
+  } catch (e) {
+    console.error('DB Save Error from Traccar:', e.message);
+  }
+
+  // Notify Dashboard via Socket.io
+  io.emit('team_location_update', { socketId: teamId, team: teams[teamId] });
+  
+  // Also emit update_teams to refresh the sidebar if it's a new device
+  io.emit('update_teams', teams);
+
+  res.send('OK');
+});
+
 // ── REALTIME STATE (RAM) ──
 let teams = {};
 let socketToTeam = {};
