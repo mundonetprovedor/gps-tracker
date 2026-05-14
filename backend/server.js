@@ -213,10 +213,28 @@ const handleTraccarUpdate = async (req, res) => {
     }
   }
 
-  const speed = data.speed || data.velocity || data.spd || 0;
-  const batt = data.batt || data.battery || data.level || 100;
+  let speed = data.speed || data.velocity || data.spd;
+  let batt = data.batt || data.battery || data.level;
+  let heading = data.bearing || data.heading || data.direction;
+
+  // Se os dados estiverem aninhados no objeto 'location' (comum em alguns clientes Traccar)
+  if (data.location && typeof data.location === 'object') {
+    const c = data.location.coords || data.location;
+    lat = lat || c.lat || c.latitude;
+    lon = lon || c.lon || c.lng || c.longitude;
+    speed = speed || c.speed || c.velocity || c.spd;
+    heading = heading || c.heading || c.bearing || c.direction;
+    
+    const b = data.location.battery || {};
+    batt = batt || b.level || b.batt || b.battery;
+  }
+
+  // Normalização de bateria (0.0 - 1.0 para 0 - 100)
+  if (batt !== undefined && parseFloat(batt) <= 1 && parseFloat(batt) > 0) {
+    batt = parseFloat(batt) * 100;
+  }
+
   const timestamp = data.timestamp || data.time;
-  const heading = data.bearing || data.heading || data.direction || 0;
 
   console.log(`[Traccar] Recebido de ${id}. Speed: ${speed}, Batt: ${batt}`);
   
@@ -225,7 +243,8 @@ const handleTraccarUpdate = async (req, res) => {
   }
 
   const teamId = id;
-  const now = timestamp ? new Date(parseInt(timestamp) * 1000) : new Date();
+  // Handle ISO string or unix timestamp
+  const now = timestamp ? (isNaN(timestamp) ? new Date(timestamp) : new Date(parseInt(timestamp) * 1000)) : new Date();
   
   if (!teams[teamId]) {
     teams[teamId] = { 
