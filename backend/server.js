@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ── GLOBAL STATE ──
 let teams = {};
@@ -129,7 +130,7 @@ const handleTraccarUpdate = async (req, res) => {
   const timestamp = data.timestamp || data.time;
   const heading = data.bearing || data.heading || data.direction;
 
-  console.log(`[Traccar] Recebido (${req.method}): ${id} | Lat: ${lat} | Lon: ${lon}`);
+  console.log(`[Traccar] Recebido (${req.method}) de ${id || 'N/A'}. Keys: ${Object.keys(data).join(',')}`);
   
   if (!id || !lat || !lon) {
     return res.status(400).send('Missing required parameters (id, lat, lon)');
