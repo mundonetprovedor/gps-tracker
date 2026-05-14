@@ -189,6 +189,8 @@ app.get('/api/teams', auth, async (req, res) => res.json(teams));
 // ── TRACCAR INTEGRATION ──
 const handleTraccarUpdate = async (req, res) => {
   const data = { ...req.query, ...req.body };
+  console.log(`[Traccar] Nova requisição recebida:`, JSON.stringify(data));
+
   // Extração Robusta de Dados (Suporta formatos aninhados e raiz)
   const coords = data.coords || (data.location && data.location.coords) || data.location || data;
   const battery = data.battery || (data.location && data.location.battery) || {};
@@ -210,7 +212,12 @@ const handleTraccarUpdate = async (req, res) => {
   }
 
   const timestamp = data.timestamp || data.time;
-  if (!id || !lat || !lon) return res.status(400).send('Missing params');
+  console.log(`[Traccar] Processado -> ID: ${id}, Lat: ${lat}, Lon: ${lon}, Bateria: ${batt}`);
+
+  if (!id || !lat || !lon) {
+    console.error(`[Traccar] Erro: Parâmetros obrigatórios ausentes (ID/Lat/Lon).`);
+    return res.status(400).send('Missing params');
+  }
 
   const teamId = id;
   const now = timestamp ? (isNaN(timestamp) ? new Date(timestamp) : new Date(parseInt(timestamp) * 1000)) : new Date();
