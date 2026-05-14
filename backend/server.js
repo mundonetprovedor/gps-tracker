@@ -117,17 +117,19 @@ app.get('/api/teams', auth, async (req, res) => res.json(teams));
 app.get('/health', (req, res) => res.json({ status: 'ok', db: mongoose.connection.readyState }));
 
 // ── TRACCAR INTEGRATION (OsmAnd Protocol) ──
-app.get('/traccar', async (req, res) => {
-  // Aceita múltiplos nomes de parâmetros para maior compatibilidade
-  const id = req.query.id || req.query.deviceid || req.query.uniqueId;
-  const lat = req.query.lat || req.query.latitude;
-  const lon = req.query.lon || req.query.lng || req.query.longitude;
-  const speed = req.query.speed || req.query.velocity;
-  const batt = req.query.batt || req.query.battery || req.query.level;
-  const timestamp = req.query.timestamp || req.query.time;
-  const heading = req.query.bearing || req.query.heading || req.query.direction;
+const handleTraccarUpdate = async (req, res) => {
+  // Aceita parâmetros via Query (GET) ou Body (POST)
+  const data = { ...req.query, ...req.body };
+  
+  const id = data.id || data.deviceid || data.uniqueId;
+  const lat = data.lat || data.latitude;
+  const lon = data.lon || data.lng || data.longitude;
+  const speed = data.speed || data.velocity;
+  const batt = data.batt || data.battery || data.level;
+  const timestamp = data.timestamp || data.time;
+  const heading = data.bearing || data.heading || data.direction;
 
-  console.log(`[Traccar] Tentativa de: ${id} | Lat: ${lat} | Lon: ${lon}`);
+  console.log(`[Traccar] Recebido (${req.method}): ${id} | Lat: ${lat} | Lon: ${lon}`);
   
   if (!id || !lat || !lon) {
     return res.status(400).send('Missing required parameters (id, lat, lon)');
@@ -136,7 +138,6 @@ app.get('/traccar', async (req, res) => {
   const teamId = id;
   const now = timestamp ? new Date(parseInt(timestamp) * 1000) : new Date();
   
-  // Ensure team exists in RAM state
   if (!teams[teamId]) {
     teams[teamId] = { 
       id: teamId, 
@@ -154,44 +155,30 @@ app.get('/traccar', async (req, res) => {
   const batteryNum = batt ? parseFloat(batt) : 100;
   const headingNum = heading ? parseFloat(heading) : 0;
 
-  // Update RAM state for real-time dashboard
-  teams[teamId].lastLocation = { 
-    lat: latNum, 
-    lng: lngNum, 
-    speed: speedNum, 
-    heading: headingNum,
-    timestamp: now 
-  };
+  teams[teamId].lastLocation = { lat: latNum, lng: lngNum, speed: speedNum, heading: headingNum, timestamp: now };
   teams[teamId].status = 'Online';
   teams[teamId].battery = batteryNum;
   teams[teamId].network = 'Traccar';
   teams[teamId].lastUpdate = now;
 
-  // Save to Database (History)
   try {
     const log = new Location({
-      teamId, 
-      name: teams[teamId].name, 
-      lat: latNum, 
-      lng: lngNum,
-      speed: speedNum, 
-      battery: batteryNum,
-      network: 'Traccar', 
-      timestamp: now
+      teamId, name: teams[teamId].name, lat: latNum, lng: lngNum,
+      speed: speedNum, battery: batteryNum, network: 'Traccar', timestamp: now
     });
     await log.save();
   } catch (e) {
     console.error('DB Save Error from Traccar:', e.message);
   }
 
-  // Notify Dashboard via Socket.io
   io.emit('team_location_update', { socketId: teamId, team: teams[teamId] });
-  
-  // Also emit update_teams to refresh the sidebar if it's a new device
   io.emit('update_teams', teams);
 
   res.send('OK');
-});
+};
+
+app.get('/traccar', handleTraccarUpdate);
+app.post('/traccar', handleTraccarUpdate);
 
 // ── REALTIME STATE (RAM) ──
 
