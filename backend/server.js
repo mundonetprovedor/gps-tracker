@@ -11,6 +11,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ── GLOBAL STATE ──
+let teams = {};
+let socketToTeam = {};
+
 // ── CONFIG ──
 const JWT_SECRET = process.env.JWT_SECRET || 'mundonet-super-secret-key';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://mongo:27017/mundonet_gps';
@@ -115,6 +119,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok', db: mongoose.connectio
 // ── TRACCAR INTEGRATION (OsmAnd Protocol) ──
 app.get('/traccar', async (req, res) => {
   const { id, lat, lon, speed, batt, timestamp } = req.query;
+  console.log(`[Traccar] Recebido de ${id}: lat=${lat}, lon=${lon}`);
   
   if (!id || !lat || !lon) {
     return res.status(400).send('Missing required parameters (id, lat, lon)');
@@ -181,8 +186,6 @@ app.get('/traccar', async (req, res) => {
 });
 
 // ── REALTIME STATE (RAM) ──
-let teams = {};
-let socketToTeam = {};
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
