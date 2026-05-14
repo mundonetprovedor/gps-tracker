@@ -203,6 +203,48 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
+
+        /* ── RESPONSIVENESS ── */
+        @media (max-width: 768px) {
+            body { flex-direction: column; overflow-y: auto; height: auto; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2000; }
+            .sidebar-brand { padding: 12px 24px; justify-content: center; }
+            .sidebar-brand img { height: 30px; }
+            .nav-menu { display: flex; padding: 8px; overflow-x: auto; gap: 8px; }
+            .nav-item { margin-bottom: 0; padding: 8px 12px; white-space: nowrap; font-size: 13px; flex: 1; justify-content: center; }
+            .nav-item span { display: none; } /* Hide text on very small screens if needed, but let's try to keep it first */
+            .sidebar-footer { display: none; }
+
+            .main-wrapper { height: auto; min-height: calc(100vh - 120px); }
+            
+            #view-monitoring { flex-direction: column; }
+            .device-list-sidebar { width: 100%; border-right: none; border-top: 1px solid var(--border); order: 2; height: 400px; }
+            .map-container { width: 100%; height: 50vh; order: 1; }
+
+            #view-reports { padding: 16px; }
+            .report-header { flex-direction: column; gap: 16px; }
+            .export-btns { width: 100%; }
+            .export-btns button { flex: 1; }
+            
+            .filter-bar { padding: 16px; gap: 12px; }
+            .filter-group { width: 100%; }
+            .filter-bar button { width: 100% !important; }
+
+            .kpi-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .kpi-card { padding: 16px; }
+            .kpi-card b { font-size: 18px; }
+
+            .report-content-grid { grid-template-columns: 1fr; }
+            .card-map-report { height: 350px; }
+
+            .login-card { width: 90%; padding: 32px 24px; }
+            .login-card img { width: 180px; }
+        }
+
+        @media (max-width: 480px) {
+            .nav-item span { display: none; }
+            .kpi-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
