@@ -242,23 +242,25 @@ function setMapLayer(type) {
 // ── SOCKET & DATA ──
 // ── SOCKET & DATA ──
 function initSocket() {
-    // Tenta conectar ao servidor correto, mesmo que o index.html seja aberto localmente
     const serverUrl = window.location.hostname === 'localhost' || window.location.hostname === '' 
         ? 'https://mundonet-gps.49p1k1.easypanel.host' 
         : window.location.origin;
         
-    console.log('Conectando ao servidor:', serverUrl);
+    console.log('Conectando ao servidor Socket.io:', serverUrl);
     const socket = io(serverUrl);
     
     socket.on('connect', () => console.log('✅ Dashboard conectado ao Socket.io'));
+    socket.on('connect_error', (err) => console.error('❌ Erro de conexão Socket.io:', err));
 
     socket.on('update_teams', data => { 
+        console.log('📦 Recebida atualização de times:', data);
         teams = data; 
         renderList(); 
         Object.keys(teams).forEach(id => updateMarker(id, teams[id]));
     });
 
     socket.on('team_location_update', data => {
+        console.log('📍 Recebida atualização de localização:', data);
         const team = data.team;
         teams[data.socketId] = team;
         updateMarker(data.socketId, team);
