@@ -126,11 +126,14 @@ const handleTraccarUpdate = async (req, res) => {
   let lon = data.lon || data.lng || data.longitude;
   
   // Garimpa números de dentro do campo "location" (ex: "Location[fused -2.55, -44.3 ...]")
-  if (data.location && typeof data.location === 'string') {
-    const coords = data.location.match(/(-?\d+\.\d+)/g);
-    if (coords && coords.length >= 2) {
-      lat = coords[0];
-      lon = coords[1];
+  if (data.location) {
+    console.log(`[Traccar] RAW Location: ${JSON.stringify(data.location)}`);
+    if (typeof data.location === 'string') {
+      const coords = data.location.match(/(-?\d+[\.,]\d+)/g);
+      if (coords && coords.length >= 2) {
+        lat = coords[0].replace(',', '.');
+        lon = coords[1].replace(',', '.');
+      }
     }
   }
 
