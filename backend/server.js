@@ -134,6 +134,11 @@ const handleTraccarUpdate = async (req, res) => {
         lat = coords[0].replace(',', '.');
         lon = coords[1].replace(',', '.');
       }
+    } else if (typeof data.location === 'object') {
+      // Suporte ao formato aninhado { coords: { latitude: ..., longitude: ... } }
+      const c = data.location.coords || data.location;
+      lat = c.lat || c.latitude;
+      lon = c.lon || c.lng || c.longitude;
     }
   }
 
