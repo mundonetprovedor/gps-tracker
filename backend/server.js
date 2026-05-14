@@ -213,12 +213,12 @@ const handleTraccarUpdate = async (req, res) => {
     }
   }
 
-  const speed = data.speed || data.velocity;
-  const batt = data.batt || data.battery || data.level;
+  const speed = data.speed || data.velocity || data.spd || 0;
+  const batt = data.batt || data.battery || data.level || 100;
   const timestamp = data.timestamp || data.time;
-  const heading = data.bearing || data.heading || data.direction;
+  const heading = data.bearing || data.heading || data.direction || 0;
 
-  console.log(`[Traccar] Recebido (${req.method}) de ${id || 'N/A'}. Lat: ${lat}, Lon: ${lon}`);
+  console.log(`[Traccar] Recebido de ${id}. Speed: ${speed}, Batt: ${batt}`);
   
   if (!id || !lat || !lon) {
     return res.status(400).send('Missing required parameters (id, lat, lon)');
@@ -240,7 +240,8 @@ const handleTraccarUpdate = async (req, res) => {
 
   const latNum = parseFloat(lat);
   const lngNum = parseFloat(lon);
-  const speedNum = speed ? parseFloat(speed) : 0;
+  // Converter knots para km/h (Traccar/OsmAnd envia em knots)
+  const speedNum = speed ? parseFloat(speed) * 1.852 : 0;
   const batteryNum = batt ? parseFloat(batt) : 100;
   const headingNum = heading ? parseFloat(heading) : 0;
 
