@@ -122,15 +122,26 @@ const handleTraccarUpdate = async (req, res) => {
   // Aceita parâmetros via Query (GET) ou Body (POST)
   const data = { ...req.query, ...req.body };
   
-  const id = data.id || data.deviceid || data.uniqueId;
-  const lat = data.lat || data.latitude;
-  const lon = data.lon || data.lng || data.longitude;
+  let id = data.id || data.deviceid || data.device_id || data.uniqueId;
+  let lat = data.lat || data.latitude;
+  let lon = data.lon || data.lng || data.longitude;
+  
+  // Se existir um campo "location", tenta extrair lat/lon dele (ex: "lat,lon")
+  if (data.location && typeof data.location === 'string' && data.location.includes(',')) {
+    const parts = data.location.split(',');
+    lat = parts[0].trim();
+    lon = parts[1].trim();
+  } else if (data.location && typeof data.location === 'object') {
+    lat = data.location.lat || data.location.latitude;
+    lon = data.location.lon || data.location.lng || data.location.longitude;
+  }
+
   const speed = data.speed || data.velocity;
   const batt = data.batt || data.battery || data.level;
   const timestamp = data.timestamp || data.time;
   const heading = data.bearing || data.heading || data.direction;
 
-  console.log(`[Traccar] Recebido (${req.method}) de ${id || 'N/A'}. Keys: ${Object.keys(data).join(',')}`);
+  console.log(`[Traccar] Recebido (${req.method}) de ${id || 'N/A'}. Lat: ${lat}, Lon: ${lon}`);
   
   if (!id || !lat || !lon) {
     return res.status(400).send('Missing required parameters (id, lat, lon)');
