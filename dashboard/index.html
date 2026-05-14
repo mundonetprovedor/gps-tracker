@@ -34,9 +34,9 @@
 
         /* ── SIDEBAR ── */
         .sidebar { width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; padding: 24px 16px; }
-        .sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; padding: 0 8px; }
-        .sidebar-brand img { height: 32px; }
-        .sidebar-brand b { font-size: 18px; letter-spacing: 1px; color: var(--primary-light); }
+        .sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; padding: 0 8px; overflow: hidden; }
+        .sidebar-brand img { height: 28px; flex-shrink: 0; }
+        .sidebar-brand b { font-size: 16px; letter-spacing: 0.5px; color: var(--primary-light); white-space: nowrap; }
 
         .nav-section { margin-bottom: 24px; }
         .nav-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; padding-left: 12px; }
@@ -64,10 +64,10 @@
         .user-info small { font-size: 11px; color: var(--text-muted); }
 
         /* Dashboard Grid */
-        .dashboard-content { flex: 1; padding: 24px; display: grid; grid-template-columns: 1fr 400px; grid-template-rows: auto 1fr auto; gap: 24px; overflow-y: auto; }
+        .dashboard-content { flex: 1; padding: 24px; display: grid; grid-template-columns: 1fr 400px; grid-template-rows: min-content 1fr min-content; gap: 24px; overflow-y: auto; align-content: start; }
         
         /* KPI Cards */
-        .kpi-row { grid-column: 1 / 3; display: flex; gap: 20px; overflow-x: auto; padding-bottom: 8px; }
+        .kpi-row { grid-column: 1 / 3; display: flex; gap: 20px; overflow-x: auto; padding-bottom: 12px; min-height: 140px; }
         .kpi-card { flex: 1; min-width: 200px; background: var(--bg-card); border-radius: 20px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; transition: 0.2s; }
         .kpi-card:hover { transform: translateY(-4px); border-color: var(--primary); }
         .kpi-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(37, 99, 235, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
@@ -111,7 +111,16 @@
         .activity-content p { color: var(--text-muted); margin-top: 2px; }
         .activity-time { font-size: 11px; color: var(--text-muted); }
 
-        .chart-card { background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border); padding: 24px; }
+        .btn-action {
+            flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--border);
+            background: rgba(255,255,255,0.05); color: white; font-size: 13px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: 0.2s;
+        }
+        .btn-action:hover { background: var(--primary); border-color: var(--primary); }
+        .btn-action.primary { background: var(--primary); border-color: var(--primary); }
+
+        .chart-card { background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border); padding: 24px; min-height: 300px; }
         
         /* Map Customizations */
         .map-search { position: absolute; top: 20px; left: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px; }
@@ -278,8 +287,8 @@
                         <div class="status-row"><span>Área</span><b id="det-area">Zona Norte</b></div>
                     </div>
                     <div style="display:flex; gap:10px; margin-top:auto;">
-                        <button class="btn-primary" style="flex:1;"><i data-lucide="message-circle"></i> Chat</button>
-                        <button class="btn-primary" style="flex:1; background:var(--bg-main); border:1px solid var(--border);"><i data-lucide="navigation"></i> Rota</button>
+                        <button class="btn-action primary"><i data-lucide="message-circle"></i> Chat</button>
+                        <button class="btn-action"><i data-lucide="navigation"></i> Rota</button>
                     </div>
                 </div>
 
@@ -349,12 +358,12 @@
             const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
             try {
                 const stats = await fetch('/api/dashboard/stats', { headers }).then(r => r.json());
-                document.getElementById('kpi-teams').innerText = `${stats.teamsActive} / ${stats.teamsTotal}`;
-                document.getElementById('kpi-devices').innerText = `${stats.devicesOnline} / ${stats.devicesTotal}`;
-                document.getElementById('kpi-os').innerText = stats.osToday;
-                document.getElementById('kpi-os-done').innerText = stats.osDone;
-                document.getElementById('kpi-alerts').innerText = stats.alertsCritical;
-                document.getElementById('alert-count').innerText = stats.alertsCritical;
+                document.getElementById('kpi-teams').innerText = `${stats.teamsActive || 0} / ${stats.teamsTotal || 0}`;
+                document.getElementById('kpi-devices').innerText = `${stats.devicesOnline || 0} / ${stats.devicesTotal || 0}`;
+                document.getElementById('kpi-os').innerText = stats.osToday || 0;
+                document.getElementById('kpi-os-done').innerText = stats.osDone || 0;
+                document.getElementById('kpi-alerts').innerText = stats.alertsCritical || 0;
+                document.getElementById('alert-count').innerText = stats.alertsCritical || 0;
 
                 const activities = await fetch('/api/activities', { headers }).then(r => r.json());
                 renderActivities(activities);
