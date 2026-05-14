@@ -119,21 +119,19 @@ app.get('/health', (req, res) => res.json({ status: 'ok', db: mongoose.connectio
 
 // ── TRACCAR INTEGRATION (OsmAnd Protocol) ──
 const handleTraccarUpdate = async (req, res) => {
-  // Aceita parâmetros via Query (GET) ou Body (POST)
   const data = { ...req.query, ...req.body };
   
   let id = data.id || data.deviceid || data.device_id || data.uniqueId;
   let lat = data.lat || data.latitude;
   let lon = data.lon || data.lng || data.longitude;
   
-  // Se existir um campo "location", tenta extrair lat/lon dele (ex: "lat,lon")
-  if (data.location && typeof data.location === 'string' && data.location.includes(',')) {
-    const parts = data.location.split(',');
-    lat = parts[0].trim();
-    lon = parts[1].trim();
-  } else if (data.location && typeof data.location === 'object') {
-    lat = data.location.lat || data.location.latitude;
-    lon = data.location.lon || data.location.lng || data.location.longitude;
+  // Garimpa números de dentro do campo "location" (ex: "Location[fused -2.55, -44.3 ...]")
+  if (data.location && typeof data.location === 'string') {
+    const coords = data.location.match(/(-?\d+\.\d+)/g);
+    if (coords && coords.length >= 2) {
+      lat = coords[0];
+      lon = coords[1];
+    }
   }
 
   const speed = data.speed || data.velocity;
