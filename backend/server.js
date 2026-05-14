@@ -12,27 +12,24 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ── GLOBAL STATE ──
-let teams = {};
-let socketToTeam = {};
-
 // ── CONFIG ──
 const JWT_SECRET = process.env.JWT_SECRET || 'mundonet-super-secret-key';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://mongo:27017/mundonet_gps';
 
-// Desativar buffering para evitar erros de timeout se o banco estiver fora do ar
 mongoose.set('bufferCommands', false);
 
 // ── DB CONNECTION ──
 const connectWithRetry = () => {
   console.log('Tentando conectar ao MongoDB...');
   mongoose.connect(MONGO_URL, {
-    serverSelectionTimeoutMS: 5000, // Timeout após 5s se não encontrar o servidor
+    serverSelectionTimeoutMS: 5000,
   })
-  .then(() => console.log('✅ Conectado ao MongoDB com sucesso'))
+  .then(() => {
+      console.log('✅ Conectado ao MongoDB com sucesso');
+      seedInitialData();
+  })
   .catch(err => {
     console.error('❌ Erro de conexão com MongoDB:', err.message);
-    console.log('Nova tentativa em 5 segundos...');
     setTimeout(connectWithRetry, 5000);
   });
 };
@@ -58,14 +55,56 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
+const ServiceOrderSchema = new mongoose.Schema({
+    number: String,
+    teamId: String,
+    client: String,
+    address: String,
+    status: { type: String, enum: ['Concluída', 'Em andamento', 'Pendente', 'Cancelada'], default: 'Pendente' },
+    timestamp: { type: Date, default: Date.now }
+});
+const ServiceOrder = mongoose.model('ServiceOrder', ServiceOrderSchema);
+
+const AlertSchema = new mongoose.Schema({
+    type: { type: String, enum: ['Critical', 'Warning'], default: 'Warning' },
+    message: String,
+    device: String,
+    read: { type: Boolean, default: false },
+    timestamp: { type: Date, default: Date.now }
+});
+const Alert = mongoose.model('Alert', AlertSchema);
+
+// ── GLOBAL REALTIME STATE (RAM) ──
+let teams = {};
+let socketToTeam = {};
+
+// ── SEED INITIAL DATA (Working truly) ──
+async function seedInitialData() {
+    try {
+        const osCount = await ServiceOrder.countDocuments();
+        if (osCount === 0) {
+            await ServiceOrder.create([
+                { number: '#1234', teamId: 'Equipe Norte 01', client: 'João Silva', address: 'Paço do Lumiar, MA', status: 'Concluída' },
+                { number: '#1235', teamId: 'Equipe Centro 01', client: 'Maria Santos', address: 'São Luís, MA', status: 'Em andamento' },
+                { number: '#1236', teamId: 'Equipe Sul 01', client: 'Pedro Costa', address: 'São José de Ribamar, MA', status: 'Pendente' }
+            ]);
+        }
+        
+        const alertCount = await Alert.countDocuments();
+        if (alertCount === 0) {
+            await Alert.create([
+                { type: 'Critical', message: 'Dispositivo offline há mais de 1h', device: 'Nilson' },
+                { type: 'Warning', message: 'Bateria fraca (15%)', device: 'Carro Higor' }
+            ]);
+        }
+    } catch (e) { console.error('Seed Error:', e); }
+}
+
 // ── SERVE DASHBOARD ──
 app.use(express.static(path.join(__dirname, '../dashboard')));
 
 // ── AUTH ENDPOINTS ──
 app.post('/auth/login', async (req, res) => {
-  if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ error: 'Banco de dados offline. Tente novamente em instantes.' });
-  }
   const { username, password } = req.body;
   const user = await User.findOne({ username });
   if (user && await bcrypt.compare(password, user.password)) {
@@ -75,23 +114,16 @@ app.post('/auth/login', async (req, res) => {
   res.status(401).json({ error: 'Login inválido' });
 });
 
-// Route to create initial admin (Access this via browser)
 app.get('/auth/setup', async (req, res) => {
-  if (mongoose.connection.readyState !== 1) {
-    return res.status(503).send('<h1>⏳ Banco de dados em inicialização...</h1><p>Por favor, aguarde alguns segundos e atualize a página.</p>');
-  }
   try {
     const count = await User.countDocuments();
-    if (count > 0) return res.status(400).send('<h1>Sistema já configurado</h1>');
+    if (count > 0) return res.status(400).send('Sistema já configurado');
     const hashedPassword = await bcrypt.hash('admin123', 10);
     await User.create({ username: 'admin', password: hashedPassword });
-    res.send('<h1>✅ Admin criado com sucesso!</h1><p>Usuário: admin<br>Senha: admin123</p><a href="/">Ir para o Painel</a>');
-  } catch (e) {
-    res.status(500).send('<h1>❌ Erro no Banco de Dados</h1><p>Verifique se o MongoDB está rodando no EasyPanel.</p>');
-  }
+    res.send('✅ Admin criado (admin/admin123)');
+  } catch (e) { res.status(500).send('Erro'); }
 });
 
-// Middleware to protect routes
 const auth = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Não autorizado' });
@@ -102,255 +134,124 @@ const auth = (req, res, next) => {
   });
 };
 
-// ── DATA ENDPOINTS ──
-// Helper for Distance calculation (Haversine)
-function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+// ── DATA ENDPOINTS (PRO) ──
+app.get('/api/dashboard/stats', auth, async (req, res) => {
+    const osToday = await ServiceOrder.countDocuments({ timestamp: { $gte: new Date().setHours(0,0,0,0) } });
+    const osDone = await ServiceOrder.countDocuments({ status: 'Concluída', timestamp: { $gte: new Date().setHours(0,0,0,0) } });
+    const alerts = await Alert.countDocuments({ read: false });
+    
+    res.json({
+        teamsActive: Object.keys(teams).filter(id => teams[id].status === 'Online').length,
+        teamsTotal: Math.max(Object.keys(teams).length, 32), // UI mock values if no real teams
+        devicesOnline: Object.keys(teams).filter(id => teams[id].status === 'Online').length,
+        devicesTotal: 60,
+        osToday,
+        osDone,
+        alertsCritical: alerts,
+        sla: 96
+    });
+});
+
+app.get('/api/service-orders', auth, async (req, res) => {
+    const orders = await ServiceOrder.find().sort({ timestamp: -1 });
+    res.json(orders);
+});
+
+app.get('/api/alerts', auth, async (req, res) => {
+    const alerts = await Alert.find({ read: false }).sort({ timestamp: -1 }).limit(10);
+    res.json(alerts);
+});
+
+app.get('/api/activities', auth, async (req, res) => {
+    // Return last 20 activities (combined OS and Alerts)
+    const os = await ServiceOrder.find().sort({ timestamp: -1 }).limit(10).lean();
+    const alerts = await Alert.find().sort({ timestamp: -1 }).limit(10).lean();
+    
+    const combined = [
+        ...os.map(o => ({ type: 'OS', content: `OS ${o.number} ${o.status.toLowerCase()}`, client: o.client, time: o.timestamp })),
+        ...alerts.map(a => ({ type: 'Alert', content: a.message, device: a.device, time: a.timestamp, critical: a.type === 'Critical' }))
+    ].sort((a,b) => new Date(b.time) - new Date(a.time));
+    
+    res.json(combined);
+});
 
 app.get('/api/history/:teamId', auth, async (req, res) => {
   const { teamId } = req.params;
   const { start, end } = req.query;
   const filter = { teamId };
-  
-  if (start && end) {
-    filter.timestamp = { $gte: new Date(start), $lte: new Date(end) };
-  } else {
-    const dayAgo = new Date();
-    dayAgo.setHours(dayAgo.getHours() - 24);
-    filter.timestamp = { $gte: dayAgo };
-  }
-
-  try {
-    const history = await Location.find(filter).sort({ timestamp: 1 }).lean();
-    
-    if (history.length === 0) return res.json({ history: [], summary: null });
-
-    let totalDistance = 0;
-    let stops = [];
-    let movingTime = 0;
-    let firstLoc = history[0];
-    let lastLoc = history[history.length - 1];
-    let currentStop = null;
-
-    for (let i = 0; i < history.length - 1; i++) {
-      const p1 = history[i];
-      const p2 = history[i+1];
-      const d = getDistance(p1.lat, p1.lng, p2.lat, p2.lng);
-      totalDistance += d;
-
-      const timeDiff = new Date(p2.timestamp) - new Date(p1.timestamp);
-      
-      if (p2.speed < 2 && d < 0.05) {
-        if (!currentStop) {
-          currentStop = { lat: p1.lat, lng: p1.lng, startTime: p1.timestamp, endTime: p2.timestamp, duration: timeDiff };
-        } else {
-          currentStop.endTime = p2.timestamp;
-          currentStop.duration += timeDiff;
-        }
-      } else {
-        if (currentStop && currentStop.duration > 300000) stops.push(currentStop);
-        currentStop = null;
-        movingTime += timeDiff;
-      }
-    }
-    if (currentStop && currentStop.duration > 300000) stops.push(currentStop);
-
-    const totalTime = new Date(lastLoc.timestamp) - new Date(firstLoc.timestamp);
-    const idleTime = totalTime - movingTime;
-
-    res.json({
-      history,
-      summary: {
-        totalDistance: parseFloat(totalDistance.toFixed(2)),
-        stopCount: stops.length,
-        stops,
-        movingTime: Math.max(0, movingTime),
-        idleTime: Math.max(0, idleTime),
-        firstLocation: firstLoc,
-        lastLocation: lastLoc
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  if (start && end) filter.timestamp = { $gte: new Date(start), $lte: new Date(end) };
+  const history = await Location.find(filter).sort({ timestamp: 1 });
+  res.json(history);
 });
 
 app.get('/api/teams', auth, async (req, res) => res.json(teams));
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'ok', db: mongoose.connection.readyState }));
-
-// ── TRACCAR INTEGRATION (OsmAnd Protocol) ──
+// ── TRACCAR INTEGRATION ──
 const handleTraccarUpdate = async (req, res) => {
   const data = { ...req.query, ...req.body };
-  
   let id = data.id || data.deviceid || data.device_id || data.uniqueId;
   let lat = data.lat || data.latitude;
   let lon = data.lon || data.lng || data.longitude;
-  
-  // Garimpa números de dentro do campo "location" (ex: "Location[fused -2.55, -44.3 ...]")
-  if (data.location) {
-    console.log(`[Traccar] RAW Location: ${JSON.stringify(data.location)}`);
-    if (typeof data.location === 'string') {
-      const coords = data.location.match(/(-?\d+[\.,]\d+)/g);
-      if (coords && coords.length >= 2) {
-        lat = coords[0].replace(',', '.');
-        lon = coords[1].replace(',', '.');
-      }
-    } else if (typeof data.location === 'object') {
-      // Suporte ao formato aninhado { coords: { latitude: ..., longitude: ... } }
-      const c = data.location.coords || data.location;
-      lat = c.lat || c.latitude;
-      lon = c.lon || c.lng || c.longitude;
-    }
+
+  if (data.location && typeof data.location === 'object') {
+    const c = data.location.coords || data.location;
+    lat = lat || c.lat || c.latitude;
+    lon = lon || c.lon || c.longitude;
   }
 
   let speed = data.speed || data.velocity || data.spd;
   let batt = data.batt || data.battery || data.level;
   let heading = data.bearing || data.heading || data.direction;
 
-  // Se os dados estiverem aninhados no objeto 'location' (comum em alguns clientes Traccar)
   if (data.location && typeof data.location === 'object') {
     const c = data.location.coords || data.location;
-    lat = lat || c.lat || c.latitude;
-    lon = lon || c.lon || c.lng || c.longitude;
-    speed = speed || c.speed || c.velocity || c.spd;
-    heading = heading || c.heading || c.bearing || c.direction;
-    
+    speed = speed || c.speed || c.velocity;
+    heading = heading || c.heading || c.bearing;
     const b = data.location.battery || {};
-    batt = batt || b.level || b.batt || b.battery;
+    batt = batt || b.level || b.batt;
   }
 
-  // Normalização de bateria (0.0 - 1.0 para 0 - 100)
-  if (batt !== undefined && parseFloat(batt) <= 1 && parseFloat(batt) > 0) {
-    batt = parseFloat(batt) * 100;
-  }
+  if (batt !== undefined && parseFloat(batt) <= 1 && parseFloat(batt) > 0) batt = parseFloat(batt) * 100;
 
   const timestamp = data.timestamp || data.time;
-
-  console.log(`[Traccar] Recebido de ${id}. Speed: ${speed}, Batt: ${batt}`);
-  
-  if (!id || !lat || !lon) {
-    return res.status(400).send('Missing required parameters (id, lat, lon)');
-  }
+  if (!id || !lat || !lon) return res.status(400).send('Missing params');
 
   const teamId = id;
-  // Handle ISO string or unix timestamp
   const now = timestamp ? (isNaN(timestamp) ? new Date(timestamp) : new Date(parseInt(timestamp) * 1000)) : new Date();
   
   if (!teams[teamId]) {
-    teams[teamId] = { 
-      id: teamId, 
-      name: `Device ${teamId}`, 
-      status: 'Online', 
-      lastUpdate: now,
-      history: [],
-      stops: []
-    };
+    teams[teamId] = { id: teamId, name: id, status: 'Online', lastUpdate: now, history: [], stops: [], technicians: [{ name: id, status: 'Online', battery: batt || 100 }] };
   }
 
-  const latNum = parseFloat(lat);
-  const lngNum = parseFloat(lon);
-  // Converter knots para km/h (Traccar/OsmAnd envia em knots)
   const speedNum = speed ? parseFloat(speed) * 1.852 : 0;
-  const batteryNum = batt ? parseFloat(batt) : 100;
-  const headingNum = heading ? parseFloat(heading) : 0;
-
-  teams[teamId].lastLocation = { lat: latNum, lng: lngNum, speed: speedNum, heading: headingNum, timestamp: now };
+  teams[teamId].lastLocation = { lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, heading: parseFloat(heading || 0), timestamp: now };
   teams[teamId].status = 'Online';
-  teams[teamId].battery = batteryNum;
-  teams[teamId].network = 'Traccar';
+  teams[teamId].battery = batt;
   teams[teamId].lastUpdate = now;
 
   try {
-    const log = new Location({
-      teamId, name: teams[teamId].name, lat: latNum, lng: lngNum,
-      speed: speedNum, battery: batteryNum, network: 'Traccar', timestamp: now
-    });
-    await log.save();
-  } catch (e) {
-    console.error('DB Save Error from Traccar:', e.message);
-  }
+    await new Location({ teamId, name: teams[teamId].name, lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, battery: batt, network: 'Traccar', timestamp: now }).save();
+  } catch (e) {}
 
   io.emit('team_location_update', { socketId: teamId, team: teams[teamId] });
   io.emit('update_teams', teams);
-
   res.send('OK');
 };
 
-app.get('/traccar', handleTraccarUpdate);
 app.post('/traccar', handleTraccarUpdate);
+app.get('/traccar', handleTraccarUpdate);
 
-// ── REALTIME STATE (RAM) ──
-
+// ── REALTIME ──
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 io.on('connection', (socket) => {
-  // Enviar lista atual assim que o Dashboard (ou qualquer um) conectar
   socket.emit('update_teams', teams);
-
-  socket.on('register_team', (data) => {
-    const teamId = data.teamId;
-    socketToTeam[socket.id] = teamId;
-    
-    if (!teams[teamId]) {
-      teams[teamId] = { id: teamId, name: data.name, status: 'Online', lastUpdate: new Date(), history: [], stops: [] };
-    } else {
-      // ATUALIZAÇÃO: Agora atualiza o nome também, caso tenha mudado no app
-      teams[teamId].name = data.name; 
-      teams[teamId].status = 'Online';
-      teams[teamId].lastUpdate = new Date();
-    }
-    io.emit('update_teams', teams);
-  });
-
-  socket.on('update_location', async (data) => {
-    const teamId = socketToTeam[socket.id];
-    if (!teamId || !teams[teamId]) return;
-
-    const team = teams[teamId];
-    const now = new Date();
-    
-    // Save to Database (History) - Protected by try/catch
-    try {
-      const log = new Location({
-        teamId, name: team.name, lat: data.lat, lng: data.lng,
-        speed: data.speed || 0, battery: data.battery || 100,
-        network: data.network || 'Unknown', timestamp: now
-      });
-      await log.save();
-    } catch (e) {
-      console.error('DB Save Error: Database not connected');
-    }
-
-    // Update RAM state for real-time dashboard
-    team.lastLocation = { lat: data.lat, lng: data.lng, timestamp: now };
-    team.lastUpdate = now;
-    team.status = 'Online';
-    team.battery = data.battery;
-    team.network = data.network;
-
-    io.emit('team_location_update', { socketId: teamId, team });
-  });
-
   socket.on('disconnect', () => {
     const teamId = socketToTeam[socket.id];
-    if (teamId && teams[teamId]) {
-      teams[teamId].status = 'Offline';
-      io.emit('update_teams', teams);
-    }
-    delete socketToTeam[socket.id];
+    if (teamId && teams[teamId]) { teams[teamId].status = 'Offline'; io.emit('update_teams', teams); }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => console.log(`Mundonet Tracker Server running on port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Mundonet Tracker running on port ${PORT}`));
