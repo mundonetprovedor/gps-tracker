@@ -61,11 +61,13 @@
         .overlay-panels { position: absolute; inset: 0; pointer-events: none; z-index: 10; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
         .overlay-panels > * { pointer-events: auto; }
 
-        /* Top Bar Widgets */
-        .stats-overlay { 
-            display: flex; gap: 10px; position: absolute; 
-            left: 24px; top: 24px; width: 320px; z-index: 100; 
+        .top-overlay-row {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            width: 100%; pointer-events: none;
         }
+        .top-overlay-row > * { pointer-events: auto; }
+
+        .stats-overlay { display: flex; gap: 10px; width: 320px; }
         .stat-widget { 
             flex: 1; background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
             padding: 10px 8px; border-radius: 14px; display: flex; flex-direction: column; 
@@ -79,7 +81,7 @@
 
         /* Left Sidebar Panel (Teams) */
         .teams-panel {
-            position: absolute; left: 24px; top: 105px; bottom: 24px; width: 320px;
+            width: 320px; flex: 1; margin-bottom: 0;
             background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border);
             border-radius: 24px; display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
@@ -117,10 +119,9 @@
         .map-btn:hover { background: var(--primary); }
 
         .search-bar-floating {
-            position: absolute; right: 24px; top: 24px; width: 400px;
-            background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            width: 400px; background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
             border-radius: 16px; padding: 0 16px; height: 44px; display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
         }
         .search-bar-floating input { background: transparent; border: none; color: white; flex: 1; outline: none; font-size: 14px; }
         
@@ -237,36 +238,36 @@
         </div>
 
         <div class="overlay-panels">
-            <!-- Top Stats -->
-            <div class="stats-overlay">
-                <div class="stat-widget">
-                    <i data-lucide="users"></i>
-                    <div>
-                        <div class="lab">Equipes Ativas</div>
-                        <div class="val" id="stats-active-teams">0 / 0</div>
+            <div class="top-overlay-row">
+                <!-- Top Stats -->
+                <div class="stats-overlay">
+                    <div class="stat-widget">
+                        <i data-lucide="users"></i>
+                        <div>
+                            <div class="lab">Equipes Ativas</div>
+                            <div class="val" id="stats-active-teams">0 / 0</div>
+                        </div>
                     </div>
-                </div>
-                <div class="stat-widget">
-                    <i data-lucide="clipboard-list"></i>
-                    <div>
-                        <div class="lab">O.S. Hoje</div>
-                        <div class="val" id="stats-total-os">0</div>
+                    <div class="stat-widget">
+                        <i data-lucide="clipboard-list"></i>
+                        <div>
+                            <div class="lab">O.S. Hoje</div>
+                            <div class="val" id="stats-total-os">0</div>
+                        </div>
                     </div>
-                </div>
-                <div class="stat-widget">
-                    <i data-lucide="alert-circle"></i>
-                    <div>
-                        <div class="lab">Alertas</div>
-                        <div class="val" id="stats-alerts">0</div>
+                    <div class="stat-widget">
+                        <i data-lucide="alert-circle"></i>
+                        <div>
+                            <div class="lab">Alertas</div>
+                            <div class="val" id="stats-alerts">0</div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="search-bar-floating" style="position: static; margin-left: auto;">
+                <div class="search-bar-floating">
                     <i data-lucide="search" size="18" style="color: var(--text-muted)"></i>
                     <input type="text" placeholder="Buscar técnico ou endereço...">
                 </div>
-
-
             </div>
 
             <!-- Left Panel: Teams -->
