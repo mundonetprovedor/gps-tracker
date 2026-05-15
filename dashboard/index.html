@@ -312,7 +312,20 @@
         let map, stdLayer, satLayer;
         let teams = {};
         let markers = {};
+        let osMarkers = {};
         let osChart;
+
+        const STATUS_MAP = {
+            'A': { label: 'Aberto', color: '#3b82f6' },
+            'AN': { label: 'Análise', color: '#8b5cf6' },
+            'EN': { label: 'Encaminhada', color: '#f59e0b' },
+            'AS': { label: 'Assumida', color: '#06b6d4' },
+            'AG': { label: 'Agendado', color: '#14b8a6' },
+            'DS': { label: 'Deslocamento', color: '#eab308' },
+            'EX': { label: 'Execução', color: '#10b981' },
+            'F': { label: 'Finalizado', color: '#94a3b8' },
+            'RAG': { label: 'Reagendar', color: '#ef4444' }
+        };
 
         // ── INIT ──
         document.addEventListener('DOMContentLoaded', () => {
@@ -351,6 +364,9 @@
                 updateMarker(data.socketId, data.team);
                 renderTeamsTable();
             });
+            socket.on('os_synced', () => {
+                loadDashboardData();
+            });
         }
 
         async function loadDashboardData() {
@@ -369,7 +385,40 @@
 
                 const osList = await fetch('/api/service-orders', { headers }).then(r => r.json());
                 updateChart(osList);
+                updateOSMarkers(osList);
             } catch (e) { console.error('Data Load Error:', e); }
+        }
+
+        function updateOSMarkers(osList) {
+            osList.forEach(os => {
+                if (!os.lat || !os.lng) return;
+                const statusInfo = STATUS_MAP[os.status] || { label: 'Outro', color: '#fff' };
+                
+                const icon = L.divIcon({
+                    className: 'os-marker',
+                    html: `<div style="background:${statusInfo.color}; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+                            <i data-lucide="clipboard" style="width:14px; height:14px; color:white;"></i>
+                           </div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                if (!osMarkers[os.ixcId]) {
+                    osMarkers[os.ixcId] = L.marker([os.lat, os.lng], { icon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <div style="color:var(--bg-main)">
+                                <b>OS ${os.number}</b><br>
+                                ${os.client}<br>
+                                <span style="color:${statusInfo.color}">● ${statusInfo.label}</span>
+                            </div>
+                        `);
+                } else {
+                    osMarkers[os.ixcId].setLatLng([os.lat, os.lng]);
+                    osMarkers[os.ixcId].setIcon(icon);
+                }
+            });
+            lucide.createIcons();
         }
 
         function renderTeamsTable() {
@@ -472,10 +521,10 @@
             osChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Concluídas', 'Em andamento', 'Pendente', 'Canceladas'],
+                    labels: Object.values(STATUS_MAP).map(s => s.label),
                     datasets: [{
-                        data: [0, 0, 0, 0],
-                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        data: new Array(Object.keys(STATUS_MAP).length).fill(0),
+                        backgroundColor: Object.values(STATUS_MAP).map(s => s.color),
                         borderWidth: 0,
                         cutout: '70%'
                     }]
@@ -483,15 +532,16 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, usePointStyle: true } } }
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 }, usePointStyle: true, padding: 10 } } }
                 }
             });
         }
 
         function updateChart(osList) {
-            const stats = { 'Concluídas': 0, 'Em andamento': 0, 'Pendente': 0, 'Canceladas': 0 };
-            osList.forEach(o => { if (stats[o.status] !== undefined) stats[o.status]++; });
-            osChart.data.datasets[0].data = [stats['Concluídas'], stats['Em andamento'], stats['Pendente'], stats['Canceladas']];
+            const counts = {};
+            Object.keys(STATUS_MAP).forEach(k => counts[k] = 0);
+            osList.forEach(o => { if (counts[o.status] !== undefined) counts[o.status]++; });
+            osChart.data.datasets[0].data = Object.keys(STATUS_MAP).map(k => counts[k]);
             osChart.update();
         }
     </script>
