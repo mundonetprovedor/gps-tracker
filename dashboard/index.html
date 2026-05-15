@@ -178,6 +178,16 @@
         .layer-btn { padding: 10px 15px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; }
         .layer-btn:hover { background: rgba(255,255,255,0.05); }
         .layer-btn.active { background: var(--primary); color: white; }
+        
+        .traffic-btn {
+            position: absolute; right: 10px; bottom: 80px; z-index: 1000;
+            background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main);
+            width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: 0.3s;
+        }
+        .traffic-btn.active { background: #ef4444; color: white; border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+        .traffic-btn i { width: 20px; height: 20px; }
 
         .collapse-btn {
             background: rgba(255,255,255,0.05); border: none; color: var(--text-muted);
@@ -571,6 +581,32 @@
             'EN': { label: 'Encaminhado', color: '#6366f1', icon: 'send' },
             'AS': { label: 'Assumido', color: '#8b5cf6', icon: 'user-check' }
         };
+
+        let trafficLayer = null;
+        let isTrafficEnabled = false;
+
+        function toggleTraffic() {
+            isTrafficEnabled = !isTrafficEnabled;
+            const btn = document.getElementById('traffic-toggle');
+            
+            if (isTrafficEnabled) {
+                btn.classList.add('active');
+                if (!trafficLayer) {
+                    // Camada de trânsito do Google (lyrs=h,traffic para apenas o tráfego sobreposto)
+                    trafficLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=h,traffic&x={x}&y={y}&z={z}', {
+                        maxZoom: 20,
+                        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                        opacity: 0.8
+                    });
+                }
+                trafficLayer.addTo(map);
+                showToast('Camada de trânsito ativada', 'Warning');
+            } else {
+                btn.classList.remove('active');
+                if (trafficLayer) map.removeLayer(trafficLayer);
+                showToast('Camada de trânsito desativada', 'Warning');
+            }
+        }
 
         // 🔥 AUDIO SYSTEM 🔥
         const notificationSound = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_73024f2f01.mp3');
