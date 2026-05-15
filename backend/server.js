@@ -123,11 +123,20 @@ app.get('/api/teams', auth, async (req, res) => {
 app.get('/api/service-orders', auth, async (req, res) => {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
   
   res.json(await ServiceOrder.find({
     $or: [
-      { status: { $ne: 'F' } },
-      { status: 'F', lastSeen: { $gte: today } }
+      // O.S. Agendadas, em Deslocamento ou Execução PARA HOJE
+      { 
+        status: { $in: ['AG', 'DS', 'EX'] }, 
+        scheduledDate: { $gte: today, $lt: tomorrow } 
+      },
+      // O.S. que foram finalizadas HOJE
+      { 
+        status: 'F', 
+        lastSeen: { $gte: today } 
+      }
     ]
   }));
 });
