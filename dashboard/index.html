@@ -858,8 +858,6 @@
 
                 document.getElementById('stats-active-teams').innerText = `${stats.active || 0}/${stats.total || 0}`;
                 document.getElementById('stats-total-os').innerText = Array.isArray(allOS) ? allOS.length : 0;
-                document.getElementById('stats-alerts').innerText = stats.alerts || 0;
-                document.getElementById('alert-count').innerText = stats.alerts || 0;
 
                 if (Array.isArray(allOS)) {
                     updateOSMarkers(allOS);
