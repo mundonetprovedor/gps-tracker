@@ -69,7 +69,6 @@ const TeamSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Team = mongoose.model('Team', TeamSchema);
-Team.collection.dropIndex('teamId_1').catch(() => {});
 
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true },
@@ -109,6 +108,9 @@ let socketToTeam = {};
 // ── SEED INITIAL DATA (Working truly) ──
 async function seedInitialData() {
   try {
+    // Limpa índices antigos de forma segura após a conexão
+    await Team.collection.dropIndex('teamId_1').catch(() => {});
+
     // Garante que o Admin existe
     const adminCount = await User.countDocuments({ username: 'admin' });
     if (adminCount === 0) {
