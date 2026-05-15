@@ -140,6 +140,38 @@
             .right-col { flex-direction: row; flex-wrap: wrap; }
             .details-card, .activity-card, .chart-card { flex: 1; min-width: 350px; }
         }
+        .team-marker-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .team-marker-label {
+            background: rgba(15, 23, 42, 0.95);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: 900;
+            white-space: nowrap;
+            margin-bottom: 8px;
+            border: 2px solid var(--accent);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .team-marker-icon-box {
+            background-color: var(--primary);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 2px solid white;
+            color: white;
+            box-shadow: var(--shadow-lg);
+        }
     </style>
 </head>
 <body>
@@ -456,17 +488,22 @@
         function updateMarker(id, team) {
             if (!team.lastLocation) return;
             const pos = [team.lastLocation.lat, team.lastLocation.lng];
-            const heading = team.lastLocation.heading || 0;
-
+            
             const icon = L.divIcon({
-                className: 'custom-marker',
-                html: `<img src="car_icon.png" class="marker-inner" style="transform: rotate(${heading}deg)">`,
-                iconSize: [44, 44],
-                iconAnchor: [22, 22]
+                className: 'custom-team-icon',
+                html: `<div class="team-marker-container">
+                        <div class="team-marker-label">${team.name}</div>
+                        <div class="team-marker-icon-box" style="transform: rotate(${team.lastLocation.heading || 0}deg)">
+                            <i data-lucide="car" style="width:24px; height:24px;"></i>
+                        </div>
+                       </div>`,
+                iconSize: [100, 70],
+                iconAnchor: [50, 60]
             });
 
             if (!markers[id]) markers[id] = L.marker(pos, { icon }).addTo(map).bindPopup(`<b>${team.name}</b>`);
             else { markers[id].setLatLng(pos); markers[id].setIcon(icon); }
+            lucide.createIcons();
         }
 
         function updateMarkers() { Object.keys(teams).forEach(id => updateMarker(id, teams[id])); }
