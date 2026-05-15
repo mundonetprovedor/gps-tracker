@@ -116,7 +116,6 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   res.json({ active, total: Math.max(total, 1), osToday, osDone, alerts });
 });
 
-app.get('/api/service-orders', auth, async (req, res) => {
 app.get('/api/teams', auth, async (req, res) => {
   res.json(await Team.find());
 });
