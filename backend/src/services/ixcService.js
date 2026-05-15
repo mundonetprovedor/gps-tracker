@@ -150,39 +150,47 @@ async function syncIXCServiceOrders(io) {
 
     logger.info(`[IXC] Processando ${data.registros.length} Ordens de Serviço...`);
     
-    for (const os of data.registros) {
-      const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
+    logger.info(`[IXC] Processando ${data.registros.length} Ordens de Serviço em paralelo...`);
+    
+    // Processamento em lotes paralelos para máxima velocidade
+    const batchSize = 10;
+    for (let i = 0; i < data.registros.length; i += batchSize) {
+      const batch = data.registros.slice(i, i + batchSize);
       
-      // Se os campos de nome não vierem no join, buscamos via API individual com cache
-      let clientName = os.razao || os.cliente || os.nome_cliente || os.razao_social || os.cliente_razao || os.nome || os.fantasia || os.cliente_nome;
-      if (!clientName || clientName === 'Não identificado') {
-        clientName = await getClientName(os.id_cliente);
-      }
+      await Promise.all(batch.map(async (os) => {
+        const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
+        
+        let clientName = os.razao || os.cliente || os.nome_cliente || os.razao_social || os.cliente_razao || os.nome || os.fantasia || os.cliente_nome;
+        if (!clientName || clientName === 'Não identificado') {
+          clientName = await getClientName(os.id_cliente);
+        }
 
-      let subjectName = os.assunto || os.su_assunto || os.descricao_assunto || os.assunto_nome;
-      if (!subjectName || subjectName === 'Não informado') {
-        subjectName = await getSubjectName(os.id_assunto);
-      }
+        let subjectName = os.assunto || os.su_assunto || os.descricao_assunto || os.assunto_nome;
+        if (!subjectName || subjectName === 'Não informado') {
+          subjectName = await getSubjectName(os.id_assunto);
+        }
 
-      await ServiceOrder.findOneAndUpdate(
-        { ixcId: os.id },
-        {
-          number: os.protocolo,
-          client: clientName,
-          address: os.endereco || '',
-          lat: parseFloat(os.latitude) || 0,
-          lng: parseFloat(os.longitude) || 0,
-          status: os.status,
-          priority: os.prioridade,
-          description: os.mensagem,
-          subject: subjectName,
-          teamId: tecnicoId ? String(tecnicoId) : null,
-          scheduledDate: parseIXCDate(os.data_agenda),
-          lastSeen: new Date()
-        },
-        { upsert: true }
-      );
+        await ServiceOrder.findOneAndUpdate(
+          { ixcId: os.id },
+          {
+            number: os.protocolo,
+            client: clientName,
+            address: os.endereco || '',
+            lat: parseFloat(os.latitude) || 0,
+            lng: parseFloat(os.longitude) || 0,
+            status: os.status,
+            priority: os.prioridade,
+            description: os.mensagem,
+            subject: subjectName,
+            teamId: tecnicoId ? String(tecnicoId) : null,
+            scheduledDate: parseIXCDate(os.data_agenda),
+            lastSeen: new Date()
+          },
+          { upsert: true }
+        );
+      }));
     }
+    
     logger.info('[IXC] Sincronização de O.S. concluída.');
     if (io) io.emit('os_synced');
   } catch (error) {
