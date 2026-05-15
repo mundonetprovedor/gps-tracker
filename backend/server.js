@@ -255,21 +255,20 @@ async function syncIXCServiceOrders() {
     if (!data || !data.registros) return;
 
     for (const os of data.registros) {
-      // Prioridade para o responsável direto, depois colaborador, depois técnico
       const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
       
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
         {
           number: os.protocolo,
-          client: os.cliente || os.razao || os.nome || 'Cliente não identificado',
+          client: os.nome_cliente || os.cliente || os.razao || os.nome || 'Cliente não identificado',
           address: os.endereco || os.endereco_padrao || '',
           lat: parseFloat(os.latitude) || 0,
           lng: parseFloat(os.longitude) || 0,
           status: os.status,
           priority: os.prioridade,
           description: os.mensagem,
-          subject: os.id_assunto,
+          subject: os.assunto || os.id_assunto || 'Não informado',
           teamId: tecnicoId ? String(tecnicoId) : null,
           scheduledDate: parseIXCDate(os.data_agenda)
         },
