@@ -234,7 +234,8 @@ const handleTraccarUpdate = async (req, res) => {
     const longitude = parseFloat(lon);
 
     if (deviceId === '8' || deviceId === '9') {
-      logger.info(`[TRACCAR] Sinal recebido (ID: ${deviceId}) - Lat: ${latitude}, Lon: ${longitude}`);
+      logger.info(`[DEBUG BRUTO] Dispositivo: ${deviceId} | Dados: %j`, data);
+      logger.info(`[BATTERY DEBUG] Dispositivo: ${deviceId}, Bruto: ${rawBattery}, Calculado: ${battery}%`);
     }
 
     const now = new Date();
@@ -245,7 +246,19 @@ const handleTraccarUpdate = async (req, res) => {
         speedNum = (parseFloat(data.speed || 0) * 1.852);
     }
 
-    const battery = data.battery || data.level || data.location?.battery?.level || (data.battery ? data.battery * 100 : 0);
+    let battery = data.battery || data.level || data.location?.battery?.level || 0;
+    const rawBattery = battery;
+    // Se o valor vier como decimal (ex: 0.84), converte para porcentagem (84%)
+    if (battery > 0 && battery <= 1) {
+        battery = Math.round(battery * 100);
+    } else {
+        battery = parseFloat(battery) || 0;
+    }
+
+    if (deviceId === '8' || deviceId === '9') {
+      logger.info(`[BATTERY DEBUG] Device: ${deviceId}, Raw: ${rawBattery}, Calculated: ${battery}%`);
+    }
+
     const heading = data.heading || data.location?.coords?.heading || 0;
 
     res.send('OK');
