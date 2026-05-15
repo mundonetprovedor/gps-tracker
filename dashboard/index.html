@@ -41,9 +41,9 @@
             --bg-main: #f1f5f9;
             --bg-card: #ffffff;
             --text-main: #000000;
-            --text-muted: #334155;
-            --border: rgba(0, 0, 0, 0.15);
-            --glass: rgba(255, 255, 255, 0.98);
+            --text-muted: #1e293b;
+            --border: #2563eb;
+            --glass: #ffffff;
             --popup-bg: #ffffff;
             --popup-text: #000000;
             --logo-filter: none;
@@ -94,15 +94,15 @@
 
         .stats-overlay { display: flex; gap: 10px; width: 320px; }
         .stat-widget { 
-            flex: 1; background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
-            padding: 10px 8px; border-radius: 14px; display: flex; flex-direction: column; 
-            align-items: center; gap: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            flex: 1; background: var(--glass); backdrop-filter: blur(12px); border: 2px solid var(--border);
+            padding: 12px 8px; border-radius: 16px; display: flex; flex-direction: column; 
+            align-items: center; gap: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
             transition: 0.2s;
         }
-        .stat-widget:hover { border-color: var(--primary); transform: translateY(-2px); }
-        .stat-widget i { color: var(--primary); width: 18px; height: 18px; }
-        .stat-widget .val { font-size: 15px; font-weight: 800; color: var(--text-main); }
-        .stat-widget .lab { font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; text-align: center; }
+        .stat-widget:hover { border-color: var(--primary); transform: translateY(-3px); }
+        .stat-widget i { color: var(--primary); width: 22px; height: 22px; stroke-width: 2.5px; }
+        .stat-widget .val { font-size: 18px; font-weight: 900; color: var(--text-main); line-height: 1; }
+        .stat-widget .lab { font-size: 10px; color: var(--text-main); font-weight: 800; text-transform: uppercase; text-align: center; opacity: 0.8; }
 
         /* Left Sidebar Panel (Teams) */
         .teams-panel {
