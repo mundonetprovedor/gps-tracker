@@ -92,13 +92,10 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
   today.setUTCHours(3, 0, 0, 0); 
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-  const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
-
   const total = await Team.countDocuments();
   const active = await Team.countDocuments({ status: 'Online' });
   const alerts = await Alert.countDocuments({ read: false });
   const osToday = await ServiceOrder.countDocuments({ 
-    lastSeen: { $gte: fifteenMinsAgo }, 
     $or: [
       { status: { $in: ['EX', 'DS'] } },
       { status: { $in: ['AG', 'F', 'EN', 'AS'] }, scheduledDate: { $gte: today, $lt: tomorrow } }
@@ -114,10 +111,7 @@ app.get('/api/service-orders', auth, async (req, res) => {
   const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
   today.setUTCHours(3, 0, 0, 0);
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-  const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
-
   const orders = await ServiceOrder.find({
-    lastSeen: { $gte: fifteenMinsAgo }, 
     $or: [
       { status: { $in: ['EX', 'DS'] } },
       { status: { $in: ['AG', 'F', 'EN', 'AS'] }, scheduledDate: { $gte: today, $lt: tomorrow } }
