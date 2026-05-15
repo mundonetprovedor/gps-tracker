@@ -81,23 +81,25 @@ async function getSubjectName(id) {
   if (!id) return 'Não informado';
   if (subjectCache[id] && subjectCache[id] !== 'Não informado') return subjectCache[id];
   try {
-    const response = await fetch(`${IXC_URL}/su_assunto`, {
+    const response = await fetch(`${IXC_URL}/su_oss_assunto`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
       },
-      body: JSON.stringify({ qtype: 'id', query: id, oper: '=', rp: '1' })
+      body: JSON.stringify({ qtype: 'su_oss_assunto.id', query: id, oper: '=', rp: '1' })
     });
     const data = await response.json();
-    const name = data.registros?.[0]?.assunto || 'Não informado';
-    subjectCache[id] = name;
-    return name;
-  } catch (e) {
-    logger.error(`[IXC] Erro ao buscar assunto ${id}: ${e.message}`);
-    return 'Não informado';
+    if (data && data.registros && data.registros.length > 0) {
+      const name = data.registros[0].assunto;
+      subjectCache[id] = name;
+      return name;
+    }
+  } catch (error) {
+    logger.error('[IXC] Erro ao buscar nome do assunto: %s', error.message);
   }
+  return 'Não informado';
 }
 
 function parseIXCDate(dateStr) {
