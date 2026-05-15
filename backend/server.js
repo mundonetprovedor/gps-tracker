@@ -463,11 +463,10 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
   
   const osToday = await ServiceOrder.countDocuments({ 
-    lastSeen: { $gte: fifteenMinsAgo }, // Limpeza por recência
+    lastSeen: { $gte: fifteenMinsAgo }, 
     $or: [
       { status: { $in: ['EX', 'DS'] } },
-      { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
-      { status: 'F', timestamp: { $gte: today } }
+      { status: { $in: ['AG', 'F', 'EN', 'AS'] }, scheduledDate: { $gte: today, $lt: tomorrow } }
     ]
   });
 
@@ -496,8 +495,7 @@ app.get('/api/service-orders', auth, async (req, res) => {
     lastSeen: { $gte: fifteenMinsAgo }, 
     $or: [
       { status: { $in: ['EX', 'DS'] } },
-      { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
-      { status: 'F', timestamp: { $gte: today } }
+      { status: { $in: ['AG', 'F', 'EN', 'AS'] }, scheduledDate: { $gte: today, $lt: tomorrow } }
     ]
   }).sort({ timestamp: -1 });
   
