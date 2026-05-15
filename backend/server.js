@@ -227,8 +227,38 @@ async function syncIXCTeamCollaborators() {
   }
 }
 
+let subjectMap = {};
+
+async function syncIXCAssuntos() {
+  console.log('[IXC] Sincronizando tabela de assuntos...');
+  try {
+    const response = await fetch(`${IXC_URL}/su_oss_assunto`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ixcsoft': 'listar',
+        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+      },
+      body: JSON.stringify({
+        qtype: 'su_oss_assunto.id',
+        query: '0',
+        oper: '>',
+        rp: '1000'
+      })
+    });
+    const data = await response.json();
+    if (data && data.registros) {
+      data.registros.forEach(r => {
+        subjectMap[String(r.id)] = r.assunto;
+      });
+      console.log(`[IXC] ${Object.keys(subjectMap).length} assuntos mapeados.`);
+    }
+  } catch (e) { console.error('[IXC] Erro ao sincronizar assuntos:', e.message); }
+}
+
 async function syncIXCServiceOrders() {
-  await syncIXCTeamCollaborators(); // Mapeia funcionários das equipes com nomes reais
+  await syncIXCTeamCollaborators();
+  await syncIXCAssuntos(); 
   console.log('[IXC] Iniciando sincronização de O.S...');
   try {
     const body = {
@@ -256,6 +286,7 @@ async function syncIXCServiceOrders() {
 
     for (const os of data.registros) {
       const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
+      const assuntoReal = subjectMap[String(os.id_assunto)] || os.assunto || os.id_assunto || 'Não informado';
       
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
@@ -268,7 +299,7 @@ async function syncIXCServiceOrders() {
           status: os.status,
           priority: os.prioridade,
           description: os.mensagem,
-          subject: os.assunto || os.id_assunto || 'Não informado',
+          subject: assuntoReal,
           teamId: tecnicoId ? String(tecnicoId) : null,
           scheduledDate: parseIXCDate(os.data_agenda)
         },
