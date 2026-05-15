@@ -39,8 +39,15 @@ const MONGO_URL = process.env.MONGO_URL || 'mongodb://mongo:27017/mundonet_gps';
 
 // ── DB CONNECTION ──
 mongoose.connect(MONGO_URL, { serverSelectionTimeoutMS: 5000 })
-  .then(() => {
+  .then(async () => {
     logger.info('✅ Conectado ao MongoDB');
+    
+    // Limpeza de segurança (Roda uma vez no boot para corrigir o bug das datas falsas)
+    const result = await ServiceOrder.updateMany({ status: 'F' }, { $set: { finishedAt: null } });
+    if (result.modifiedCount > 0) {
+      logger.info(`✅ [DB] Limpeza concluída: ${result.modifiedCount} O.S. resetadas.`);
+    }
+
     seedAdmin();
   })
   .catch(err => logger.error('❌ Erro MongoDB: %s', err.message));
