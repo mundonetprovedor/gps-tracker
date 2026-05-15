@@ -121,6 +121,11 @@ app.get('/api/teams', auth, async (req, res) => {
 });
 
 app.get('/api/activities', auth, async (req, res) => {
+  const now = new Date();
+  const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  today.setUTCHours(3, 0, 0, 0);
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+
   const os = await ServiceOrder.find({
     status: { $in: ['AG', 'DS', 'EX'] },
     scheduledDate: { $gte: today, $lt: tomorrow }
