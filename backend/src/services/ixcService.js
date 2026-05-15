@@ -88,7 +88,7 @@ async function getSubjectName(id) {
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
       },
-      body: JSON.stringify({ qtype: 'su_assunto.id', query: id, oper: '=', rp: '1' })
+      body: JSON.stringify({ qtype: 'id', query: id, oper: '=', rp: '1' })
     });
     const data = await response.json();
     const name = data.registros?.[0]?.assunto || 'Não informado';
