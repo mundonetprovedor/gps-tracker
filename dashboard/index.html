@@ -502,8 +502,17 @@
         function renderTeamsTable() {
             const body = document.getElementById('teams-table-body');
             body.innerHTML = '';
-            Object.keys(teams).forEach(id => {
-                const team = teams[id];
+            
+            // Converte para array e ordena: Online primeiro, depois por nome
+            const sortedTeams = Object.entries(teams).sort((a, b) => {
+                const teamA = a[1];
+                const teamB = b[1];
+                if (teamA.status === 'Online' && teamB.status !== 'Online') return -1;
+                if (teamA.status !== 'Online' && teamB.status === 'Online') return 1;
+                return teamA.name.localeCompare(teamB.name);
+            });
+
+            sortedTeams.forEach(([id, team]) => {
                 const row = document.createElement('tr');
                 row.onclick = () => selectTeam(id);
                 row.innerHTML = `
