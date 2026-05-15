@@ -553,7 +553,8 @@
         }
 
         async function deleteTeam(id) {
-            if (!confirm(`Deseja remover o dispositivo "${id}" do painel?`)) return;
+            const teamName = teams[id] ? teams[id].name : id;
+            if (!confirm(`Deseja remover o dispositivo "${teamName}" do painel?`)) return;
             const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
             try {
                 const res = await fetch(`/api/teams/${id}`, { method: 'DELETE', headers });

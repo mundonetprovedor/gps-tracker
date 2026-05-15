@@ -359,6 +359,7 @@ app.get('/api/teams', auth, async (req, res) => {
 
 app.delete('/api/teams/:id', auth, async (req, res) => {
   const { id } = req.params;
+  console.log(`[Admin] Removendo equipe/dispositivo: ${id}`);
   await Team.deleteOne({ id });
   io.emit('team_removed', id); 
   res.json({ success: true });
