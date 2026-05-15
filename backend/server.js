@@ -142,7 +142,7 @@ app.get('/api/service-orders', auth, async (req, res) => {
             },
             { 
               status: 'F', 
-              lastSeen: { $gte: start } 
+              finishedAt: { $gte: start } 
             }
           ]
         }

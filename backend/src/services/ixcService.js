@@ -257,6 +257,9 @@ async function syncIXCServiceOrders(io) {
             } 
             else if (os.status === 'F') {
                 msg = `${techName} finalizou o serviço na O.S. do cliente ${clientName}.`;
+                // Atualiza a O.S. com a data de finalização real
+                await ServiceOrder.updateOne({ ixcId: os.id }, { finishedAt: now });
+                
                 // Finaliza histórico e calcula tempo de atendimento
                 const hist = await ServiceHistory.findOne({ osId: String(os.id) });
                 if (hist && hist.arrivalTime) {
