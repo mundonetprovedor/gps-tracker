@@ -431,6 +431,12 @@ app.delete('/api/teams/:id', auth, async (req, res) => {
   io.emit('team_removed', id); 
   res.json({ success: true });
 });
+app.get('/api/admin/clear-alerts', async (req, res) => {
+  try {
+    const result = await Alert.deleteMany({});
+    res.send(`✅ Sucesso! ${result.deletedCount} alertas removidos. Pode fechar esta aba e atualizar o painel.`);
+  } catch (e) { res.status(500).send('Erro ao limpar alertas'); }
+});
 
 // ── INTELLIGENCE ──
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -446,21 +452,33 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 async function checkGeofences(teamId, lat, lon) {
   try {
-    const openOrders = await ServiceOrder.find({
-      status: { $in: ['A', 'DS', 'EN', 'AS', 'AG'] }
-    });
-
     const tech = await Team.findOne({ $or: [{ id: String(teamId) }, { teamId: String(teamId) }] });
     const techName = tech ? tech.name : teamId;
 
-    for (const os of openOrders) {
+    // Só busca ordens de serviço ATRIBUÍDAS a este técnico
+    const myOrders = await ServiceOrder.find({
+      teamId: String(teamId),
+      status: { $in: ['A', 'DS', 'EN', 'AS', 'AG'] }
+    });
+
+    for (const os of myOrders) {
       if (!os.lat || !os.lng) continue;
       const dist = calculateDistance(lat, lon, os.lat, os.lng);
+      
+      // Se estiver a menos de 200 metros
       if (dist < 0.2 && os.status !== 'EX') {
-        console.log(`[Geofence] Técnico ${techName} chegou na OS ${os.number}`);
-        os.status = 'EX';
+        console.log(`[Geofence] Chegada Detectada: ${techName} na OS ${os.number}`);
+        os.status = 'EX'; // Muda para "Em Execução"
         await os.save();
-        await Alert.create({ type: 'Warning', message: `Técnico ${techName} chegou no cliente ${os.client} (OS ${os.number})`, device: techName });
+        
+        // Cria o alerta com o nome real do técnico
+        await Alert.create({ 
+          type: 'Warning', 
+          message: `Técnico ${techName} chegou no cliente ${os.client || 'não identificado'} (OS ${os.number})`, 
+          device: techName,
+          timestamp: new Date()
+        });
+        
         io.emit('os_synced');
       }
     }
