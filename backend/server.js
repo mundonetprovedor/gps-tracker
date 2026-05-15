@@ -186,6 +186,16 @@ app.get('/api/history/:teamId', auth, async (req, res) => {
 
 app.get('/api/teams', auth, async (req, res) => res.json(teams));
 
+app.delete('/api/teams/:id', auth, async (req, res) => {
+    const { id } = req.params;
+    if (teams[id]) {
+        delete teams[id];
+        io.emit('update_teams', teams);
+        return res.json({ success: true });
+    }
+    res.status(404).json({ error: 'Equipe não encontrada' });
+});
+
 // ── TRACCAR INTEGRATION ──
 const handleTraccarUpdate = async (req, res) => {
   const data = { ...req.query, ...req.body };

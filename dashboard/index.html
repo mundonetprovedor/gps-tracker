@@ -388,7 +388,9 @@
                         <div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:75%"></div></div>
                     </td>
                     <td>São Luís, MA</td>
-                    <td><i data-lucide="more-horizontal" style="cursor:pointer"></i></td>
+                    <td>
+                        <i data-lucide="trash-2" style="cursor:pointer; color:var(--danger); margin-left:12px;" onclick="event.stopPropagation(); deleteTeam('${id}')"></i>
+                    </td>
                 `;
                 body.appendChild(row);
             });
@@ -450,6 +452,19 @@
                 list.appendChild(item);
             });
             lucide.createIcons();
+        }
+
+        async function deleteTeam(id) {
+            if (!confirm(`Deseja remover o dispositivo "${id}" do painel?`)) return;
+            const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
+            try {
+                const res = await fetch(`/api/teams/${id}`, { method: 'DELETE', headers });
+                if (res.ok) {
+                    delete teams[id];
+                    renderTeamsTable();
+                    if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+                }
+            } catch (e) { console.error('Delete Error:', e); }
         }
 
         function initChart() {
