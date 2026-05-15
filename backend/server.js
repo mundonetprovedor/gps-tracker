@@ -205,45 +205,88 @@ app.get('/api/optimize-route/:teamId', auth, async (req, res) => {
 
 // ── TRACCAR INTEGRATION ──
 const handleTraccarUpdate = async (req, res) => {
-  const data = { ...req.query, ...req.body };
-  const id = data.id || data.deviceid || data.uniqueId;
-  const lat = data.lat || data.latitude;
-  const lon = data.lon || data.lng || data.longitude;
-  
-  if (!id || !lat || !lon) return res.status(400).send('Missing params');
-
-  const now = new Date();
-  const speedNum = (parseFloat(data.speed || 0) * 1.852);
-  const updateData = { 
-    status: 'Online', 
-    lastSeen: now, 
-    battery: data.battery || data.level,
-    lastLocation: { lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, heading: parseFloat(data.heading || 0), timestamp: now }
-  };
-
-  const team = await Team.findOneAndUpdate({ id: String(id) }, updateData, { upsert: true, new: true });
-  
-  await new Location({ teamId: id, name: team.name, lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, battery: updateData.battery, timestamp: now }).save();
-  await checkGeofences(id, parseFloat(lat), parseFloat(lon), io);
-  await checkIdleStatus(id, parseFloat(lat), parseFloat(lon), speedNum, io);
-
-  // ── CÁLCULO DE ETA ──
   try {
-    const activeOS = await ServiceOrder.findOne({ teamId: String(id), status: 'DS' });
-    if (activeOS && activeOS.lat && activeOS.lng) {
-      const route = await getRouteETA(parseFloat(lat), parseFloat(lon), activeOS.lat, activeOS.lng);
-      if (route) {
-        const mins = Math.ceil(route.duration / 60);
-        updateData.lastLocation.eta = `${mins} min`;
-        await Team.updateOne({ _id: team._id }, { 'lastLocation.eta': updateData.lastLocation.eta });
-      }
-    } else {
-        await Team.updateOne({ _id: team._id }, { 'lastLocation.eta': null });
+    const data = { ...req.query, ...req.body };
+    const id = data.id || data.deviceid || data.uniqueId;
+    const lat = data.lat || data.latitude;
+    const lon = data.lon || data.lng || data.longitude;
+    
+    if (!id || !lat || !lon) {
+      return res.status(400).send('Missing params');
     }
-  } catch (e) { logger.error('[ETA] Erro: %s', e.message); }
 
-  io.emit('update_teams', { [team.id]: { ...team.toObject(), lastLocation: { ...team.lastLocation, ...updateData.lastLocation } } });
-  res.send('OK');
+    // Log especial para debug do seu dispositivo
+    if (id === '8' || id === 8) {
+      logger.info(`[TRACCAR] Recebendo sinal do seu celular (ID: 8) - Lat: ${lat}, Lon: ${lon}`);
+    }
+
+    const now = new Date();
+    const speedNum = (parseFloat(data.speed || 0) * 1.852);
+    const battery = data.battery || data.level;
+
+    // Responde ao celular IMEDIATAMENTE para evitar timeout/busy
+    res.send('OK');
+
+    // Processa o restante em "background" (não espera o await para responder o HTTP)
+    (async () => {
+      try {
+        const updateData = { 
+          status: 'Online', 
+          lastSeen: now, 
+          battery: battery,
+          lastLocation: { 
+            lat: parseFloat(lat), 
+            lng: parseFloat(lon), 
+            speed: speedNum, 
+            heading: parseFloat(data.heading || 0), 
+            timestamp: now 
+          }
+        };
+
+        const team = await Team.findOneAndUpdate(
+          { id: String(id) }, 
+          { ...updateData, $setOnInsert: { name: `Dispositivo ${id}` } }, 
+          { upsert: true, new: true }
+        );
+        
+        await new Location({ 
+          teamId: id, 
+          name: team.name, 
+          lat: parseFloat(lat), 
+          lng: parseFloat(lon), 
+          speed: speedNum, 
+          battery: battery, 
+          timestamp: now 
+        }).save();
+
+        await checkGeofences(id, parseFloat(lat), parseFloat(lon), io);
+        await checkIdleStatus(id, parseFloat(lat), parseFloat(lon), speedNum, io);
+
+        // ── CÁLCULO DE ETA (Segundo Plano) ──
+        const activeOS = await ServiceOrder.findOne({ teamId: String(id), status: 'DS' });
+        if (activeOS && activeOS.lat && activeOS.lng) {
+          const route = await getRouteETA(parseFloat(lat), parseFloat(lon), activeOS.lat, activeOS.lng);
+          if (route) {
+            const mins = Math.ceil(route.duration / 60);
+            const etaText = `${mins} min`;
+            await Team.updateOne({ _id: team._id }, { 'lastLocation.eta': etaText });
+            team.lastLocation.eta = etaText;
+          }
+        } else {
+          await Team.updateOne({ _id: team._id }, { 'lastLocation.eta': null });
+          team.lastLocation.eta = null;
+        }
+
+        io.emit('update_teams', { [team.id]: team.toObject() });
+      } catch (innerError) {
+        logger.error('[TRACCAR-BG] Erro no processamento secundário: %s', innerError.message);
+      }
+    })();
+
+  } catch (error) {
+    logger.error('[TRACCAR] Erro geral: %s', error.message);
+    if (!res.headersSent) res.status(500).send('Internal Error');
+  }
 };
 
 app.post('/traccar', handleTraccarUpdate);
