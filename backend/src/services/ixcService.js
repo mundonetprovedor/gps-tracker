@@ -97,9 +97,11 @@ async function syncIXCServiceOrders(io) {
     const data = await response.json();
     if (!data || !data.registros) return;
 
+    logger.info(`[IXC] Processando ${data.registros.length} Ordens de Serviço...`);
+    
+    // Processamento em lotes pequenos para não travar o Event Loop
     for (const os of data.registros) {
       const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
-      const oldOS = await ServiceOrder.findOne({ ixcId: os.id });
       
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
@@ -119,12 +121,8 @@ async function syncIXCServiceOrders(io) {
         },
         { upsert: true }
       );
-
-      if (oldOS && oldOS.status !== os.status && io) {
-        const statusLabel = STATUS_MAP[os.status]?.label || os.status;
-        io.emit('status_notification', { message: `OS ${os.id} mudou para: ${statusLabel}`, type: os.status });
-      }
     }
+    logger.info('[IXC] Sincronização de O.S. concluída.');
     if (io) io.emit('os_synced');
   } catch (error) {
     logger.error('[IXC] Erro na sincronização: %s', error.message);

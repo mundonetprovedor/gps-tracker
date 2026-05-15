@@ -61,6 +61,8 @@ const auth = (req, res, next) => {
 // ── ROUTES ──
 app.use(express.static(path.join(__dirname, '../dashboard')));
 
+app.get('/health', (req, res) => res.send('OK'));
+
 app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findOne({ username });
