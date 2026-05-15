@@ -153,7 +153,48 @@ function parseIXCDate(dateStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+async function syncIXCCollaborators() {
+  console.log('[IXC] Sincronizando nomes de colaboradores...');
+  try {
+    const body = {
+      qtype: 'funcionarios.id',
+      query: '0',
+      oper: '>',
+      page: '1',
+      rp: '1000',
+      sortname: 'funcionarios.id',
+      sortorder: 'asc'
+    };
+
+    const response = await fetch(`${IXC_URL}/funcionarios`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ixcsoft': 'listar',
+        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (data && data.registros) {
+      for (const f of data.registros) {
+        // Atualiza ou cria o time com o nome real do colaborador
+        await Team.findOneAndUpdate(
+          { id: String(f.id) },
+          { name: f.funcionario },
+          { upsert: true }
+        );
+      }
+      console.log(`[IXC] ${data.registros.length} colaboradores mapeados.`);
+    }
+  } catch (error) {
+    console.error('[IXC] Erro ao sincronizar colaboradores:', error.message);
+  }
+}
+
 async function syncIXCServiceOrders() {
+  await syncIXCCollaborators(); // Primeiro mapeia os nomes
   console.log('[IXC] Iniciando sincronização de O.S...');
   try {
     const body = {
@@ -176,21 +217,12 @@ async function syncIXCServiceOrders() {
       body: JSON.stringify(body)
     });
 
-    const responseText = await response.text();
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error('[IXC] Erro ao processar JSON. Resposta bruta:', responseText);
-      return;
-    }
-
-    if (!data || !data.registros) {
-      console.log('[IXC] Nenhum registro novo ou erro na resposta. Resposta:', responseText);
-      return;
-    }
+    const data = await response.json();
+    if (!data || !data.registros) return;
 
     for (const os of data.registros) {
+      const tecnicoId = os.id_tecnico || os.id_colaborador || os.id_responsavel;
+      
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
         {
@@ -203,7 +235,7 @@ async function syncIXCServiceOrders() {
           priority: os.prioridade,
           description: os.mensagem,
           subject: os.id_assunto,
-          teamId: os.id_tecnico,
+          teamId: tecnicoId ? String(tecnicoId) : null,
           scheduledDate: parseIXCDate(os.data_agenda)
         },
         { upsert: true }
