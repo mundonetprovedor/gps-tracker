@@ -261,16 +261,18 @@ async function syncIXCServiceOrders(io) {
             } 
             else if (os.status === 'F') {
                 msg = `${techName} finalizou o serviço na O.S. do cliente ${clientName}.`;
-                // Atualiza a O.S. com a data de finalização real
-                await ServiceOrder.updateOne({ ixcId: os.id }, { finishedAt: now });
+                
+                // Usa a data de fechamento real do IXC se disponível, senão usa 'now'
+                const completionDate = parseIXCDate(os.data_fechamento) || now;
+                await ServiceOrder.updateOne({ ixcId: os.id }, { finishedAt: completionDate });
                 
                 // Finaliza histórico e calcula tempo de atendimento
                 const hist = await ServiceHistory.findOne({ osId: String(os.id) });
                 if (hist && hist.arrivalTime) {
-                    const diffMin = Math.round((now - hist.arrivalTime) / 60000);
-                    await ServiceHistory.updateOne({ _id: hist._id }, { endTime: now, durationService: diffMin });
+                    const diffMin = Math.round((completionDate - hist.arrivalTime) / 60000);
+                    await ServiceHistory.updateOne({ _id: hist._id }, { endTime: completionDate, durationService: diffMin });
                 } else if (hist) {
-                    await ServiceHistory.updateOne({ _id: hist._id }, { endTime: now });
+                    await ServiceHistory.updateOne({ _id: hist._id }, { endTime: completionDate });
                 }
             }
 
