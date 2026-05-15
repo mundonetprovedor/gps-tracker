@@ -114,6 +114,18 @@ async function seedInitialData() {
   } catch (e) { console.error('Seed Error:', e); }
 }
 
+function parseIXCDate(dateStr) {
+  if (!dateStr || dateStr.includes('0000-00-00') || dateStr === '') return null;
+  // Tenta formato DD/MM/YYYY HH:MM:SS
+  const brParts = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (brParts) {
+    const timeParts = dateStr.match(/(\d{2}):(\d{2}):(\d{2})/) || [0, 0, 0, 0];
+    return new Date(brParts[3], brParts[2] - 1, brParts[1], timeParts[1], timeParts[2], timeParts[3]);
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 async function syncIXCServiceOrders() {
   console.log('[IXC] Iniciando sincronização de O.S...');
   try {
@@ -165,7 +177,7 @@ async function syncIXCServiceOrders() {
           description: os.mensagem,
           subject: os.id_assunto,
           teamId: os.id_tecnico,
-          scheduledDate: os.data_agenda ? new Date(os.data_agenda) : null
+          scheduledDate: parseIXCDate(os.data_agenda)
         },
         { upsert: true }
       );
