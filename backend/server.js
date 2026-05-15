@@ -295,7 +295,7 @@ async function syncIXCServiceOrders() {
       query: '0',
       oper: '>',
       page: '1',
-      rp: '100',
+      rp: '1000',
       sortname: 'su_oss_chamado.id',
       sortorder: 'desc'
     };
@@ -474,7 +474,7 @@ app.get('/api/service-orders', auth, async (req, res) => {
   const orders = await ServiceOrder.find({
     $or: [
       { status: { $in: ['EX', 'DS'] } },
-      { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
+      { status: { $in: ['AG', 'A', 'RAG'] }, scheduledDate: { $gte: today, $lt: tomorrow } },
       { status: 'F', timestamp: { $gte: today } }
     ]
   }).sort({ timestamp: -1 });
