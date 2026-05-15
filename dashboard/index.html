@@ -507,7 +507,7 @@
                 const row = document.createElement('tr');
                 row.onclick = () => selectTeam(id);
                 row.innerHTML = `
-                    <td><b>${team.name}</b></td>
+                    <td><b>${team.name}</b> <small style="opacity:0.6">(${id})</small></td>
                     <td><span class="status-pill ${team.status === 'Online' ? 'pill-online' : 'pill-busy'}">${team.status}</span></td>
                     <td>${team.technicians?.length || 1}</td>
                     <td>8/12</td>
