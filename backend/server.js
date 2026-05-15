@@ -228,8 +228,8 @@ async function syncIXCServiceOrders() {
         { ixcId: os.id },
         {
           number: os.protocolo,
-          client: os.cliente,
-          address: os.endereco,
+          client: os.cliente || os.razao || os.nome || 'Cliente não identificado',
+          address: os.endereco || os.endereco_padrao || '',
           lat: parseFloat(os.latitude) || 0,
           lng: parseFloat(os.longitude) || 0,
           status: os.status,
