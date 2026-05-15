@@ -85,8 +85,24 @@ const AlertSchema = new mongoose.Schema({
 });
 const Alert = mongoose.model('Alert', AlertSchema);
 
+const TeamSchema = new mongoose.Schema({
+  id: { type: String, unique: true },
+  name: String,
+  status: { type: String, default: 'Offline' },
+  lastLocation: {
+    lat: Number,
+    lng: Number,
+    speed: Number,
+    heading: Number,
+    timestamp: Date
+  },
+  battery: Number,
+  lastUpdate: { type: Date, default: Date.now },
+  technicians: [{ name: String, status: String, battery: Number }]
+});
+const Team = mongoose.model('Team', TeamSchema);
+
 // ── GLOBAL REALTIME STATE (RAM) ──
-let teams = {};
 let socketToTeam = {};
 
 // ── SEED INITIAL DATA (Working truly) ──
@@ -242,9 +258,13 @@ const auth = (req, res, next) => {
 app.get('/api/dashboard/stats', auth, async (req, res) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  
+  // Marca como offline quem não envia sinal há 10 min
+  const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+  await Team.updateMany({ lastUpdate: { $lt: tenMinsAgo } }, { status: 'Offline' });
 
-  const teamsCount = Object.keys(teams).length;
-  const activeCount = Object.keys(teams).filter(id => teams[id].status === 'Online').length;
+  const teamsTotal = await Team.countDocuments();
+  const teamsActive = await Team.countDocuments({ status: 'Online' });
   
   const alerts = await Alert.countDocuments({ read: false });
   
@@ -260,10 +280,10 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const osDoneToday = await ServiceOrder.countDocuments({ status: 'F', timestamp: { $gte: today } });
   
   res.json({
-    teamsActive: activeCount,
-    teamsTotal: teamsCount > 0 ? Math.max(teamsCount, 1) : 0,
-    devicesOnline: activeCount,
-    devicesTotal: Math.max(teamsCount, 1),
+    teamsActive,
+    teamsTotal: Math.max(teamsTotal, 1),
+    devicesOnline: teamsActive,
+    devicesTotal: Math.max(teamsTotal, 1),
     osToday: osOperational,
     osDone: osDoneToday,
     alertsCritical: alerts,
@@ -324,16 +344,16 @@ app.get('/api/history/:teamId', auth, async (req, res) => {
   res.json(history);
 });
 
-app.get('/api/teams', auth, async (req, res) => res.json(teams));
+app.get('/api/teams', auth, async (req, res) => {
+  const teams = await Team.find();
+  res.json(teams);
+});
 
 app.delete('/api/teams/:id', auth, async (req, res) => {
   const { id } = req.params;
-  if (teams[id]) {
-    delete teams[id];
-    io.emit('update_teams', teams);
-    return res.json({ success: true });
-  }
-  res.status(404).json({ error: 'Equipe não encontrada' });
+  await Team.deleteOne({ id });
+  io.emit('update_teams_trigger'); // Trigger frontend to reload
+  res.json({ success: true });
 });
 
 // ── INTELLIGENCE ──
@@ -404,24 +424,31 @@ const handleTraccarUpdate = async (req, res) => {
   const teamId = id;
   const now = timestamp ? (isNaN(timestamp) ? new Date(timestamp) : new Date(parseInt(timestamp) * 1000)) : new Date();
 
-  if (!teams[teamId]) {
-    teams[teamId] = { id: teamId, name: id, status: 'Online', lastUpdate: now, history: [], stops: [], technicians: [{ name: id, status: 'Online', battery: batt || 100 }] };
-  }
-
   const speedNum = speed ? parseFloat(speed) * 1.852 : 0;
-  teams[teamId].lastLocation = { lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, heading: parseFloat(heading || 0), timestamp: now };
-  teams[teamId].status = 'Online';
-  teams[teamId].battery = batt;
-  teams[teamId].lastUpdate = now;
+  const lastLocation = { lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, heading: parseFloat(heading || 0), timestamp: now };
+
+  const team = await Team.findOneAndUpdate(
+    { id: teamId },
+    { 
+      name: id, 
+      status: 'Online', 
+      lastUpdate: now,
+      lastLocation,
+      battery: batt,
+      $setOnInsert: { technicians: [{ name: id, status: 'Online', battery: batt || 100 }] }
+    },
+    { upsert: true, new: true }
+  );
 
   try {
-    await new Location({ teamId, name: teams[teamId].name, lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, battery: batt, network: 'Traccar', timestamp: now }).save();
+    await new Location({ teamId, name: team.name, lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, battery: batt, network: 'Traccar', timestamp: now }).save();
   } catch (e) { }
 
   await checkGeofences(teamId, parseFloat(lat), parseFloat(lon));
 
-  io.emit('team_location_update', { socketId: teamId, team: teams[teamId] });
-  io.emit('update_teams', teams);
+  await checkGeofences(teamId, parseFloat(lat), parseFloat(lon));
+
+  io.emit('team_location_update', { socketId: teamId, team: team });
   res.send('OK');
 };
 
@@ -432,11 +459,12 @@ app.get('/traccar', handleTraccarUpdate);
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
+  const teams = await Team.find();
   socket.emit('update_teams', teams);
   socket.on('disconnect', () => {
-    const teamId = socketToTeam[socket.id];
-    if (teamId && teams[teamId]) { teams[teamId].status = 'Offline'; io.emit('update_teams', teams); }
+    // Para persistência, não marcamos como offline no disconnect imediato, 
+    // mas sim pelo timeout de 10 min no endpoint de stats.
   });
 });
 
