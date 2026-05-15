@@ -258,6 +258,8 @@ const auth = (req, res, next) => {
 app.get('/api/dashboard/stats', auth, async (req, res) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
   
   // Marca como offline quem não envia sinal há 10 min
   const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
@@ -268,11 +270,14 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   
   const alerts = await Alert.countDocuments({ read: false });
   
-  // Filtro operacional: Agendadas, Execução, Deslocamento (independente de data)
-  // + Finalizadas (apenas hoje)
+  // Filtro operacional: 
+  // 1. Em andamento (EX, DS)
+  // 2. Agendadas para HOJE (AG + scheduledDate)
+  // 3. Finalizadas HOJE (F + timestamp)
   const osOperational = await ServiceOrder.countDocuments({ 
     $or: [
-      { status: { $in: ['AG', 'EX', 'DS'] } },
+      { status: { $in: ['EX', 'DS'] } },
+      { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
       { status: 'F', timestamp: { $gte: today } }
     ]
   });
@@ -294,10 +299,13 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
 app.get('/api/service-orders', auth, async (req, res) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const orders = await ServiceOrder.find({
     $or: [
-      { status: { $in: ['AG', 'EX', 'DS'] } },
+      { status: { $in: ['EX', 'DS'] } },
+      { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
       { status: 'F', timestamp: { $gte: today } }
     ]
   }).sort({ timestamp: -1 });
