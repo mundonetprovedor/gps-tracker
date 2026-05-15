@@ -1155,8 +1155,16 @@
 
         async function findNearestTeams(osId) {
             console.log('[Debug] Buscando equipes para OS:', osId);
-            const container = document.getElementById(`nearest-container-${osId}`);
-            if (!container) return;
+            // Tenta buscar no documento todo ou especificamente dentro do popup aberto do Leaflet
+            let container = document.getElementById(`nearest-container-${osId}`);
+            if (!container) {
+                container = document.querySelector(`.leaflet-popup-content #nearest-container-${osId}`);
+            }
+            
+            if (!container) {
+                console.error('[Debug] Container não encontrado para OS:', osId);
+                return;
+            }
             
             container.innerHTML = `<div style="font-size: 11px; color: #64748b; text-align: center; padding: 10px;">
                                     <i class="animate-spin" data-lucide="loader-2" style="width:14px; height:14px; margin-bottom: 5px;"></i><br>
