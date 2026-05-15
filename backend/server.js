@@ -478,17 +478,18 @@ const handleTraccarUpdate = async (req, res) => {
   const lastLocation = { lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, heading: parseFloat(heading || 0), timestamp: now };
 
   const team = await Team.findOneAndUpdate(
-    { id: teamId },
+    { id: String(teamId) },
     { 
-      name: id, 
       status: 'Online', 
       lastUpdate: now,
       lastLocation,
       battery: batt,
-      $setOnInsert: { technicians: [{ name: id, status: 'Online', battery: batt || 100 }] }
+      $setOnInsert: { name: id }
     },
     { upsert: true, new: true }
   );
+
+  console.log(`[Traccar] Equipe Atualizada: ${team.name || id} (ID: ${teamId}) -> Status: ${team.status}`);
 
   try {
     await new Location({ teamId, name: team.name, lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, battery: batt, network: 'Traccar', timestamp: now }).save();
