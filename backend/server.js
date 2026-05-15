@@ -158,22 +158,35 @@ app.get('/api/service-orders/:id/nearest', auth, async (req, res) => {
       });
     }
 
-    // Ordena por distância e pega os 5 mais próximos para calcular ETA real
+    // Ordena por distância e pega os 5 mais próximos para calcular ETA real em paralelo
     results.sort((a, b) => a.dist - b.dist);
     const topCandidates = results.slice(0, 5);
-    const finalRanking = [];
+    
+    const rankingPromises = topCandidates.map(async (cand) => {
+      try {
+        const route = await getRouteETA(cand.lat, cand.lng, os.lat, os.lng);
+        return {
+          name: cand.name,
+          distance: route ? (route.distance / 1000).toFixed(1) : (cand.dist * 111).toFixed(1),
+          duration: route ? Math.ceil(route.duration / 60) : Math.ceil((cand.dist * 111) * 2), // Estimativa simples se falhar
+          hasRoute: !!route
+        };
+      } catch (err) {
+        return {
+          name: cand.name,
+          distance: (cand.dist * 111).toFixed(1),
+          duration: Math.ceil((cand.dist * 111) * 2),
+          hasRoute: false
+        };
+      }
+    });
 
-    for (const cand of topCandidates) {
-      const route = await getRouteETA(cand.lat, cand.lng, os.lat, os.lng);
-      finalRanking.push({
-        name: cand.name,
-        distance: route ? (route.distance / 1000).toFixed(1) : (cand.dist * 111).toFixed(1), // km aproximado se falhar OSRM
-        duration: route ? Math.ceil(route.duration / 60) : '?',
-        status: cand.status
-      });
-    }
-
-    finalRanking.sort((a, b) => (typeof a.duration === 'number' ? a.duration : 999) - (typeof b.duration === 'number' ? b.duration : 999));
+    const finalRanking = await Promise.all(rankingPromises);
+    finalRanking.sort((a, b) => {
+        const durA = typeof a.duration === 'number' ? a.duration : 999;
+        const durB = typeof b.duration === 'number' ? b.duration : 999;
+        return durA - durB;
+    });
 
     res.json(finalRanking.slice(0, 3));
   } catch (error) {
