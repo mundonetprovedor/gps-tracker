@@ -246,11 +246,13 @@
             z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
         }
         .toast {
-            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
-            border: 1px solid var(--border); color: white; padding: 12px 20px;
-            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            display: flex; align-items: center; gap: 12px; pointer-events: auto;
-            animation: slideIn 0.3s ease-out forwards; min-width: 300px;
+            background: var(--bg-card); backdrop-filter: blur(10px);
+            border: 1px solid var(--border); color: var(--text-main); padding: 16px 20px;
+            border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 15px; pointer-events: auto;
+            animation: slideIn 0.3s ease-out forwards; 
+            min-width: 400px; max-width: 550px;
+            border-left: 5px solid var(--primary);
         }
         @keyframes slideIn {
             from { transform: translateY(-20px); opacity: 0; }
@@ -633,27 +635,42 @@
             });
         }
 
-        function showToast(message, type) {
+        function showToast(message, type = 'Warning') {
             const container = document.getElementById('notification-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             
-            const icon = type === 'DS' ? 'truck' : 'play-circle';
-            const color = type === 'DS' ? 'var(--warning)' : 'var(--success)';
+            // 🔥 Som de Notificação
+            try {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.volume = 0.5;
+                audio.play().catch(e => console.warn('Bloqueio de áudio do navegador:', e));
+            } catch (err) { console.error('Erro áudio:', err); }
+
+            let icon = 'bell';
+            let color = 'var(--primary)';
+            
+            if (type === 'DS') { icon = 'truck'; color = 'var(--warning)'; }
+            else if (type === 'EX') { icon = 'play'; color = '#ec4899'; }
+            else if (type === 'F') { icon = 'check-circle'; color = 'var(--success)'; }
+            else if (type === 'Critical') { icon = 'alert-triangle'; color = 'var(--danger)'; }
+            
+            toast.style.borderLeftColor = color;
             
             toast.innerHTML = `
-                <div style="background:${color}20; color:${color}; padding:8px; border-radius:8px; display:flex;">
-                    <i data-lucide="${icon}" size="18"></i>
+                <div style="background:${color}20; color:${color}; padding:10px; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="${icon}" style="width:22px; height:22px;"></i>
                 </div>
-                <div style="font-size:13px; font-weight:600;">${message}</div>
+                <div style="font-size:14px; font-weight:700; line-height:1.4; color: var(--text-main);">${message}</div>
             `;
             container.appendChild(toast);
             lucide.createIcons();
             
+            // 🕒 Fica 30 segundos na tela
             setTimeout(() => {
                 toast.style.animation = 'slideIn 0.3s ease-out reverse forwards';
                 setTimeout(() => toast.remove(), 300);
-            }, 5000);
+            }, 30000);
         }
 
         async function loadDashboardData() {
