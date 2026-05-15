@@ -153,41 +153,26 @@ function parseIXCDate(dateStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-async function syncIXCCollaborators() {
-  console.log('[IXC] Sincronizando nomes de colaboradores...');
+async function syncIXCTeamCollaborators() {
+  console.log('[IXC] Cruzando dados de Equipes e Colaboradores...');
   try {
-    const body = {
-      qtype: 'funcionarios.id',
-      query: '0',
-      oper: '>',
-      page: '1',
-      rp: '1000',
-      sortname: 'funcionarios.id',
-      sortorder: 'asc'
-    };
-
-    const response = await fetch(`${IXC_URL}/funcionarios`, {
+    // 1. Busca todos os funcionários para ter um mapa de ID -> Nome
+    const employeesResponse = await fetch(`${IXC_URL}/funcionarios`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ qtype: 'funcionarios.id', query: '0', oper: '>', rp: '1000' })
     });
-
-    const data = await response.json();
-    if (data && data.registros) {
-      for (const f of data.registros) {
-        await Team.findOneAndUpdate({ id: String(f.id) }, { name: f.funcionario }, { upsert: true });
-      }
+    const employeesData = await employeesResponse.json();
+    const nameMap = {};
+    if (employeesData.registros) {
+      employeesData.registros.forEach(f => { nameMap[f.id] = f.funcionario; });
     }
-  } catch (error) { console.error('[IXC] Erro colaboradores:', error.message); }
-}
 
-async function syncIXCTeamCollaborators() {
-  console.log('[IXC] Sincronizando Colaboradores da Equipe...');
-  try {
+    // 2. Busca os vínculos de equipe (onde estão os IDs 8, 122, etc)
     const body = {
       qtype: 'funcionarios_equipes.id',
       query: '0',
@@ -211,25 +196,23 @@ async function syncIXCTeamCollaborators() {
     const data = await response.json();
     if (data && data.registros) {
       for (const f of data.registros) {
-        // Tenta encontrar o nome do funcionário se disponível na resposta ou usa fallback
-        // Em muitas APIs do IXC, o nome vem em f.id_funcionario_label ou similar
-        const nome = f.id_funcionario_label || f.funcionario || f.nome || `Técnico ${f.id_funcionario}`;
+        // Usa o nome do mapa se encontrar, senão usa o label da equipe
+        const nomeReal = nameMap[f.id_funcionario] || f.id_funcionario_label || f.funcionario || `Técnico ${f.id_funcionario}`;
         await Team.findOneAndUpdate(
-          { id: String(f.id_funcionario || f.id) },
-          { name: nome },
+          { id: String(f.id) }, // Este é o ID que aparece na O.S. (ex: 8, 122)
+          { name: nomeReal },
           { upsert: true }
         );
       }
-      console.log(`[IXC] ${data.registros.length} vínculos de equipe mapeados.`);
+      console.log(`[IXC] ${data.registros.length} técnicos de equipe mapeados com nomes reais.`);
     }
   } catch (error) {
-    console.error('[IXC] Erro ao sincronizar colaboradores da equipe:', error.message);
+    console.error('[IXC] Erro no cruzamento de dados:', error.message);
   }
 }
 
 async function syncIXCServiceOrders() {
-  await syncIXCCollaborators(); // Mapeia funcionários gerais
-  await syncIXCTeamCollaborators(); // Mapeia funcionários das equipes (conforme sua imagem)
+  await syncIXCTeamCollaborators(); // Mapeia funcionários das equipes com nomes reais
   console.log('[IXC] Iniciando sincronização de O.S...');
   try {
     const body = {
