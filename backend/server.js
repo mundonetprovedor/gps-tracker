@@ -316,7 +316,30 @@ async function syncIXCServiceOrders() {
     for (const os of data.registros) {
       const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
       const assuntoReal = subjectMap[String(os.id_assunto)] || os.assunto || os.id_assunto || 'Não informado';
-      const clienteReal = clientMap[String(os.id_cliente)] || os.nome_cliente || os.cliente || os.razao_social || os.razao || os.nome || 'Cliente não identificado';
+      
+      let clienteReal = clientMap[String(os.id_cliente)];
+      
+      // Se não achou o cliente no mapa (muitos clientes), busca individualmente
+      if (!clienteReal && os.id_cliente) {
+        try {
+          const cRes = await fetch(`${IXC_URL}/cliente`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'ixcsoft': 'listar',
+              'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+            },
+            body: JSON.stringify({ qtype: 'cliente.id', query: os.id_cliente, oper: '=', rp: '1' })
+          });
+          const cData = await cRes.json();
+          if (cData && cData.registros && cData.registros[0]) {
+            clienteReal = cData.registros[0].razao;
+            clientMap[String(os.id_cliente)] = clienteReal; // Salva no mapa para a próxima
+          }
+        } catch (e) { console.error(`[IXC] Erro ao buscar cliente ${os.id_cliente}:`, e.message); }
+      }
+
+      if (!clienteReal) clienteReal = os.nome_cliente || os.cliente || os.razao_social || os.razao || os.nome || 'Cliente não identificado';
       
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
