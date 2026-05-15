@@ -375,6 +375,8 @@
             stdLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
             L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            map.on('popupopen', () => lucide.createIcons());
         }
 
         function setMapLayer(type) {
