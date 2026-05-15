@@ -450,14 +450,17 @@ async function checkGeofences(teamId, lat, lon) {
       status: { $in: ['A', 'DS', 'EN', 'AS', 'AG'] }
     });
 
+    const tech = await Team.findOne({ $or: [{ id: String(teamId) }, { teamId: String(teamId) }] });
+    const techName = tech ? tech.name : teamId;
+
     for (const os of openOrders) {
       if (!os.lat || !os.lng) continue;
       const dist = calculateDistance(lat, lon, os.lat, os.lng);
       if (dist < 0.2 && os.status !== 'EX') {
-        console.log(`[Geofence] Técnico ${teamId} chegou na OS ${os.number}`);
+        console.log(`[Geofence] Técnico ${techName} chegou na OS ${os.number}`);
         os.status = 'EX';
         await os.save();
-        await Alert.create({ type: 'Warning', message: `Técnico ${teamId} chegou no cliente ${os.client} (OS ${os.number})`, device: teamId });
+        await Alert.create({ type: 'Warning', message: `Técnico ${techName} chegou no cliente ${os.client} (OS ${os.number})`, device: techName });
         io.emit('os_synced');
       }
     }
