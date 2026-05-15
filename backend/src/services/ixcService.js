@@ -1,5 +1,6 @@
 const Team = require('../models/Team');
 const ServiceOrder = require('../models/ServiceOrder');
+const ServiceHistory = require('../models/ServiceHistory');
 const Alert = require('../models/Alert');
 const logger = require('../config/logger');
 
@@ -216,13 +217,55 @@ async function syncIXCServiceOrders(io) {
 
         const oldOS = await ServiceOrder.findOne({ ixcId: os.id });
         
-        // Detecta mudança de status para Alertas
+        // Detecta mudança de status para Alertas e Histórico
         if (oldOS && oldOS.status !== os.status && ['DS', 'EX', 'F'].includes(os.status)) {
             const techName = await getTechnicianName(tecnicoId);
             let msg = '';
-            if (os.status === 'DS') msg = `${techName} iniciou deslocamento para O.S. do cliente ${clientName}.`;
-            else if (os.status === 'EX') msg = `${techName} iniciou o serviço na O.S. do cliente ${clientName}.`;
-            else if (os.status === 'F') msg = `${techName} finalizou o serviço na O.S. do cliente ${clientName}.`;
+            const now = new Date();
+
+            if (os.status === 'DS') {
+                msg = `${techName} iniciou deslocamento para O.S. do cliente ${clientName}.`;
+                // Cria ou atualiza histórico inicial
+                await ServiceHistory.findOneAndUpdate(
+                    { osId: String(os.id) },
+                    { 
+                        osNumber: os.protocolo, 
+                        teamId: String(tecnicoId), 
+                        teamName: techName, 
+                        client: clientName, 
+                        subject: subjectName, 
+                        startTime: now,
+                        location: { lat: parseFloat(os.latitude), lng: parseFloat(os.longitude) }
+                    },
+                    { upsert: true }
+                );
+            } 
+            else if (os.status === 'EX') {
+                msg = `${techName} iniciou o serviço na O.S. do cliente ${clientName}.`;
+                // Registra chegada e calcula tempo de deslocamento
+                const hist = await ServiceHistory.findOne({ osId: String(os.id) });
+                if (hist && hist.startTime) {
+                    const diffMin = Math.round((now - hist.startTime) / 60000);
+                    await ServiceHistory.updateOne({ _id: hist._id }, { arrivalTime: now, durationDrive: diffMin });
+                } else {
+                    await ServiceHistory.findOneAndUpdate(
+                        { osId: String(os.id) },
+                        { osNumber: os.protocolo, teamId: String(tecnicoId), teamName: techName, client: clientName, subject: subjectName, arrivalTime: now },
+                        { upsert: true }
+                    );
+                }
+            } 
+            else if (os.status === 'F') {
+                msg = `${techName} finalizou o serviço na O.S. do cliente ${clientName}.`;
+                // Finaliza histórico e calcula tempo de atendimento
+                const hist = await ServiceHistory.findOne({ osId: String(os.id) });
+                if (hist && hist.arrivalTime) {
+                    const diffMin = Math.round((now - hist.arrivalTime) / 60000);
+                    await ServiceHistory.updateOne({ _id: hist._id }, { endTime: now, durationService: diffMin });
+                } else if (hist) {
+                    await ServiceHistory.updateOne({ _id: hist._id }, { endTime: now });
+                }
+            }
 
             if (msg) {
                 await Alert.create({ type: 'Warning', message: msg, device: techName, timestamp: new Date() });

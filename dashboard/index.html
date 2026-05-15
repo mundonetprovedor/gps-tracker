@@ -364,6 +364,7 @@
             <p class="nav-label">Menu Principal</p>
             <div class="nav-item active" onclick="switchTab('monitor')"><i data-lucide="layout-dashboard"></i><span>Monitoramento</span></div>
             <div class="nav-item" onclick="togglePlaybackPanel()"><i data-lucide="history"></i><span>Histórico de Rotas</span></div>
+            <div class="nav-item" onclick="toggleReportsPanel()"><i data-lucide="bar-chart-3"></i><span>Relatórios</span></div>
             <div class="nav-item" onclick="toggleTheme()" id="theme-toggle">
                 <i data-lucide="sun" id="theme-icon"></i>
                 <span id="theme-text">Modo Claro</span>
@@ -371,6 +372,37 @@
             <div class="nav-item" onclick="testSound()" id="sound-toggle">
                 <i data-lucide="volume-2" id="sound-icon"></i>
                 <span>Testar Som</span>
+            </div>
+        </div>
+
+        <!-- Reports Overlay -->
+        <div id="reports-overlay" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); z-index: 1500; display: none; align-items: center; justify-content: center; padding: 40px;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 1100px; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 30px 100px rgba(0,0,0,0.7);">
+                <div class="panel-header" style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <h3><i data-lucide="bar-chart-3" style="color: var(--primary);"></i> Relatório de Produtividade</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="date" id="report-start" style="padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: white;">
+                        <button onclick="loadServiceReport()" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">FILTRAR</button>
+                        <button onclick="toggleReportsPanel()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+                    </div>
+                </div>
+                <div style="flex: 1; overflow: auto; padding: 24px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border); text-align: left; color: var(--text-muted); text-transform: uppercase; font-size: 11px;">
+                                <th style="padding: 12px;">OS</th>
+                                <th style="padding: 12px;">Técnico</th>
+                                <th style="padding: 12px;">Cliente</th>
+                                <th style="padding: 12px;">Deslocamento</th>
+                                <th style="padding: 12px;">Atendimento</th>
+                                <th style="padding: 12px;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-table-body">
+                            <!-- Dinâmico -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         <div class="weather-widget" id="weather-box">
@@ -1260,6 +1292,57 @@
             const data = historyData[playbackIndex];
             const time = new Date(data.timestamp).toLocaleTimeString();
             document.getElementById('playback-time').innerText = time;
+        }
+
+        // ── REPORTS LOGIC ──
+        function toggleReportsPanel() {
+            const panel = document.getElementById('reports-overlay');
+            const isVisible = panel.style.display === 'flex';
+            panel.style.display = isVisible ? 'none' : 'flex';
+            if (!isVisible) {
+                document.getElementById('report-start').valueAsDate = new Date();
+                loadServiceReport();
+            }
+            lucide.createIcons();
+        }
+
+        async function loadServiceReport() {
+            const date = document.getElementById('report-start').value;
+            const start = new Date(date + 'T00:00:00Z').toISOString();
+            const end = new Date(date + 'T23:59:59Z').toISOString();
+            
+            const tbody = document.getElementById('report-table-body');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">Carregando dados...</td></tr>';
+
+            try {
+                const res = await fetch(`/api/reports/service-history?start=${start}&end=${end}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` }
+                });
+                const data = await res.json();
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">Nenhum histórico encontrado para esta data.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                data.forEach(h => {
+                    const total = (h.durationDrive || 0) + (h.durationService || 0);
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid var(--border)';
+                    tr.innerHTML = `
+                        <td style="padding:14px; font-weight:700;">${h.osNumber}</td>
+                        <td style="padding:14px;">${h.teamName}</td>
+                        <td style="padding:14px; color:var(--text-muted);">${h.client}</td>
+                        <td style="padding:14px;"><span style="background:rgba(245,158,11,0.1); color:#f59e0b; padding:4px 8px; border-radius:6px; font-weight:700;">${h.durationDrive || '--'} min</span></td>
+                        <td style="padding:14px;"><span style="background:rgba(16,185,129,0.1); color:#10b981; padding:4px 8px; border-radius:6px; font-weight:700;">${h.durationService || '--'} min</span></td>
+                        <td style="padding:14px; font-weight:800;">${total} min</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--danger);">Erro ao carger relatório.</td></tr>';
+            }
         }
 
         document.getElementById('playback-slider').addEventListener('input', (e) => {

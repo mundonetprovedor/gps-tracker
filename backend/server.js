@@ -20,6 +20,7 @@ const User = require('./src/models/User');
 const Team = require('./src/models/Team');
 const Location = require('./src/models/Location');
 const ServiceOrder = require('./src/models/ServiceOrder');
+const ServiceHistory = require('./src/models/ServiceHistory');
 const Alert = require('./src/models/Alert');
 
 const app = express();
@@ -178,6 +179,20 @@ app.get('/api/service-orders/:id/nearest', auth, async (req, res) => {
   } catch (error) {
     logger.error('[SmartDispatch] Erro: %s', error.message);
     res.status(500).json({ error: 'Erro ao calcular equipes próximas' });
+  }
+});
+
+app.get('/api/reports/service-history', auth, async (req, res) => {
+  try {
+    const { start, end } = req.query;
+    const query = {};
+    if (start && end) {
+      query.timestamp = { $gte: new Date(start), $lte: new Date(end) };
+    }
+    const history = await ServiceHistory.find(query).sort({ timestamp: -1 }).limit(100);
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar histórico' });
   }
 });
 
