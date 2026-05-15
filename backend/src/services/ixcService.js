@@ -168,16 +168,19 @@ async function syncIXCTeamCollaborators() {
 async function syncIXCServiceOrders(io) {
   await syncIXCTeamCollaborators();
   try {
-    // 1. Busca as O.S. ativas do IXC (Abertas, Agendadas, Deslocamento, Execução, etc.)
+    // 1. Busca as O.S. ativas do IXC    // Força o fuso horário de Brasília (UTC-3) para o filtro do IXC
     const now = new Date();
     const brDate = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-    const todayStr = `${String(brDate.getUTCDate()).padStart(2, '0')}/${String(brDate.getUTCMonth() + 1).padStart(2, '0')}/${brDate.getUTCFullYear()}`;
+    const todayISO = brDate.toISOString().split('T')[0]; // AAAA-MM-DD
+    const todayBR = `${String(brDate.getUTCDate()).padStart(2, '0')}/${String(brDate.getUTCMonth() + 1).padStart(2, '0')}/${brDate.getUTCFullYear()}`;
     
-    // Filtro avançado usando grid_param conforme documentação Postman
+    // Tenta filtrar por data_agenda usando formato ISO que é mais comum em APIs
     const grid_param = JSON.stringify([
-      { TB: 'su_oss_chamado.data_agenda', OP: '>=', P: `${todayStr} 00:00:00` },
-      { TB: 'su_oss_chamado.data_agenda', OP: '<=', P: `${todayStr} 23:59:59` }
+      { TB: 'su_oss_chamado.data_agenda', OP: '>=', P: `${todayISO} 00:00:00` },
+      { TB: 'su_oss_chamado.data_agenda', OP: '<=', P: `${todayISO} 23:59:59` }
     ]);
+
+    logger.info(`[IXC] Iniciando busca com filtro: ${todayISO} (BR: ${todayBR})`);
 
     const response = await fetch(`${IXC_URL}/su_oss_chamado`, {
       method: 'POST',
