@@ -99,22 +99,25 @@ async function syncIXCServiceOrders(io) {
 
     logger.info(`[IXC] Processando ${data.registros.length} Ordens de Serviço...`);
     
-    // Processamento em lotes pequenos para não travar o Event Loop
     for (const os of data.registros) {
       const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
       
+      // Tenta capturar o nome do cliente de várias formas possíveis no IXC
+      const clientName = os.razao || os.cliente || os.nome_cliente || os.razao_social || os.cliente_razao || os.nome || 'Não identificado';
+      const subjectName = os.assunto || os.su_assunto || os.descricao_assunto || 'Não informado';
+
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
         {
           number: os.protocolo,
-          client: os.razao || os.nome_cliente || os.cliente || 'Não identificado',
+          client: clientName,
           address: os.endereco || '',
           lat: parseFloat(os.latitude) || 0,
           lng: parseFloat(os.longitude) || 0,
           status: os.status,
           priority: os.prioridade,
           description: os.mensagem,
-          subject: os.assunto || 'Não informado',
+          subject: subjectName,
           teamId: tecnicoId ? String(tecnicoId) : null,
           scheduledDate: parseIXCDate(os.data_agenda),
           lastSeen: new Date()
