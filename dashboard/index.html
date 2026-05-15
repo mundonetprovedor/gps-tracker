@@ -762,19 +762,18 @@
                 const item = document.createElement('div');
                 item.className = 'activity-item';
                 
-                // Melhor lógica de ícones
                 let icon = 'bell';
                 let color = 'var(--primary)';
+                let subtitle = a.client || a.device || 'Atividade';
                 
                 if (a.type === 'OS') {
                     icon = 'clipboard-list';
-                    color = '#10b981'; // Verde esmeralda
-                } else if (a.critical || a.content.toLowerCase().includes('offline')) {
-                    icon = 'alert-octagon';
-                    color = '#ef4444'; // Vermelho
-                } else {
+                    color = '#10b981';
+                    subtitle = `Cliente: ${a.client || 'Não identificado'}`;
+                } else if (a.type === 'Alert') {
                     icon = 'alert-triangle';
-                    color = '#f59e0b'; // Âmbar
+                    color = a.critical ? '#ef4444' : '#f59e0b';
+                    subtitle = `Alerta: ${a.device || 'Dispositivo'}`;
                 }
 
                 item.innerHTML = `
@@ -783,7 +782,7 @@
                     </div>
                     <div class="activity-content" style="flex: 1; margin-left: 12px;">
                         <div style="font-size: 13px; font-weight: 700; color: white; line-height: 1.2;">${a.content}</div>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${a.client || a.device || ''}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${subtitle}</div>
                     </div>
                     <div class="activity-time" style="font-size: 10px; font-weight: 700; color: #94a3b8;">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                 `;

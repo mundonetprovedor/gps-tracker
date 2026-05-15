@@ -107,7 +107,7 @@ async function syncIXCServiceOrders(io) {
         { ixcId: os.id },
         {
           number: os.protocolo,
-          client: os.razao || os.nome_cliente || 'Cliente',
+          client: os.razao || os.nome_cliente || os.cliente || 'Não identificado',
           address: os.endereco || '',
           lat: parseFloat(os.latitude) || 0,
           lng: parseFloat(os.longitude) || 0,
