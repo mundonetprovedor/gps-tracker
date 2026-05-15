@@ -79,12 +79,23 @@ app.get('/health', (req, res) => res.send('OK'));
 
 app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
+  
+  // Login simples (apenas senha)
+  if (!username && password) {
+      const masterPassword = process.env.DASHBOARD_PASSWORD || 'mundonet2026';
+      if (password === masterPassword) {
+          const token = jwt.sign({ id: 'master', username: 'master' }, JWT_SECRET, { expiresIn: '30d' });
+          return res.json({ token });
+      }
+  }
+
+  // Login padrão (admin)
   const user = await User.findOne({ username });
   if (user && await bcrypt.compare(password, user.password)) {
     const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     return res.json({ token });
   }
-  res.status(401).json({ error: 'Login inválido' });
+  res.status(401).json({ error: 'Senha incorreta ou usuário inválido' });
 });
 
 app.get('/api/dashboard/stats', auth, async (req, res) => {

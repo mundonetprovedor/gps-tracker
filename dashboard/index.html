@@ -285,9 +285,51 @@
         .playback-time { font-family: 'monospace'; font-size: 14px; color: var(--accent); margin-top: 5px; text-align: center; }
         .close-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; opacity: 0.5; }
         .close-btn:hover { opacity: 1; }
+
+        /* Login Overlay */
+        #login-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #0f172a;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+            transition: 0.5s;
+        }
+        .login-card {
+            background: #1e293b; border: 1px solid var(--border);
+            padding: 40px; border-radius: 24px; width: 400px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .login-card img { height: 60px; margin-bottom: 30px; }
+        .login-card h2 { font-size: 20px; font-weight: 800; color: white; margin-bottom: 8px; }
+        .login-card p { color: var(--text-muted); font-size: 13px; margin-bottom: 30px; }
+        .login-card input {
+            width: 100%; padding: 14px 20px; border-radius: 12px;
+            background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+            color: white; font-size: 16px; outline: none; margin-bottom: 20px;
+            text-align: center; letter-spacing: 4px;
+        }
+        .login-card button {
+            width: 100%; padding: 14px; border-radius: 12px;
+            background: var(--primary); color: white; border: none;
+            font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s;
+        }
+        .login-card button:hover { background: var(--primary-light); transform: translateY(-2px); }
+        .login-error { color: var(--danger); font-size: 12px; font-weight: 700; margin-top: 15px; display: none; }
     </style>
 </head>
 <body>
+
+    <div id="login-overlay">
+        <div class="login-card">
+            <img src="mundonet_brand.png" alt="Mundonet">
+            <h2>Acesso Restrito</h2>
+            <p>Digite a senha mestra para acessar o sistema</p>
+            <input type="password" id="login-pass" placeholder="••••••••" onkeypress="if(event.key==='Enter') handleLogin()">
+            <button onclick="handleLogin()">ENTRAR NO PAINEL</button>
+            <div id="login-error" class="login-error">Senha incorreta. Tente novamente.</div>
+        </div>
+    </div>
 
     <!-- ── SIDEBAR ── -->
     <div class="sidebar">
@@ -513,17 +555,43 @@
             lucide.createIcons();
             
             if (!localStorage.getItem('m_token')) {
-                try {
-                    const res = await fetch('/auth/login', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({username: 'admin', password: 'admin123'})
-                    });
-                    const data = await res.json();
-                    if (data.token) localStorage.setItem('m_token', data.token);
-                } catch (e) { console.error('Auto-login falhou'); }
+                document.getElementById('login-overlay').style.display = 'flex';
+            } else {
+                document.getElementById('login-overlay').style.display = 'none';
+                startDashboard();
             }
+        });
 
+        async function handleLogin() {
+            const pass = document.getElementById('login-pass').value;
+            const errorDiv = document.getElementById('login-error');
+            
+            try {
+                const res = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ password: pass })
+                });
+                const data = await res.json();
+                
+                if (data.token) {
+                    localStorage.setItem('m_token', data.token);
+                    document.getElementById('login-overlay').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('login-overlay').style.display = 'none';
+                        startDashboard();
+                    }, 500);
+                } else {
+                    errorDiv.style.display = 'block';
+                    document.getElementById('login-pass').value = '';
+                }
+            } catch (e) {
+                errorDiv.innerText = 'Erro ao conectar ao servidor.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function startDashboard() {
             initMap();
             initSocket();
             loadDashboardData();
@@ -531,6 +599,7 @@
             
             setInterval(loadDashboardData, 30000);
             setInterval(updateWeather, 1800000); // 30 min
+        }
         });
 
         function toggleTheme() {
