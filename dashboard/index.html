@@ -172,6 +172,13 @@
             color: white;
             box-shadow: var(--shadow-lg);
         }
+        .route-line {
+            stroke-dasharray: 8, 8;
+            animation: dash 20s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -1000; }
+        }
     </style>
 </head>
 <body>
@@ -319,6 +326,7 @@
         let teams = {};
         let markers = {};
         let osMarkers = {};
+        let routeLines = {}; // teamId -> Polyline
         let osChart;
 
         const STATUS_MAP = {
@@ -428,6 +436,7 @@
                 const osList = await fetch('/api/service-orders', { headers }).then(r => r.json());
                 updateChart(osList);
                 updateOSMarkers(osList);
+                updateRouteLines(osList);
             } catch (e) { 
                 console.error('Data Load Error:', e);
             }
@@ -463,6 +472,31 @@
                 }
             });
             lucide.createIcons();
+        }
+
+        function updateRouteLines(osList) {
+            // Remove linhas antigas
+            Object.values(routeLines).forEach(l => map.removeLayer(l));
+            routeLines = {};
+
+            osList.forEach(os => {
+                if (!os.teamId || !os.lat || !os.lng) return;
+                // Busca o técnico pelo ID (ou nome caso o ID seja o nome no Traccar)
+                const team = teams[os.teamId] || Object.values(teams).find(t => t.name === os.teamId || t.id === os.teamId);
+                if (team && team.lastLocation) {
+                    const statusInfo = STATUS_MAP[os.status] || { color: '#3b82f6' };
+                    const line = L.polyline([
+                        [team.lastLocation.lat, team.lastLocation.lng],
+                        [os.lat, os.lng]
+                    ], {
+                        color: statusInfo.color,
+                        weight: 3,
+                        opacity: 0.6,
+                        className: 'route-line'
+                    }).addTo(map);
+                    routeLines[os.ixcId] = line;
+                }
+            });
         }
 
         function renderTeamsTable() {
