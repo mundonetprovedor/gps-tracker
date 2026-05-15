@@ -37,18 +37,18 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg-main); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; }
 
         /* ── SIDEBAR ── */
-        .sidebar { width: 260px; background: #ffffff !important; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; flex-shrink: 0; padding: 24px 16px; }
+        .sidebar { width: 260px; background: var(--bg-sidebar) !important; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; padding: 24px 16px; }
         .sidebar-brand { display: flex; align-items: center; justify-content: center; margin-bottom: 40px; padding: 0 8px; }
-        .sidebar-brand img { height: 50px; width: auto; object-fit: contain; }
+        .sidebar-brand img { height: 48px; width: auto; object-fit: contain; filter: brightness(0) invert(1); }
         .sidebar-brand b { display: none; }
 
         .nav-section { margin-bottom: 24px; }
-        .nav-label { font-size: 11px; font-weight: 800; color: #a3b1c6; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 16px; padding-left: 12px; }
-        .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 14px; cursor: pointer; color: #718096; transition: 0.2s; font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-        .nav-item i { width: 20px; height: 20px; stroke-width: 2px; }
-        .nav-item:hover { background: #f7fafc; color: #2d3748; }
-        .nav-item.active { background: #2b60e6; color: white; box-shadow: 0 10px 20px rgba(43, 96, 230, 0.25); }
-        .nav-badge { margin-left: auto; background: #f56565; color: white; font-size: 11px; padding: 2px 8px; border-radius: 8px; font-weight: 800; }
+        .nav-label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; padding-left: 12px; }
+        .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 12px; cursor: pointer; color: #94a3b8; transition: 0.2s; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .nav-item i { width: 18px; height: 18px; stroke-width: 2px; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25); }
+        .nav-badge { margin-left: auto; background: var(--danger); color: white; font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 800; }
 
         .sidebar-status { margin-top: auto; background: #1a202c; border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); color: white; }
         .status-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px; }
@@ -237,6 +237,31 @@
         }
         .toast.DS { border-left: 4px solid var(--warning); }
         .toast.EX { border-left: 4px solid var(--success); }
+
+        /* Playback Panel */
+        .playback-panel {
+            position: absolute; right: 24px; top: 24px; width: 320px;
+            background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border);
+            border-radius: 20px; z-index: 1200; display: none; flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6); overflow: hidden;
+        }
+        .playback-panel.active { display: flex; }
+        .playback-panel .panel-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .playback-panel select, .playback-panel input {
+            background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+            padding: 10px; border-radius: 10px; color: white; outline: none;
+        }
+        .playback-panel label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .playback-buttons { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .playback-buttons button { 
+            background: var(--primary); border: none; color: white; width: 40px; height: 40px; 
+            border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .playback-progress-container { width: 100%; margin-top: 15px; }
+        .playback-progress-container input { width: 100%; cursor: pointer; }
+        .playback-time { font-family: 'monospace'; font-size: 14px; color: var(--accent); margin-top: 5px; text-align: center; }
+        .close-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; opacity: 0.5; }
+        .close-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -254,6 +279,7 @@
             <div class="nav-item"><i data-lucide="smartphone"></i><span>Dispositivos</span></div>
             <div class="nav-item"><i data-lucide="clipboard-list"></i><span>Ordens de Serviço</span></div>
             <div class="nav-item"><i data-lucide="bell"></i><span>Alertas</span><span class="nav-badge" id="alert-count">5</span></div>
+            <div class="nav-item" onclick="togglePlaybackPanel()"><i data-lucide="history"></i><span>Histórico de Rotas</span></div>
             <div class="nav-item"><i data-lucide="bar-chart-3"></i><span>Relatórios</span></div>
 
             <div class="nav-item"><i data-lucide="settings"></i><span>Configurações</span></div>
@@ -274,8 +300,8 @@
 
         <style>
             .weather-widget { 
-                margin-bottom: 16px; background: #f7fafc; border-radius: 16px; padding: 16px; 
-                border: 1px solid #e2e8f0; color: #2d3748;
+                margin-bottom: 16px; background: rgba(255,255,255,0.03); border-radius: 16px; padding: 16px; 
+                border: 1px solid var(--border); color: white;
             }
             .weather-main { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
             .os-marker i { color: white; width: 14px; height: 14px; }
@@ -381,6 +407,40 @@
                 <div class="map-btn" onclick="setMapLayer('satellite')"><i data-lucide="layers"></i></div>
                 <div class="map-btn" onclick="centerMap()"><i data-lucide="crosshair"></i></div>
             </div>
+
+            <!-- Playback Control Panel -->
+            <div id="playback-panel" class="playback-panel">
+                <div class="panel-header">
+                    <h3><i data-lucide="history"></i> Playback de Rota</h3>
+                    <button class="close-btn" onclick="togglePlaybackPanel()">&times;</button>
+                </div>
+                <div class="panel-body">
+                    <label>Selecione o Técnico:</label>
+                    <select id="playback-team-select"></select>
+                    
+                    <label>Data:</label>
+                    <input type="date" id="playback-date">
+                    
+                    <button class="btn-apply" style="margin-top: 10px;" onclick="loadHistory()">CARREGAR ROTA</button>
+                    
+                    <div id="playback-controls" style="display: none; margin-top: 20px;">
+                        <div class="playback-progress-container">
+                            <input type="range" id="playback-slider" min="0" max="100" value="0">
+                        </div>
+                        <div class="playback-buttons">
+                            <button onclick="playPlayback()"><i data-lucide="play" id="play-pause-icon"></i></button>
+                            <button onclick="stopPlayback()"><i data-lucide="square"></i></button>
+                            <select id="playback-speed">
+                                <option value="1">1x</option>
+                                <option value="2">2x</option>
+                                <option value="5">5x</option>
+                                <option value="10">10x</option>
+                            </select>
+                        </div>
+                        <div id="playback-time" class="playback-time">00:00:00</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -397,6 +457,14 @@
         let currentStatusFilter = 'all';
         let selectedSubjects = []; // Lista de nomes de assuntos selecionados
         let allOS = []; // Cache de todas as OS carregadas
+
+        // Playback State
+        let historyData = [];
+        let playbackMarker = null;
+        let playbackPolyline = null;
+        let playbackIndex = 0;
+        let playbackInterval = null;
+        let isPlaying = false;
 
         const STATUS_MAP = {
             'A': { label: 'Aberto', color: '#3b82f6', icon: 'info' },
@@ -780,6 +848,115 @@
             updateOSMarkers(allOS);
             updateRouteLines(allOS);
         }
+
+        // ── PLAYBACK LOGIC ──
+        function togglePlaybackPanel() {
+            const panel = document.getElementById('playback-panel');
+            panel.classList.toggle('active');
+            if (panel.classList.contains('active')) {
+                const select = document.getElementById('playback-team-select');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                Object.values(teams).forEach(t => {
+                    select.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+                });
+                document.getElementById('playback-date').valueAsDate = new Date();
+            } else {
+                stopPlayback();
+            }
+            lucide.createIcons();
+        }
+
+        async function loadHistory() {
+            const teamId = document.getElementById('playback-team-select').value;
+            const date = document.getElementById('playback-date').value;
+            if (!teamId || !date) return alert('Selecione o técnico e a data');
+
+            const start = new Date(date + 'T00:00:00Z').toISOString();
+            const end = new Date(date + 'T23:59:59Z').toISOString();
+            
+            const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
+            const res = await fetch(`/api/history/${teamId}?start=${start}&end=${end}`, { headers });
+            historyData = await res.json();
+
+            if (historyData.length === 0) return alert('Nenhum dado encontrado para este dia');
+
+            setupPlayback();
+        }
+
+        function setupPlayback() {
+            stopPlayback();
+            if (playbackPolyline) map.removeLayer(playbackPolyline);
+            if (playbackMarker) map.removeLayer(playbackMarker);
+
+            const coords = historyData.map(d => [d.lat, d.lng]);
+            playbackPolyline = L.polyline(coords, { color: 'var(--accent)', weight: 4, opacity: 0.8 }).addTo(map);
+            
+            const icon = L.divIcon({
+                className: 'playback-marker',
+                html: `<div style="background:var(--accent); width:30px; height:30px; border-radius:50%; border:3px solid white; display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px var(--accent);"><i data-lucide="car" style="color:white; width:16px; height:16px;"></i></div>`,
+                iconSize: [30, 30], iconAnchor: [15, 15]
+            });
+            
+            playbackMarker = L.marker(coords[0], { icon }).addTo(map);
+            map.fitBounds(playbackPolyline.getBounds().pad(0.1));
+            
+            document.getElementById('playback-controls').style.display = 'block';
+            document.getElementById('playback-slider').max = historyData.length - 1;
+            document.getElementById('playback-slider').value = 0;
+            playbackIndex = 0;
+            updatePlaybackUI();
+            lucide.createIcons();
+        }
+
+        function playPlayback() {
+            if (isPlaying) {
+                pausePlayback();
+                return;
+            }
+            isPlaying = true;
+            document.getElementById('play-pause-icon').setAttribute('data-lucide', 'pause');
+            lucide.createIcons();
+
+            playbackInterval = setInterval(() => {
+                if (playbackIndex < historyData.length - 1) {
+                    playbackIndex++;
+                    updatePlaybackPosition();
+                } else {
+                    pausePlayback();
+                }
+            }, 500 / parseInt(document.getElementById('playback-speed').value));
+        }
+
+        function pausePlayback() {
+            isPlaying = false;
+            clearInterval(playbackInterval);
+            document.getElementById('play-pause-icon').setAttribute('data-lucide', 'play');
+            lucide.createIcons();
+        }
+
+        function stopPlayback() {
+            pausePlayback();
+            playbackIndex = 0;
+            updatePlaybackPosition();
+        }
+
+        function updatePlaybackPosition() {
+            const data = historyData[playbackIndex];
+            if (playbackMarker) playbackMarker.setLatLng([data.lat, data.lng]);
+            document.getElementById('playback-slider').value = playbackIndex;
+            updatePlaybackUI();
+        }
+
+        function updatePlaybackUI() {
+            const data = historyData[playbackIndex];
+            const time = new Date(data.timestamp).toLocaleTimeString();
+            document.getElementById('playback-time').innerText = time;
+        }
+
+        document.getElementById('playback-slider').addEventListener('input', (e) => {
+            playbackIndex = parseInt(e.target.value);
+            updatePlaybackPosition();
+        });
     </script>
 </body>
 </html>
