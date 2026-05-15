@@ -197,7 +197,12 @@ async function syncIXCServiceOrders(io) {
     });
     
     const data = await response.json();
-    if (!data || !data.registros) return;
+    logger.info(`[IXC] O.S. encontradas no IXC para hoje: ${data.registros ? data.registros.length : 0}`);
+    
+    if (!data || !data.registros || data.registros.length === 0) {
+        logger.info('[IXC] Nenhuma O.S. encontrada para hoje no IXC.');
+        return;
+    }
 
     const ixcIdsPresent = new Set();
 
