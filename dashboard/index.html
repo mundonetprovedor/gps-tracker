@@ -452,7 +452,18 @@
                 });
 
                 if (!osMarkers[os.ixcId]) {
-                    osMarkers[os.ixcId] = L.marker([os.lat, os.lng], { icon }).addTo(map).bindPopup(`<b>OS ${os.number}</b><br>${os.client}`);
+                    const addressSummary = os.address ? os.address.split(',')[0] : 'Endereço não informado';
+                    const popupContent = `
+                        <div style="min-width: 180px; padding: 4px;">
+                            <div style="font-weight: 800; color: #1e293b; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">OS ${os.number}</div>
+                            <div style="font-size: 12px; margin-bottom: 3px;"><b>Cliente:</b> ${os.client}</div>
+                            <div style="font-size: 12px; margin-bottom: 3px;"><b>Assunto:</b> ${os.subject || 'Não informado'}</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+                                <i data-lucide="map-pin" style="width:10px; height:10px;"></i> ${addressSummary}
+                            </div>
+                        </div>
+                    `;
+                    osMarkers[os.ixcId] = L.marker([os.lat, os.lng], { icon }).addTo(map).bindPopup(popupContent);
                 } else {
                     osMarkers[os.ixcId].setLatLng([os.lat, os.lng]).setIcon(icon);
                 }
