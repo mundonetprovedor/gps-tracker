@@ -293,17 +293,14 @@
             'AG': { label: 'Agendado', color: '#14b8a6' },
             'DS': { label: 'Deslocamento', color: '#eab308' },
             'EX': { label: 'Execução', color: '#10b981' },
-            'F': { label: 'Finalizado', color: '#94a3b8' },
-            'RAG': { label: 'Reagendar', color: '#ef4444' }
+            'F': { label: 'Finalizado', color: '#94a3b8' }
         };
 
         // ── INIT ──
         document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
             
-            // Auto-login fallback for admin
             if (!localStorage.getItem('m_token')) {
-                console.log('Tentando login automático...');
                 try {
                     const res = await fetch('/auth/login', {
                         method: 'POST',
@@ -317,10 +314,9 @@
 
             initMap();
             initSocket();
-            initChart();
             loadDashboardData();
             
-            setInterval(loadDashboardData, 30000); // Update KPIs every 30s
+            setInterval(loadDashboardData, 30000);
         });
 
         function initMap() {
@@ -330,140 +326,13 @@
             L.control.zoom({ position: 'bottomright' }).addTo(map);
         }
 
-        function setLayer(type, el) {
-            document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
-            if (type === 'sat') { map.removeLayer(stdLayer); satLayer.addTo(map); }
-            else { map.removeLayer(satLayer); stdLayer.addTo(map); }
-        }
-
-        function initSocket() {
-            const socket = io(window.location.origin);
-            socket.on('update_teams', data => {
-                teams = data;
-                renderTeamsTable();
-                updateMarkers();
-            });
-            socket.on('team_location_update', data => {
-                teams[data.socketId] = data.team;
-                updateMarker(data.socketId, data.team);
-                renderTeamsTable();
-            });
-            socket.on('team_removed', id => {
-                delete teams[id];
-                if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
-                renderTeamsTable();
-            });
-            socket.on('os_synced', () => {
-                loadDashboardData();
-            });
-        }
-
-        async function loadDashboardData() {
-            const token = localStorage.getItem('m_token');
-            const headers = { 'Authorization': `Bearer ${token}` };
-            
-            try {
-                const res = await fetch('/api/dashboard/stats', { headers });
-                if (!res.ok) {
-                    if (res.status === 401) {
-                        document.getElementById('api-status').innerHTML = '● Erro: 401 (Não Logado) <a href="#" onclick="location.reload()" style="color:var(--accent)">[Repetir]</a>';
-                        localStorage.removeItem('m_token'); // Limpa token inválido
-                    } else {
-                        document.getElementById('api-status').innerHTML = '● Erro: ' + res.status;
-                    }
-                    document.getElementById('api-status').style.color = 'var(--danger)';
-                    return;
-                }
-                const stats = await res.json();
-                document.getElementById('api-status').innerHTML = '● Online';
-                document.getElementById('api-status').style.color = 'var(--success)';
-                
-                document.getElementById('kpi-teams').innerText = `${stats.teamsActive} / ${stats.teamsTotal}`;
-                document.getElementById('kpi-devices').innerText = `${stats.devicesOnline} / ${stats.devicesTotal}`;
-                document.getElementById('kpi-os').innerText = stats.osToday || 0;
-                document.getElementById('kpi-os-done').innerText = stats.osDone || 0;
-                document.getElementById('kpi-alerts').innerText = stats.alertsCritical || 0;
-                document.getElementById('alert-count').innerText = stats.alertsCritical || 0;
-
-                const activities = await fetch('/api/activities', { headers }).then(r => r.json());
-                renderActivities(activities);
-
-                const osList = await fetch('/api/service-orders', { headers }).then(r => r.json());
-                updateChart(osList);
-                updateOSMarkers(osList);
-                updateRouteLines(osList);
-            } catch (e) { 
-                console.error('Data Load Error:', e);
-            }
-        }
-
-        function updateOSMarkers(osList) {
-            osList.forEach(os => {
-                if (!os.lat || !os.lng) return;
-                const statusInfo = STATUS_MAP[os.status] || { label: 'Outro', color: '#fff' };
-                
-                const icon = L.divIcon({
-                    className: 'os-marker',
-                    html: `<div style="background:${statusInfo.color}; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
-                            <i data-lucide="clipboard" style="width:14px; height:14px; color:white;"></i>
-                           </div>`,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
-                });
-
-                if (!osMarkers[os.ixcId]) {
-                    osMarkers[os.ixcId] = L.marker([os.lat, os.lng], { icon })
-                        .addTo(map)
-                        .bindPopup(`
-                            <div style="color:var(--bg-main)">
-                                <b>OS ${os.number}</b><br>
-                                ${os.client}<br>
-                                <span style="color:${statusInfo.color}">● ${statusInfo.label}</span>
-                            </div>
-                        `);
-                } else {
-                    osMarkers[os.ixcId].setLatLng([os.lat, os.lng]);
-                    osMarkers[os.ixcId].setIcon(icon);
-                }
-            });
-            lucide.createIcons();
-        }
-
-        function updateRouteLines(osList) {
-            // Remove linhas antigas
-            Object.values(routeLines).forEach(l => map.removeLayer(l));
-            routeLines = {};
-
-            osList.forEach(os => {
-                if (!os.teamId || !os.lat || !os.lng) return;
-                // Busca o técnico pelo ID (ou nome caso o ID seja o nome no Traccar)
-                const team = teams[os.teamId] || Object.values(teams).find(t => t.name === os.teamId || t.id === os.teamId);
-                if (team && team.lastLocation) {
-                    const statusInfo = STATUS_MAP[os.status] || { color: '#3b82f6' };
-                    const line = L.polyline([
-                        [team.lastLocation.lat, team.lastLocation.lng],
-                        [os.lat, os.lng]
-                    ], {
-                        color: statusInfo.color,
-                        weight: 3,
-                        opacity: 0.6,
-                        className: 'route-line'
-                    }).addTo(map);
-                    routeLines[os.ixcId] = line;
-                }
-            });
-        }
-
         function setMapLayer(type) {
             if (type === 'satellite') {
-                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                    attribution: 'Tiles &copy; Esri'
-                }).addTo(map);
+                map.removeLayer(stdLayer);
+                satLayer.addTo(map);
             } else {
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', {
-                    attribution: '&copy; OpenStreetMap'
-                }).addTo(map);
+                map.removeLayer(satLayer);
+                stdLayer.addTo(map);
             }
         }
 
@@ -475,6 +344,27 @@
             }
         }
 
+        function initSocket() {
+            const socket = io(window.location.origin);
+            socket.on('update_teams', data => {
+                teams = data;
+                renderTeamsPanel();
+                updateMarkers();
+            });
+            socket.on('team_location_update', data => {
+                const id = data.id || data.socketId;
+                teams[id] = data.team;
+                updateMarker(id, data.team);
+                renderTeamsPanel();
+            });
+            socket.on('team_removed', id => {
+                delete teams[id];
+                if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+                renderTeamsPanel();
+            });
+            socket.on('os_synced', loadDashboardData);
+        }
+
         async function loadDashboardData() {
             const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
             try {
@@ -482,10 +372,10 @@
                 const os = await (await fetch('/api/service-orders', { headers })).json();
                 const activities = await (await fetch('/api/activities', { headers })).json();
 
-                // Update Stats Overlays
-                document.getElementById('stats-active-teams').innerText = `${stats.active}/${stats.total}`;
+                document.getElementById('stats-active-teams').innerText = `${stats.active || 0}/${stats.total || 0}`;
                 document.getElementById('stats-total-os').innerText = os.length;
-                document.getElementById('stats-alerts').innerText = stats.alerts;
+                document.getElementById('stats-alerts').innerText = stats.alerts || 0;
+                document.getElementById('alert-count').innerText = stats.alerts || 0;
 
                 updateOSMarkers(os);
                 updateRouteLines(os);
@@ -494,33 +384,48 @@
             } catch (e) { console.error('Data Load Error:', e); }
         }
 
+        function updateOSMarkers(osList) {
+            osList.forEach(os => {
+                if (!os.lat || !os.lng) return;
+                const statusInfo = STATUS_MAP[os.status] || { label: 'Outro', color: '#fff' };
+                const icon = L.divIcon({
+                    className: 'os-marker',
+                    html: `<div style="background:${statusInfo.color}; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow:0 4px 10px rgba(0,0,0,0.3);"><i data-lucide="clipboard" style="width:14px; height:14px; color:white;"></i></div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                if (!osMarkers[os.ixcId]) {
+                    osMarkers[os.ixcId] = L.marker([os.lat, os.lng], { icon }).addTo(map).bindPopup(`<b>OS ${os.number}</b><br>${os.client}`);
+                } else {
+                    osMarkers[os.ixcId].setLatLng([os.lat, os.lng]).setIcon(icon);
+                }
+            });
+            lucide.createIcons();
+        }
+
+        function updateRouteLines(osList) {
+            Object.values(routeLines).forEach(l => map.removeLayer(l));
+            routeLines = {};
+            osList.forEach(os => {
+                if (!os.teamId || !os.lat || !os.lng) return;
+                const team = teams[os.teamId] || Object.values(teams).find(t => t.name === os.teamId || t.id === os.teamId);
+                if (team && team.lastLocation) {
+                    const statusInfo = STATUS_MAP[os.status] || { color: '#3b82f6' };
+                    routeLines[os.ixcId] = L.polyline([[team.lastLocation.lat, team.lastLocation.lng], [os.lat, os.lng]], { color: statusInfo.color, weight: 3, opacity: 0.6, className: 'route-line' }).addTo(map);
+                }
+            });
+        }
+
         function renderTeamsPanel() {
             const list = document.getElementById('teams-list-floating');
+            if (!list) return;
             list.innerHTML = '';
-            
-            const sortedTeams = Object.entries(teams).sort((a, b) => {
-                const teamA = a[1];
-                const teamB = b[1];
-                if (teamA.status === 'Online' && teamB.status !== 'Online') return -1;
-                if (teamA.status !== 'Online' && teamB.status === 'Online') return 1;
-                return teamA.name.localeCompare(teamB.name);
-            });
-
-            sortedTeams.forEach(([id, team]) => {
+            Object.entries(teams).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([id, team]) => {
                 const row = document.createElement('div');
                 row.className = `compact-team-row ${selectedTeamId === id ? 'active' : ''}`;
                 row.onclick = () => { selectedTeamId = id; selectTeam(id); renderTeamsPanel(); };
-                
-                const batteryColor = team.battery < 20 ? 'var(--danger)' : (team.battery < 50 ? 'var(--warning)' : 'var(--success)');
-                
-                row.innerHTML = `
-                    <div class="status-dot ${team.status === 'Online' ? 'dot-online' : 'dot-offline'}"></div>
-                    <div style="flex:1">
-                        <div style="font-size:13px; font-weight:700;">${team.name}</div>
-                        <div style="font-size:10px; color:var(--text-muted)">${team.status} • <span style="color:${batteryColor}">${team.battery || 100}% Bateria</span></div>
-                    </div>
-                    <i data-lucide="chevron-right" size="14" style="opacity:0.3"></i>
-                `;
+                row.innerHTML = `<div class="status-dot ${team.status === 'Online' ? 'dot-online' : 'dot-offline'}"></div><div style="flex:1"><div style="font-size:13px; font-weight:700;">${team.name}</div><div style="font-size:10px; color:var(--text-muted)">${team.status}</div></div>`;
                 list.appendChild(row);
             });
             lucide.createIcons();
@@ -528,62 +433,38 @@
 
         function renderActivitiesPanel(activities) {
             const list = document.getElementById('activity-list-floating');
+            if (!list) return;
             list.innerHTML = '';
             activities.forEach(a => {
                 const item = document.createElement('div');
                 item.className = 'activity-item';
-                const icon = a.type === 'OS' ? 'clipboard' : 'alert-triangle';
-                const color = a.critical ? 'var(--danger)' : (a.type === 'OS' ? 'var(--success)' : 'var(--warning)');
-                item.innerHTML = `
-                    <div class="activity-icon" style="color:${color}; width:28px; height:28px;"><i data-lucide="${icon}" size="14"></i></div>
-                    <div class="activity-content">
-                        <b style="font-size:12px;">${a.content}</b>
-                        <p style="font-size:11px;">${a.client || a.device || ''}</p>
-                    </div>
-                    <div class="activity-time">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                `;
+                item.innerHTML = `<div class="activity-icon"><i data-lucide="activity" size="14"></i></div><div class="activity-content"><b>${a.content}</b></div>`;
                 list.appendChild(item);
             });
             lucide.createIcons();
         }
 
-        let selectedTeamId = null;
-
         function updateMarker(id, team) {
             if (!team.lastLocation) return;
-            const pos = [team.lastLocation.lat, team.lastLocation.lng];
-            
             const icon = L.divIcon({
                 className: 'custom-team-icon',
-                html: `<div class="team-marker-container">
-                        <div class="team-marker-label">${team.name}</div>
-                        <div class="team-marker-icon-box" style="transform: rotate(${team.lastLocation.heading || 0}deg)">
-                            <i data-lucide="car" style="width:24px; height:24px;"></i>
-                        </div>
-                       </div>`,
-                iconSize: [100, 70],
-                iconAnchor: [50, 60]
+                html: `<div class="team-marker-container"><div class="team-marker-label">${team.name}</div><div class="team-marker-icon-box"><i data-lucide="car"></i></div></div>`,
+                iconSize: [100, 70], iconAnchor: [50, 60]
             });
-
             if (!markers[id]) {
-                markers[id] = L.marker(pos, { icon }).addTo(map).bindPopup(`<b>${team.name}</b>`);
-                markers[id].on('click', () => { selectedTeamId = id; selectTeam(id); renderTeamsPanel(); });
+                markers[id] = L.marker([team.lastLocation.lat, team.lastLocation.lng], { icon }).addTo(map);
             } else {
-                markers[id].setLatLng(pos);
-                markers[id].setIcon(icon);
+                markers[id].setLatLng([team.lastLocation.lat, team.lastLocation.lng]).setIcon(icon);
             }
             lucide.createIcons();
         }
 
+        function updateMarkers() { Object.keys(teams).forEach(id => updateMarker(id, teams[id])); }
+
         function selectTeam(id) {
             const team = teams[id];
-            if (team && team.lastLocation) {
-                map.setView([team.lastLocation.lat, team.lastLocation.lng], 16);
-            }
+            if (team?.lastLocation) map.setView([team.lastLocation.lat, team.lastLocation.lng], 16);
         }
-    </script>
-</body>
-</html>
     </script>
 </body>
 </html>
