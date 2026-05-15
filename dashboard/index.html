@@ -351,6 +351,10 @@
                 <i data-lucide="sun" id="theme-icon"></i>
                 <span id="theme-text">Modo Claro</span>
             </div>
+            <div class="nav-item" onclick="testSound()" id="sound-toggle">
+                <i data-lucide="volume-2" id="sound-icon"></i>
+                <span>Testar Som</span>
+            </div>
             <div class="nav-item"><i data-lucide="settings"></i><span>Configurações</span></div>
         </div>
         <div class="weather-widget" id="weather-box">
@@ -545,6 +549,23 @@
             'AS': { label: 'Assumido', color: '#8b5cf6', icon: 'user-check' }
         };
 
+        // 🔥 AUDIO SYSTEM 🔥
+        const notificationSound = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_73024f2f01.mp3');
+        notificationSound.volume = 0.7;
+
+        function unlockAudio() {
+            notificationSound.play().then(() => {
+                notificationSound.pause();
+                notificationSound.currentTime = 0;
+                console.log('Áudio desbloqueado com sucesso');
+            }).catch(e => console.warn('Erro ao desbloquear áudio:', e));
+        }
+
+        function testSound() {
+            notificationSound.play();
+            showToast('Teste de som executado com sucesso!', 'Warning');
+        }
+
         // ── INIT ──
         document.addEventListener('DOMContentLoaded', async () => {
             // Restore theme
@@ -576,6 +597,7 @@
                 
                 if (data.token) {
                     localStorage.setItem('m_token', data.token);
+                    unlockAudio(); // Destrava o som no clique do login
                     document.getElementById('login-overlay').style.opacity = '0';
                     setTimeout(() => {
                         document.getElementById('login-overlay').style.display = 'none';
@@ -708,12 +730,9 @@
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             
-            // 🔥 Som de Notificação
-            try {
-                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                audio.volume = 0.5;
-                audio.play().catch(e => console.warn('Bloqueio de áudio do navegador:', e));
-            } catch (err) { console.error('Erro áudio:', err); }
+            // 🔥 Tenta tocar o som (previamente desbloqueado)
+            notificationSound.currentTime = 0;
+            notificationSound.play().catch(e => console.warn('Autoplay bloqueado. Clique no ícone de som na lateral.'));
 
             let icon = 'bell';
             let color = 'var(--primary)';
