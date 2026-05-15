@@ -278,7 +278,22 @@
                 border: 1px solid #e2e8f0; color: #2d3748;
             }
             .weather-main { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-            .weather-main i { color: #3b82f6; width: 28px; height: 28px; }
+            .os-marker i { color: white; width: 14px; height: 14px; }
+        
+        /* Pulse for active states */
+        .os-pulse-DS { animation: os-pulse-orange 2s infinite; }
+        .os-pulse-EX { animation: os-pulse-pink 2s infinite; }
+        
+        @keyframes os-pulse-orange {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        @keyframes os-pulse-pink {
+            0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
+        }
             #weather-temp { font-size: 20px; font-weight: 800; line-height: 1; }
             #weather-desc { font-size: 11px; color: #718096; font-weight: 600; text-transform: capitalize; }
             .weather-rain-chance { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4a5568; font-weight: 600; }
@@ -384,14 +399,13 @@
         let allOS = []; // Cache de todas as OS carregadas
 
         const STATUS_MAP = {
-            'A': { label: 'Aberto', color: '#3b82f6' },
-            'AN': { label: 'Análise', color: '#8b5cf6' },
-            'EN': { label: 'Encaminhada', color: '#f59e0b' },
-            'AS': { label: 'Assumida', color: '#06b6d4' },
-            'AG': { label: 'Agendado', color: '#14b8a6' },
-            'DS': { label: 'Deslocamento', color: '#eab308' },
-            'EX': { label: 'Execução', color: '#10b981' },
-            'F': { label: 'Finalizado', color: '#94a3b8' }
+            'A': { label: 'Aberto', color: '#3b82f6', icon: 'info' },
+            'DS': { label: 'Deslocamento', color: '#f59e0b', icon: 'truck' },
+            'EX': { label: 'Execução', color: '#ec4899', icon: 'wrench' },
+            'F': { label: 'Finalizado', color: '#94a3b8', icon: 'check-circle' },
+            'AG': { label: 'Agendado', color: '#14b8a6', icon: 'calendar' },
+            'EN': { label: 'Encaminhado', color: '#6366f1', icon: 'send' },
+            'AS': { label: 'Assumido', color: '#8b5cf6', icon: 'user-check' }
         };
 
         // ── INIT ──
@@ -558,10 +572,12 @@
                 // Aplica Filtro de Assunto
                 if (selectedSubjects.length > 0 && !selectedSubjects.includes(os.subject)) return;
 
-                const statusInfo = STATUS_MAP[os.status] || { label: 'Outro', color: '#fff' };
+                const statusInfo = STATUS_MAP[os.status] || { label: 'Outro', color: '#fff', icon: 'help-circle' };
                 const icon = L.divIcon({
-                    className: 'os-marker',
-                    html: `<div style="background:${statusInfo.color}; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow:0 4px 10px rgba(0,0,0,0.3);"><i data-lucide="clipboard" style="width:14px; height:14px; color:white;"></i></div>`,
+                    className: `os-marker ${os.status === 'DS' || os.status === 'EX' ? 'os-pulse-' + os.status : ''}`,
+                    html: `<div style="background: ${statusInfo.color}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2.5px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                            <i data-lucide="${statusInfo.icon}"></i>
+                           </div>`,
                     iconSize: [30, 30],
                     iconAnchor: [15, 15]
                 });
@@ -574,9 +590,13 @@
                 
                 const popupContent = `
                     <div style="min-width: 200px; padding: 4px;">
-                        <div style="font-weight: 800; color: #1e293b; font-size: 14px; margin-bottom: 8px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 4px;">OS ${os.number}</div>
+                        <div style="font-weight: 800; color: #1e293b; font-size: 14px; margin-bottom: 8px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>OS ${os.number}</span>
+                            <span style="font-size: 10px; background: ${statusInfo.color}20; color: ${statusInfo.color}; padding: 2px 8px; border-radius: 20px; border: 1px solid ${statusInfo.color}40;">${statusInfo.label}</span>
+                        </div>
                         <div style="font-size: 12px; margin-bottom: 4px;"><b>Cliente:</b> ${os.client}</div>
                         <div style="font-size: 12px; margin-bottom: 4px;"><b>Assunto:</b> ${os.subject || 'Não informado'}</div>
+                        <div style="font-size: 12px; margin-bottom: 8px; color: ${statusInfo.color}; font-weight: 700;"><b>Status Atual:</b> ${statusInfo.label}</div>
                         <div style="font-size: 11px; color: #2563eb; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
                             <i data-lucide="calendar" style="width:12px; height:12px;"></i> ${dateStr}
                         </div>
