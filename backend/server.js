@@ -156,7 +156,7 @@ function parseIXCDate(dateStr) {
 async function syncIXCTeamCollaborators() {
   console.log('[IXC] Cruzando dados de Equipes e Colaboradores...');
   try {
-    // 1. Busca todos os funcionários para ter um mapa de ID -> Nome
+    // 1. Busca apenas os funcionários ATIVOS
     const employeesResponse = await fetch(`${IXC_URL}/funcionarios`, {
       method: 'POST',
       headers: {
@@ -164,25 +164,25 @@ async function syncIXCTeamCollaborators() {
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
       },
-      body: JSON.stringify({ qtype: 'funcionarios.id', query: '0', oper: '>', rp: '1000' })
+      body: JSON.stringify({ 
+        qtype: 'funcionarios.ativo', 
+        query: 'S', 
+        oper: '=', 
+        rp: '1000' 
+      })
     });
     const employeesData = await employeesResponse.json();
     const nameMap = {};
+    const activeEmployeeIds = new Set();
+    
     if (employeesData.registros) {
-      employeesData.registros.forEach(f => { nameMap[f.id] = f.funcionario; });
+      employeesData.registros.forEach(f => { 
+        nameMap[f.id] = f.funcionario; 
+        activeEmployeeIds.add(String(f.id));
+      });
     }
 
-    // 2. Busca os vínculos de equipe (onde estão os IDs 8, 122, etc)
-    const body = {
-      qtype: 'funcionarios_equipes.id',
-      query: '0',
-      oper: '>',
-      page: '1',
-      rp: '1000',
-      sortname: 'funcionarios_equipes.id',
-      sortorder: 'asc'
-    };
-
+    // 2. Busca os vínculos de equipe
     const response = await fetch(`${IXC_URL}/funcionarios_equipes`, {
       method: 'POST',
       headers: {
@@ -190,21 +190,36 @@ async function syncIXCTeamCollaborators() {
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ qtype: 'funcionarios_equipes.id', query: '0', oper: '>', rp: '1000' })
     });
 
     const data = await response.json();
+    const activeTeamIds = new Set();
+    
     if (data && data.registros) {
       for (const f of data.registros) {
-        // Usa o nome do mapa se encontrar, senão usa o label da equipe
-        const nomeReal = nameMap[f.id_funcionario] || f.id_funcionario_label || f.funcionario || `Técnico ${f.id_funcionario}`;
-        await Team.findOneAndUpdate(
-          { id: String(f.id) }, // Este é o ID que aparece na O.S. (ex: 8, 122)
-          { name: nomeReal },
-          { upsert: true }
-        );
+        // Só mapeia se o funcionário vinculado estiver ativo
+        if (activeEmployeeIds.has(String(f.id_funcionario))) {
+          const nomeReal = nameMap[f.id_funcionario] || f.id_funcionario_label || f.funcionario || `Técnico ${f.id_funcionario}`;
+          await Team.findOneAndUpdate(
+            { id: String(f.id) },
+            { name: nomeReal },
+            { upsert: true }
+          );
+          activeTeamIds.add(String(f.id));
+        }
       }
-      console.log(`[IXC] ${data.registros.length} técnicos de equipe mapeados com nomes reais.`);
+      
+      // Limpeza: Remove do nosso banco quem não está mais ativo ou sumiu do IXC
+      // (Mantemos o Nilson e teste se quiser, mas aqui vou limpar tudo que não for ID ativo)
+      const allTeamsInDb = await Team.find({}, 'id');
+      for (const t of allTeamsInDb) {
+        if (!activeTeamIds.has(t.id) && t.id !== 'Nilson' && t.id !== 'teste') {
+          await Team.deleteOne({ id: t.id });
+        }
+      }
+      
+      console.log(`[IXC] Sincronização concluída. ${activeTeamIds.size} colaboradores ativos mapeados.`);
     }
   } catch (error) {
     console.error('[IXC] Erro no cruzamento de dados:', error.message);
