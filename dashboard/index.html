@@ -96,7 +96,7 @@
         }
         .stat-widget:hover { border-color: var(--primary-light); transform: translateY(-2px); }
         .stat-widget i { color: var(--primary-light); width: 16px; height: 16px; }
-        .stat-widget .val { font-size: 15px; font-weight: 800; color: white; }
+        .stat-widget .val { font-size: 15px; font-weight: 800; color: var(--text-main); }
         .stat-widget .lab { font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; text-align: center; }
 
         /* Left Sidebar Panel (Teams) */
@@ -115,8 +115,8 @@
             transition: 0.2s; border: 1px solid transparent; display: flex; align-items: center; gap: 12px;
             background: rgba(255,255,255,0.03);
         }
-        .compact-team-row:hover { background: rgba(255,255,255,0.08); border-color: var(--border); }
-        .compact-team-row.active { background: var(--primary); border-color: var(--primary-light); }
+        .compact-team-row:hover { background: var(--border); border-color: var(--border); }
+        .compact-team-row.active { background: var(--primary); border-color: var(--primary-light); color: white; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; }
         .dot-online { background: var(--success); box-shadow: 0 0 10px var(--success); }
         .dot-offline { background: var(--text-muted); }
@@ -157,7 +157,7 @@
             border-radius: 16px; padding: 0 16px; height: 44px; display: flex; align-items: center; gap: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.3);
         }
-        .search-bar-floating input { background: transparent; border: none; color: white; flex: 1; outline: none; font-size: 14px; }
+        .search-bar-floating input { background: transparent; border: none; color: var(--text-main); flex: 1; outline: none; font-size: 14px; }
         
         /* Map Customizations */
         .map-search { position: absolute; top: 20px; left: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px; }
@@ -340,10 +340,10 @@
             70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0); }
             100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0); }
         }
-            #weather-temp { font-size: 20px; font-weight: 800; line-height: 1; }
-            #weather-desc { font-size: 11px; color: #718096; font-weight: 600; text-transform: capitalize; }
-            .weather-rain-chance { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4a5568; font-weight: 600; }
-            .weather-rain-chance b { color: #3b82f6; }
+            #weather-temp { font-size: 20px; font-weight: 800; line-height: 1; color: var(--text-main); }
+            #weather-desc { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: capitalize; }
+            .weather-rain-chance { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+            .weather-rain-chance b { color: var(--primary); }
         </style>
 
 
