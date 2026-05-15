@@ -174,6 +174,15 @@ async function syncIXCServiceOrders(io) {
     
     // Para simplificar e garantir que pegamos tudo que importa, pegamos as últimas 1000
     // mas vamos cruzar com o que temos no banco.
+    const now = new Date();
+    const todayStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+    
+    // Filtro avançado usando grid_param conforme documentação Postman
+    const grid_param = JSON.stringify([
+      { TB: 'su_oss_chamado.data_agenda', OP: '>=', P: `${todayStr} 00:00:00` },
+      { TB: 'su_oss_chamado.data_agenda', OP: '<=', P: `${todayStr} 23:59:59` }
+    ]);
+
     const response = await fetch(`${IXC_URL}/su_oss_chamado`, {
       method: 'POST',
       headers: {
@@ -187,7 +196,8 @@ async function syncIXCServiceOrders(io) {
         oper: '>', 
         rp: '1000', 
         sortname: 'su_oss_chamado.id', 
-        sortorder: 'desc' 
+        sortorder: 'desc',
+        grid_param: grid_param
       })
     });
     
