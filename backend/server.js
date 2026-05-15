@@ -232,17 +232,24 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const activeCount = Object.keys(teams).filter(id => teams[id].status === 'Online').length;
   
   const alerts = await Alert.countDocuments({ read: false });
-  const osTotalActive = await ServiceOrder.countDocuments({ status: { $ne: 'F' } });
+  
+  // Filtro operacional: Agendadas, Execução, Deslocamento (independente de data)
+  // + Finalizadas (apenas hoje)
+  const osOperational = await ServiceOrder.countDocuments({ 
+    $or: [
+      { status: { $in: ['AG', 'EX', 'DS'] } },
+      { status: 'F', timestamp: { $gte: today } }
+    ]
+  });
+  
   const osDoneToday = await ServiceOrder.countDocuments({ status: 'F', timestamp: { $gte: today } });
   
-  console.log(`[Stats] Equipes: ${activeCount}/${teamsCount}, OS Ativas: ${osTotalActive}`);
-
   res.json({
     teamsActive: activeCount,
     teamsTotal: teamsCount > 0 ? Math.max(teamsCount, 1) : 0,
     devicesOnline: activeCount,
     devicesTotal: Math.max(teamsCount, 1),
-    osToday: osTotalActive,
+    osToday: osOperational,
     osDone: osDoneToday,
     alertsCritical: alerts,
     sla: 96
@@ -250,7 +257,16 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
 });
 
 app.get('/api/service-orders', auth, async (req, res) => {
-  const orders = await ServiceOrder.find().sort({ timestamp: -1 });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const orders = await ServiceOrder.find({
+    $or: [
+      { status: { $in: ['AG', 'EX', 'DS'] } },
+      { status: 'F', timestamp: { $gte: today } }
+    ]
+  }).sort({ timestamp: -1 });
+  
   res.json(orders);
 });
 
