@@ -179,22 +179,57 @@ async function syncIXCCollaborators() {
     const data = await response.json();
     if (data && data.registros) {
       for (const f of data.registros) {
-        // Atualiza ou cria o time com o nome real do colaborador
+        await Team.findOneAndUpdate({ id: String(f.id) }, { name: f.funcionario }, { upsert: true });
+      }
+    }
+  } catch (error) { console.error('[IXC] Erro colaboradores:', error.message); }
+}
+
+async function syncIXCTeamCollaborators() {
+  console.log('[IXC] Sincronizando Colaboradores da Equipe...');
+  try {
+    const body = {
+      qtype: 'funcionarios_equipes.id',
+      query: '0',
+      oper: '>',
+      page: '1',
+      rp: '1000',
+      sortname: 'funcionarios_equipes.id',
+      sortorder: 'asc'
+    };
+
+    const response = await fetch(`${IXC_URL}/funcionarios_equipes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ixcsoft': 'listar',
+        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (data && data.registros) {
+      for (const f of data.registros) {
+        // Tenta encontrar o nome do funcionário se disponível na resposta ou usa fallback
+        // Em muitas APIs do IXC, o nome vem em f.id_funcionario_label ou similar
+        const nome = f.id_funcionario_label || f.funcionario || f.nome || `Técnico ${f.id_funcionario}`;
         await Team.findOneAndUpdate(
-          { id: String(f.id) },
-          { name: f.funcionario },
+          { id: String(f.id_funcionario || f.id) },
+          { name: nome },
           { upsert: true }
         );
       }
-      console.log(`[IXC] ${data.registros.length} colaboradores mapeados.`);
+      console.log(`[IXC] ${data.registros.length} vínculos de equipe mapeados.`);
     }
   } catch (error) {
-    console.error('[IXC] Erro ao sincronizar colaboradores:', error.message);
+    console.error('[IXC] Erro ao sincronizar colaboradores da equipe:', error.message);
   }
 }
 
 async function syncIXCServiceOrders() {
-  await syncIXCCollaborators(); // Primeiro mapeia os nomes
+  await syncIXCCollaborators(); // Mapeia funcionários gerais
+  await syncIXCTeamCollaborators(); // Mapeia funcionários das equipes (conforme sua imagem)
   console.log('[IXC] Iniciando sincronização de O.S...');
   try {
     const body = {
