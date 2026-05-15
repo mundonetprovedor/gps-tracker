@@ -1,5 +1,6 @@
 const Team = require('../models/Team');
 const ServiceOrder = require('../models/ServiceOrder');
+const Alert = require('../models/Alert');
 const logger = require('../config/logger');
 
 const IXC_URL = process.env.IXC_URL;
@@ -168,6 +169,28 @@ async function syncIXCServiceOrders(io) {
         let subjectName = os.assunto || os.su_assunto || os.descricao_assunto || os.assunto_nome;
         if (!subjectName || subjectName === 'Não informado') {
           subjectName = await getSubjectName(os.id_assunto);
+        }
+
+        // Busca o estado anterior da O.S. para detectar mudanças de status
+        const oldOS = await ServiceOrder.findOne({ ixcId: os.id });
+        if (oldOS && oldOS.status !== os.status && ['DS', 'EX', 'F'].includes(os.status)) {
+            const team = await Team.findOne({ id: tecnicoId });
+            const techName = team ? team.name : 'Técnico';
+            let msg = '';
+            
+            if (os.status === 'DS') msg = `${techName} iniciou deslocamento para O.S. do cliente ${clientName}.`;
+            else if (os.status === 'EX') msg = `${techName} iniciou o serviço na O.S. do cliente ${clientName}.`;
+            else if (os.status === 'F') msg = `${techName} finalizou o serviço na O.S. do cliente ${clientName}.`;
+
+            if (msg) {
+                await Alert.create({
+                    type: 'Warning',
+                    message: msg,
+                    device: techName,
+                    timestamp: new Date()
+                });
+                if (io) io.emit('status_notification', { message: msg, type: os.status, tech: techName });
+            }
         }
 
         await ServiceOrder.findOneAndUpdate(
