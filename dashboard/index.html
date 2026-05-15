@@ -1154,6 +1154,7 @@
         }
 
         async function findNearestTeams(osId) {
+            console.log('[Debug] Buscando equipes para OS:', osId);
             const container = document.getElementById(`nearest-container-${osId}`);
             if (!container) return;
             
