@@ -137,9 +137,17 @@ async function syncIXCServiceOrders() {
       body: JSON.stringify(body)
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[IXC] Erro ao processar JSON. Resposta bruta:', responseText);
+      return;
+    }
+
     if (!data || !data.registros) {
-      console.log('[IXC] Nenhum registro novo ou erro na resposta.');
+      console.log('[IXC] Nenhum registro novo ou erro na resposta. Resposta:', responseText);
       return;
     }
 
