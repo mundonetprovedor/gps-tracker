@@ -433,10 +433,11 @@ const auth = (req, res, next) => {
 
 // ── DATA ENDPOINTS (PRO) ──
 app.get('/api/dashboard/stats', auth, async (req, res) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // Ajuste para Fuso Horário de Brasília (UTC-3)
+  const now = new Date();
+  const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  today.setUTCHours(3, 0, 0, 0); 
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
   
   // Marca como offline quem não envia sinal há 2 min
   const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000);
@@ -466,10 +467,12 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
 });
 
 app.get('/api/service-orders', auth, async (req, res) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // Ajuste para Fuso Horário de Brasília (UTC-3)
+  const now = new Date();
+  const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  today.setUTCHours(3, 0, 0, 0); // Define como 00:00 no horário local (-3)
+  
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
   const orders = await ServiceOrder.find({
     $or: [
