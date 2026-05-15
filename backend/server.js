@@ -27,6 +27,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Log de requisições para diagnóstico de 502
+app.use((req, res, next) => {
+  logger.info(`[HTTP] ${req.method} ${req.url} - IP: ${req.ip}`);
+  next();
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'mundonet-super-secret-key';
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://mongo:27017/mundonet_gps';
 
@@ -59,7 +65,15 @@ const auth = (req, res, next) => {
 };
 
 // ── ROUTES ──
-app.use(express.static(path.join(__dirname, '../dashboard')));
+// Tenta carregar o dashboard de vários caminhos possíveis em containers
+const dashboardPath = path.join(__dirname, '../dashboard');
+const localDashboardPath = path.join(__dirname, 'dashboard');
+
+if (require('fs').existsSync(dashboardPath)) {
+    app.use(express.static(dashboardPath));
+} else {
+    app.use(express.static(localDashboardPath));
+}
 
 app.get('/health', (req, res) => res.send('OK'));
 
