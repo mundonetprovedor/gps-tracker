@@ -108,6 +108,11 @@
             border-radius: 20px; padding: 16px; overflow: hidden; display: flex; flex-direction: column;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
         }
+        .activity-item {
+            display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon { flex-shrink: 0; }
         
         /* Map Controls Overlay */
         .map-controls { position: absolute; right: 24px; top: 100px; display: flex; flex-direction: column; gap: 10px; }
