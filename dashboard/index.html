@@ -370,11 +370,19 @@
         }
 
         async function loadDashboardData() {
-            const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
+            const token = localStorage.getItem('m_token');
+            const headers = { 'Authorization': `Bearer ${token}` };
+            
             try {
-                const stats = await fetch('/api/dashboard/stats', { headers }).then(r => r.json());
-                document.getElementById('kpi-teams').innerText = `${stats.teamsActive || 0} / ${stats.teamsTotal || 0}`;
-                document.getElementById('kpi-devices').innerText = `${stats.devicesOnline || 0} / ${stats.devicesTotal || 0}`;
+                const res = await fetch('/api/dashboard/stats', { headers });
+                if (!res.ok) {
+                    if (res.status === 401) console.warn('Token expirado ou inválido');
+                    return;
+                }
+                const stats = await res.json();
+                
+                document.getElementById('kpi-teams').innerText = `${stats.teamsActive} / ${stats.teamsTotal}`;
+                document.getElementById('kpi-devices').innerText = `${stats.devicesOnline} / ${stats.devicesTotal}`;
                 document.getElementById('kpi-os').innerText = stats.osToday || 0;
                 document.getElementById('kpi-os-done').innerText = stats.osDone || 0;
                 document.getElementById('kpi-alerts').innerText = stats.alertsCritical || 0;
@@ -386,7 +394,9 @@
                 const osList = await fetch('/api/service-orders', { headers }).then(r => r.json());
                 updateChart(osList);
                 updateOSMarkers(osList);
-            } catch (e) { console.error('Data Load Error:', e); }
+            } catch (e) { 
+                console.error('Data Load Error:', e);
+            }
         }
 
         function updateOSMarkers(osList) {

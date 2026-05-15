@@ -228,19 +228,22 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const osToday = await ServiceOrder.countDocuments({ timestamp: { $gte: today } });
-  const osDone = await ServiceOrder.countDocuments({ status: 'F', timestamp: { $gte: today } });
-  const alerts = await Alert.countDocuments({ read: false });
-
   const teamsCount = Object.keys(teams).length;
+  const activeCount = Object.keys(teams).filter(id => teams[id].status === 'Online').length;
   
+  const alerts = await Alert.countDocuments({ read: false });
+  const osTotalActive = await ServiceOrder.countDocuments({ status: { $ne: 'F' } });
+  const osDoneToday = await ServiceOrder.countDocuments({ status: 'F', timestamp: { $gte: today } });
+  
+  console.log(`[Stats] Equipes: ${activeCount}/${teamsCount}, OS Ativas: ${osTotalActive}`);
+
   res.json({
-    teamsActive: Object.keys(teams).filter(id => teams[id].status === 'Online').length,
-    teamsTotal: teamsCount > 0 ? Math.max(teamsCount, 32) : 32,
-    devicesOnline: Object.keys(teams).filter(id => teams[id].status === 'Online').length,
-    devicesTotal: 60,
-    osToday,
-    osDone,
+    teamsActive: activeCount,
+    teamsTotal: teamsCount > 0 ? Math.max(teamsCount, 1) : 0,
+    devicesOnline: activeCount,
+    devicesTotal: Math.max(teamsCount, 1),
+    osToday: osTotalActive,
+    osDone: osDoneToday,
     alertsCritical: alerts,
     sla: 96
   });
