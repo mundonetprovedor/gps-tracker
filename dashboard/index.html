@@ -1155,10 +1155,11 @@
 
         async function findNearestTeams(osId) {
             console.log('[Debug] Buscando equipes para OS:', osId);
-            // Tenta buscar no documento todo ou especificamente dentro do popup aberto do Leaflet
-            let container = document.getElementById(`nearest-container-${osId}`);
+            // Prioriza SEMPRE o balão que está aberto na tela no momento
+            let container = document.querySelector('.leaflet-popup-content-wrapper #nearest-container-' + osId);
+            
             if (!container) {
-                container = document.querySelector(`.leaflet-popup-content #nearest-container-${osId}`);
+                container = document.getElementById(`nearest-container-${osId}`);
             }
             
             if (!container) {
@@ -1166,6 +1167,7 @@
                 return;
             }
             
+            console.log('[Debug] Container encontrado, atualizando para "Calculando..."');
             container.innerHTML = `<div style="font-size: 11px; color: #64748b; text-align: center; padding: 10px;">
                                     <i class="animate-spin" data-lucide="loader-2" style="width:14px; height:14px; margin-bottom: 5px;"></i><br>
                                     Calculando rotas...
@@ -1173,6 +1175,7 @@
             lucide.createIcons();
             
             try {
+                console.log('[Debug] Chamando API...');
                 const res = await fetch(`/api/service-orders/${osId}/nearest`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` }
                 });
