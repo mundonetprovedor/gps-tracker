@@ -916,6 +916,11 @@
                             <i data-lucide="map-pin" style="width:12px; height:12px; margin-top: 2px; flex-shrink: 0;"></i> 
                             <span>${addressSummary}</span>
                         </div>
+                        <div id="nearest-container-${os.ixcId}" style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+                            <button onclick="findNearestTeams('${os.ixcId}')" style="width: 100%; padding: 8px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <i data-lucide="zap" style="width:12px; height:12px;"></i> Sugestão de Equipe
+                            </button>
+                        </div>
                     </div>
                 `;
                 const marker = L.marker([os.lat, os.lng], { icon }).bindPopup(popupContent);
@@ -1111,6 +1116,46 @@
             document.querySelectorAll('#subject-checkbox-list input').forEach(c => c.checked = false);
             updateOSMarkers(allOS);
             updateRouteLines(allOS);
+        }
+
+        async function findNearestTeams(osId) {
+            const container = document.getElementById(`nearest-container-${osId}`);
+            if (!container) return;
+            
+            container.innerHTML = `<div style="font-size: 11px; color: #64748b; text-align: center; padding: 10px;">
+                                    <i class="animate-spin" data-lucide="loader-2" style="width:14px; height:14px; margin-bottom: 5px;"></i><br>
+                                    Calculando rotas...
+                                   </div>`;
+            lucide.createIcons();
+            
+            try {
+                const res = await fetch(`/api/service-orders/${osId}/nearest`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` }
+                });
+                const ranking = await res.json();
+                
+                if (ranking.length === 0) {
+                    container.innerHTML = `<div style="font-size: 11px; color: #ef4444; text-align: center; padding: 5px;">Nenhum técnico online encontrado.</div>`;
+                    return;
+                }
+
+                let html = `<div style="font-size: 10px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">Top 3 Mais Próximos:</div>`;
+                ranking.forEach((cand, i) => {
+                    const color = i === 0 ? '#10b981' : '#64748b';
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px; background: ${i === 0 ? '#10b98110' : '#f8fafc'}; border-radius: 6px; margin-bottom: 4px; border: 1px solid ${i === 0 ? '#10b98130' : '#e2e8f0'};">
+                            <div style="font-weight: 700; color: ${color}; font-size: 11px;">${i+1}. ${cand.name}</div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 11px; font-weight: 800; color: #1e293b;">${cand.duration} min</div>
+                                <div style="font-size: 9px; color: #94a3b8;">${cand.distance} km</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = `<div style="font-size: 11px; color: #ef4444; text-align: center; padding: 5px;">Erro ao buscar equipes.</div>`;
+            }
         }
 
         // ── PLAYBACK LOGIC ──

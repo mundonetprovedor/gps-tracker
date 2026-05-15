@@ -131,6 +131,56 @@ app.get('/api/teams', auth, async (req, res) => {
   res.json(await Team.find());
 });
 
+app.get('/api/service-orders/:id/nearest', auth, async (req, res) => {
+  try {
+    const os = await ServiceOrder.findOne({ ixcId: req.params.id });
+    if (!os || !os.lat || !os.lng) return res.status(404).json({ error: 'O.S. não encontrada ou sem coordenadas' });
+
+    const onlineTeams = await Team.find({ status: 'Online' });
+    const results = [];
+
+    for (const team of onlineTeams) {
+      if (!team.lastLocation?.lat) continue;
+
+      // Cálculo simples de distância em linha reta para triagem inicial
+      const dist = Math.sqrt(
+        Math.pow(team.lastLocation.lat - os.lat, 2) + 
+        Math.pow(team.lastLocation.lng - os.lng, 2)
+      );
+
+      results.push({
+        id: team.id,
+        name: team.name,
+        lat: team.lastLocation.lat,
+        lng: team.lastLocation.lng,
+        dist
+      });
+    }
+
+    // Ordena por distância e pega os 5 mais próximos para calcular ETA real
+    results.sort((a, b) => a.dist - b.dist);
+    const topCandidates = results.slice(0, 5);
+    const finalRanking = [];
+
+    for (const cand of topCandidates) {
+      const route = await getRouteETA(cand.lat, cand.lng, os.lat, os.lng);
+      finalRanking.push({
+        name: cand.name,
+        distance: route ? (route.distance / 1000).toFixed(1) : (cand.dist * 111).toFixed(1), // km aproximado se falhar OSRM
+        duration: route ? Math.ceil(route.duration / 60) : '?',
+        status: cand.status
+      });
+    }
+
+    finalRanking.sort((a, b) => (typeof a.duration === 'number' ? a.duration : 999) - (typeof b.duration === 'number' ? b.duration : 999));
+
+    res.json(finalRanking.slice(0, 3));
+  } catch (error) {
+    logger.error('[SmartDispatch] Erro: %s', error.message);
+    res.status(500).json({ error: 'Erro ao calcular equipes próximas' });
+  }
+});
+
 app.get('/api/activities', auth, async (req, res) => {
   const now = new Date();
   const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
