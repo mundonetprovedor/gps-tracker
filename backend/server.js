@@ -91,6 +91,7 @@ let socketToTeam = {};
 
 // ── SEED INITIAL DATA (Working truly) ──
 async function seedInitialData() {
+  try {
     // Garante que o Admin existe
     const adminCount = await User.countDocuments({ username: 'admin' });
     if (adminCount === 0) {
