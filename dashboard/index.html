@@ -367,6 +367,10 @@
         async function loadDashboardData() {
             const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
             try {
+                // Fetch Teams first to ensure the list is populated
+                const teamsArray = await (await fetch('/api/teams', { headers })).json();
+                teamsArray.forEach(t => { teams = { ...teams, [t.id]: t }; });
+
                 const stats = await (await fetch('/api/dashboard/stats', { headers })).json();
                 const os = await (await fetch('/api/service-orders', { headers })).json();
                 const activities = await (await fetch('/api/activities', { headers })).json();
@@ -380,6 +384,7 @@
                 updateRouteLines(os);
                 renderActivitiesPanel(activities);
                 renderTeamsPanel();
+                updateMarkers();
             } catch (e) { console.error('Data Load Error:', e); }
         }
 
