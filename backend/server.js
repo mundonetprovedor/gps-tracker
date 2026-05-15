@@ -198,15 +198,17 @@ async function syncIXCTeamCollaborators() {
     
     if (data && data.registros) {
       for (const f of data.registros) {
-        // Só mapeia se o funcionário vinculado estiver ativo
         if (activeEmployeeIds.has(String(f.id_funcionario))) {
           const nomeReal = nameMap[f.id_funcionario] || f.id_funcionario_label || f.funcionario || `Técnico ${f.id_funcionario}`;
-          await Team.findOneAndUpdate(
-            { id: String(f.id) },
-            { name: nomeReal },
-            { upsert: true }
-          );
+          
+          // Mapeia o ID da Equipe (ex: 20)
+          await Team.findOneAndUpdate({ id: String(f.id) }, { name: nomeReal }, { upsert: true });
           activeTeamIds.add(String(f.id));
+
+          // Mapeia TAMBÉM o ID do Funcionário (ex: 122) para o mesmo nome
+          // Isso permite que o técnico use qualquer um dos dois IDs no Traccar
+          await Team.findOneAndUpdate({ id: String(f.id_funcionario) }, { name: nomeReal }, { upsert: true });
+          activeTeamIds.add(String(f.id_funcionario));
         }
       }
       
