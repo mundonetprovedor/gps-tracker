@@ -113,8 +113,8 @@ app.get('/api/service-orders', auth, async (req, res) => {
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
   const orders = await ServiceOrder.find({
     $or: [
-      { status: { $in: ['EX', 'DS'] } },
-      { status: { $in: ['AG', 'F', 'EN', 'AS'] }, scheduledDate: { $gte: today, $lt: tomorrow } }
+      { status: { $in: ['A', 'AN', 'EN', 'AS', 'AG', 'DS', 'EX', 'RAG'] } },
+      { status: 'F', scheduledDate: { $gte: today, $lt: tomorrow } }
     ]
   }).sort({ timestamp: -1 });
   res.json(orders);
@@ -128,7 +128,14 @@ app.get('/api/activities', auth, async (req, res) => {
   const os = await ServiceOrder.find().sort({ timestamp: -1 }).limit(10).lean();
   const alerts = await Alert.find().sort({ timestamp: -1 }).limit(10).lean();
   const combined = [
-    ...os.map(o => ({ type: 'OS', content: `OS ${o.number}`, client: o.client, time: o.timestamp })),
+    ...os.map(o => ({ 
+      type: 'OS', 
+      content: o.client !== 'Não identificado' ? o.client : (o.subject !== 'Não informado' ? o.subject : `OS ${o.number}`),
+      client: o.client, 
+      subject: o.subject,
+      protocol: o.number,
+      time: o.timestamp 
+    })),
     ...alerts.map(a => ({ type: 'Alert', content: a.message, device: a.device, time: a.timestamp, critical: a.type === 'Critical' }))
   ].sort((a, b) => new Date(b.time) - new Date(a.time));
   res.json(combined);

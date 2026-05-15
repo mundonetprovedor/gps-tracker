@@ -97,14 +97,19 @@ async function syncIXCServiceOrders(io) {
     const data = await response.json();
     if (!data || !data.registros) return;
 
+    if (data.registros && data.registros.length > 0) {
+      const sample = data.registros[0];
+      logger.info(`[IXC] Amostra de campos da O.S.: ${Object.keys(sample).join(', ')}`);
+    }
+
     logger.info(`[IXC] Processando ${data.registros.length} Ordens de Serviço...`);
     
     for (const os of data.registros) {
       const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
       
-      // Tenta capturar o nome do cliente de várias formas possíveis no IXC
-      const clientName = os.razao || os.cliente || os.nome_cliente || os.razao_social || os.cliente_razao || os.nome || 'Não identificado';
-      const subjectName = os.assunto || os.su_assunto || os.descricao_assunto || 'Não informado';
+      // Tenta capturar o nome do cliente de todas as formas possíveis no IXC (incluindo variações de joins)
+      const clientName = os.razao || os.cliente || os.nome_cliente || os.razao_social || os.cliente_razao || os.nome || os.fantasia || os.cliente_nome || 'Não identificado';
+      const subjectName = os.assunto || os.su_assunto || os.descricao_assunto || os.assunto_nome || 'Não informado';
 
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },

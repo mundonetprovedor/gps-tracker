@@ -769,7 +769,11 @@
                 if (a.type === 'OS') {
                     icon = 'clipboard-list';
                     color = '#10b981';
-                    subtitle = `Cliente: ${a.client || 'Não identificado'}`;
+                    const subText = a.subject && a.subject !== 'Não informado' ? a.subject : 'Sem assunto';
+                    subtitle = `OS ${a.protocol} • ${subText}`;
+                    if (a.content.includes(a.protocol)) {
+                        subtitle = `${a.client || 'Cliente não identificado'} • ${subText}`;
+                    }
                 } else if (a.type === 'Alert') {
                     icon = 'alert-triangle';
                     color = a.critical ? '#ef4444' : '#f59e0b';
