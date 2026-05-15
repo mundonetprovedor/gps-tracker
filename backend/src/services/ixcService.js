@@ -19,6 +19,40 @@ const STATUS_MAP = {
 
 let subjectCache = {};
 let clientCache = {};
+let techCache = {};
+
+async function getTechnicianName(id) {
+  if (!id) return 'Técnico';
+  const sId = String(id);
+  if (techCache[sId]) return techCache[sId];
+  
+  // Tenta banco local primeiro
+  const team = await Team.findOne({ id: sId });
+  if (team) {
+    techCache[sId] = team.name;
+    return team.name;
+  }
+
+  // Tenta IXC em tempo real
+  try {
+    const response = await fetch(`${IXC_URL}/funcionarios`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ixcsoft': 'listar',
+        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+      },
+      body: JSON.stringify({ qtype: 'funcionarios.id', query: sId, oper: '=', rp: '1' })
+    });
+    const data = await response.json();
+    const name = data.registros?.[0]?.funcionario || 'Técnico';
+    techCache[sId] = name;
+    return name;
+  } catch (e) {
+    logger.error(`[IXC] Erro ao buscar técnico ${sId}: ${e.message}`);
+    return 'Técnico';
+  }
+}
 
 async function getClientName(id) {
   if (!id) return 'Não identificado';
@@ -174,8 +208,7 @@ async function syncIXCServiceOrders(io) {
         // Busca o estado anterior da O.S. para detectar mudanças de status
         const oldOS = await ServiceOrder.findOne({ ixcId: os.id });
         if (oldOS && oldOS.status !== os.status && ['DS', 'EX', 'F'].includes(os.status)) {
-            const team = await Team.findOne({ id: tecnicoId });
-            const techName = team ? team.name : 'Técnico';
+            const techName = await getTechnicianName(tecnicoId);
             let msg = '';
             
             if (os.status === 'DS') msg = `${techName} iniciou deslocamento para O.S. do cliente ${clientName}.`;
