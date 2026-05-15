@@ -572,8 +572,8 @@
                         <i data-lucide="${icon}" style="width: 16px; height: 16px;"></i>
                     </div>
                     <div class="activity-content" style="flex: 1; margin-left: 12px;">
-                        <div style="font-size: 13px; font-weight: 700; color: #1e293b; line-height: 1.2;">${a.content}</div>
-                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${a.client || a.device || ''}</div>
+                        <div style="font-size: 13px; font-weight: 700; color: white; line-height: 1.2;">${a.content}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${a.client || a.device || ''}</div>
                     </div>
                     <div class="activity-time" style="font-size: 10px; font-weight: 700; color: #94a3b8;">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                 `;
