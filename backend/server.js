@@ -91,11 +91,18 @@ let socketToTeam = {};
 
 // ── SEED INITIAL DATA (Working truly) ──
 async function seedInitialData() {
-  try {
+    // Garante que o Admin existe
+    const adminCount = await User.countDocuments({ username: 'admin' });
+    if (adminCount === 0) {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await User.create({ username: 'admin', password: hashedPassword });
+      console.log('✅ Usuário Admin criado automaticamente (admin/admin123)');
+    }
+
     const osCount = await ServiceOrder.countDocuments();
     if (osCount === 0) {
       await ServiceOrder.create([
-        { number: '100', ixcId: '1', client: 'Exemplo Mundonet', address: 'Av. Litorânea, São Luís', status: 'A', priority: 'N', lat: -2.4855, lng: -44.2494 },
+        { number: '100', ixcId: '1', client: 'Exemplo Mundonet', address: 'Av. Litorânea, São Luís', status: 'AG', priority: 'N', lat: -2.4855, lng: -44.2494 },
         { number: '101', ixcId: '2', client: 'Teste Sistema', address: 'Rua do Giz, São Luís', status: 'DS', priority: 'A', lat: -2.5297, lng: -44.3068 }
       ]);
     }

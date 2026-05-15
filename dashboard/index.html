@@ -391,7 +391,8 @@
             try {
                 const res = await fetch('/api/dashboard/stats', { headers });
                 if (!res.ok) {
-                    if (res.status === 401) console.warn('Token expirado ou inválido');
+                    document.getElementById('api-status').innerHTML = '● Erro: ' + res.status;
+                    document.getElementById('api-status').style.color = 'var(--danger)';
                     return;
                 }
                 const stats = await res.json();
