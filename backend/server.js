@@ -365,8 +365,17 @@ async function syncIXCServiceOrders() {
       if (oldOS && oldOS.status !== os.status) {
         const teamName = Object.values(teams).find(t => String(t.id) === String(tecnicoId))?.name || 'Um técnico';
         let message = '';
-        if (os.status === 'DS') message = `O técnico ${teamName} iniciou o deslocamento para a O.S. do cliente ${clienteReal}.`;
-        if (os.status === 'EX') message = `O técnico ${teamName} iniciou o serviço na O.S. do cliente ${clienteReal}.`;
+        const statusLabel = STATUS_MAP[os.status]?.label || os.status;
+        
+        console.log(`[IXC] Status mudou: OS ${os.id} | ${oldOS.status} -> ${os.status} (${statusLabel})`);
+
+        if (os.status === 'DS') {
+            message = `O técnico ${teamName} iniciou o deslocamento para a O.S. do cliente ${clienteReal}.`;
+        } else if (os.status === 'EX') {
+            message = `O técnico ${teamName} iniciou o serviço na O.S. do cliente ${clienteReal}.`;
+        } else {
+            message = `O status da O.S. de ${clienteReal} mudou para: ${statusLabel} (${teamName})`;
+        }
         
         if (message) {
           io.emit('status_notification', { message, type: os.status });
@@ -650,6 +659,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Mundonet Tracker running on port ${PORT}`);
   // Inicia a primeira sincronização após 5 segundos
   setTimeout(syncIXCServiceOrders, 5000);
-  // Sincronização periódica a cada 10 minutos
-  setInterval(syncIXCServiceOrders, 10 * 60 * 1000);
+  // Sincronização periódica a cada 1 minuto
+  setInterval(syncIXCServiceOrders, 60 * 1000);
 });
