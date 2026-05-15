@@ -606,27 +606,48 @@
         }
 
         async function loadDashboardData() {
-            const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
+            let token = localStorage.getItem('m_token');
+            if (!token) return;
+
+            const headers = { 'Authorization': `Bearer ${token}` };
             try {
-                const teamsArray = await (await fetch('/api/teams', { headers })).json();
-                teamsArray.forEach(t => { teams = { ...teams, [t.id]: t }; });
+                const teamsRes = await fetch('/api/teams', { headers });
+                
+                // Se der erro de autorização, limpa o token e tenta logar de novo
+                if (teamsRes.status === 401) {
+                    console.warn('Token expirado ou inválido. Reiniciando login...');
+                    localStorage.removeItem('m_token');
+                    window.location.reload();
+                    return;
+                }
+
+                const teamsArray = await teamsRes.json();
+                if (Array.isArray(teamsArray)) {
+                    teamsArray.forEach(t => { teams = { ...teams, [t.id]: t }; });
+                }
 
                 const stats = await (await fetch('/api/dashboard/stats', { headers })).json();
-                allOS = await (await fetch('/api/service-orders', { headers })).json();
+                const osRes = await fetch('/api/service-orders', { headers });
+                allOS = await osRes.json();
                 const activities = await (await fetch('/api/activities', { headers })).json();
 
                 document.getElementById('stats-active-teams').innerText = `${stats.active || 0}/${stats.total || 0}`;
-                document.getElementById('stats-total-os').innerText = allOS.length;
+                document.getElementById('stats-total-os').innerText = Array.isArray(allOS) ? allOS.length : 0;
                 document.getElementById('stats-alerts').innerText = stats.alerts || 0;
                 document.getElementById('alert-count').innerText = stats.alerts || 0;
 
-                updateOSMarkers(allOS);
-                updateRouteLines(allOS);
+                if (Array.isArray(allOS)) {
+                    updateOSMarkers(allOS);
+                    updateRouteLines(allOS);
+                    renderSubjectFilters(allOS);
+                }
+                
                 renderActivitiesPanel(activities);
                 renderTeamsPanel();
                 updateMarkers();
-                renderSubjectFilters(allOS);
-            } catch (e) { console.error('Data Load Error:', e); }
+            } catch (e) { 
+                console.error('Data Load Error:', e);
+            }
         }
 
         function updateOSMarkers(osList) {
