@@ -91,9 +91,21 @@ const ServiceOrderSchema = new mongoose.Schema({
   description: String,
   subject: String,
   timestamp: { type: Date, default: Date.now },
-  scheduledDate: Date
+  scheduledDate: Date,
+  lastSeen: Date
 });
 const ServiceOrder = mongoose.model('ServiceOrder', ServiceOrderSchema);
+
+const STATUS_MAP = {
+  'A': { label: 'Aberto' },
+  'AN': { label: 'Análise' },
+  'EN': { label: 'Encaminhada' },
+  'AS': { label: 'Assumida' },
+  'AG': { label: 'Agendado' },
+  'DS': { label: 'Deslocamento' },
+  'EX': { label: 'Execução' },
+  'F': { label: 'Finalizado' }
+};
 
 const AlertSchema = new mongoose.Schema({
   type: { type: String, enum: ['Critical', 'Warning'], default: 'Warning' },
