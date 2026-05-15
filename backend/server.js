@@ -130,9 +130,10 @@ app.get('/api/teams', auth, async (req, res) => {
 app.get('/api/service-orders', auth, async (req, res) => {
   try {
     const now = new Date();
-    // Força o início e fim do dia no fuso local (Brasília)
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    // Força o fuso de Brasília (UTC-3) para calcular o início e fim do dia
+    const brNow = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+    const start = new Date(brNow.getUTCFullYear(), brNow.getUTCMonth(), brNow.getUTCDate(), 0, 0, 0);
+    const end = new Date(brNow.getUTCFullYear(), brNow.getUTCMonth(), brNow.getUTCDate(), 23, 59, 59);
     
     // Busca todos os IDs de equipes válidas para filtrar O.S. sem técnico
     const validTeams = await Team.find({}, 'id');

@@ -167,10 +167,11 @@ async function syncIXCTeamCollaborators() {
 
 async function syncIXCServiceOrders(io) {
   await syncIXCTeamCollaborators();
-  const now = new Date();
   try {
     // 1. Busca as O.S. ativas do IXC (Abertas, Agendadas, Deslocamento, Execução, etc.)
-    const todayStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+    const now = new Date();
+    const brDate = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+    const todayStr = `${String(brDate.getUTCDate()).padStart(2, '0')}/${String(brDate.getUTCMonth() + 1).padStart(2, '0')}/${brDate.getUTCFullYear()}`;
     
     // Filtro avançado usando grid_param conforme documentação Postman
     const grid_param = JSON.stringify([
@@ -243,7 +244,7 @@ async function syncIXCServiceOrders(io) {
                         teamName: techName, 
                         client: clientName, 
                         subject: subjectName, 
-                        startTime: now,
+                        startTime: new Date(),
                         location: { lat: parseFloat(os.latitude), lng: parseFloat(os.longitude) }
                     },
                     { upsert: true }
@@ -254,12 +255,12 @@ async function syncIXCServiceOrders(io) {
                 // Registra chegada e calcula tempo de deslocamento
                 const hist = await ServiceHistory.findOne({ osId: String(os.id) });
                 if (hist && hist.startTime) {
-                    const diffMin = Math.round((now - hist.startTime) / 60000);
-                    await ServiceHistory.updateOne({ _id: hist._id }, { arrivalTime: now, durationDrive: diffMin });
+                    const diffMin = Math.round((new Date() - hist.startTime) / 60000);
+                    await ServiceHistory.updateOne({ _id: hist._id }, { arrivalTime: new Date(), durationDrive: diffMin });
                 } else {
                     await ServiceHistory.findOneAndUpdate(
                         { osId: String(os.id) },
-                        { osNumber: os.protocolo, teamId: String(tecnicoId), teamName: techName, client: clientName, subject: subjectName, arrivalTime: now },
+                        { osNumber: os.protocolo, teamId: String(tecnicoId), teamName: techName, client: clientName, subject: subjectName, arrivalTime: new Date() },
                         { upsert: true }
                     );
                 }
@@ -268,7 +269,7 @@ async function syncIXCServiceOrders(io) {
                 msg = `${techName} finalizou o serviço na O.S. do cliente ${clientName}.`;
                 
                 // Usa a data de fechamento real do IXC se disponível, senão usa 'now'
-                const completionDate = parseIXCDate(os.data_fechamento) || now;
+                const completionDate = parseIXCDate(os.data_fechamento) || new Date();
                 await ServiceOrder.updateOne({ ixcId: os.id }, { finishedAt: completionDate });
                 
                 // Finaliza histórico e calcula tempo de atendimento
@@ -309,13 +310,13 @@ async function syncIXCServiceOrders(io) {
     }
 
     // ── LIMPEZA DE O.S. ANTIGAS ──
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startCleanup = new Date(brDate.getUTCFullYear(), brDate.getUTCMonth(), brDate.getUTCDate(), 0, 0, 0);
     
     await ServiceOrder.updateMany(
         { 
           ixcId: { $nin: Array.from(ixcIdsPresent) },
           status: { $in: ['AG', 'DS', 'EX', 'A', 'EN', 'AS'] },
-          scheduledDate: { $gte: today } // Apenas O.S. de hoje ou futuro
+          scheduledDate: { $gte: startCleanup }
         },
         { status: 'F', lastSeen: new Date() }
     );
