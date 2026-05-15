@@ -176,6 +176,7 @@ async function syncIXCTeamCollaborators() {
     const activeEmployeeIds = new Set();
     
     if (employeesData.registros) {
+      console.log(`[IXC] ${employeesData.registros.length} funcionários ativos encontrados.`);
       employeesData.registros.forEach(f => { 
         nameMap[f.id] = f.funcionario; 
         activeEmployeeIds.add(String(f.id));
