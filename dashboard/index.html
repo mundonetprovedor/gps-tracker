@@ -607,19 +607,25 @@
 
         // 🔥 AUDIO SYSTEM 🔥
         const notificationSound = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_73024f2f01.mp3');
+        const finishSound = new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_0625c1539c.mp3');
         notificationSound.volume = 0.7;
+        finishSound.volume = 0.8;
 
         function unlockAudio() {
-            notificationSound.play().then(() => {
-                notificationSound.pause();
-                notificationSound.currentTime = 0;
-                console.log('Áudio desbloqueado com sucesso');
-            }).catch(e => console.warn('Erro ao desbloquear áudio:', e));
+            // Destrava ambos os sons
+            [notificationSound, finishSound].forEach(s => {
+                s.play().then(() => {
+                    s.pause();
+                    s.currentTime = 0;
+                }).catch(e => console.warn('Erro ao desbloquear áudio:', e));
+            });
+            console.log('Sistema de áudio desbloqueado');
         }
 
         function testSound() {
             notificationSound.play();
-            showToast('Teste de som executado com sucesso!', 'Warning');
+            setTimeout(() => finishSound.play(), 1000);
+            showToast('Teste de áudio: Aviso e Sucesso!', 'Warning');
         }
 
         // ── INIT ──
@@ -802,9 +808,10 @@
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             
-            // 🔥 Tenta tocar o som (previamente desbloqueado)
-            notificationSound.currentTime = 0;
-            notificationSound.play().catch(e => console.warn('Autoplay bloqueado. Clique no ícone de som na lateral.'));
+            // 🔥 Seleciona o som baseado no tipo
+            const soundToPlay = (type === 'F') ? finishSound : notificationSound;
+            soundToPlay.currentTime = 0;
+            soundToPlay.play().catch(e => console.warn('Autoplay bloqueado.'));
 
             let icon = 'bell';
             let color = 'var(--primary)';
