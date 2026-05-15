@@ -54,8 +54,13 @@
 
         /* ── SIDEBAR ── */
         .sidebar { width: 260px; background: var(--bg-sidebar) !important; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; padding: 24px 16px; }
-        .sidebar-brand { display: flex; align-items: center; justify-content: center; margin-bottom: 40px; padding: 0 8px; }
-        .sidebar-brand img { height: 48px; width: auto; object-fit: contain; filter: var(--logo-filter); }
+        .sidebar-brand { 
+            display: flex; align-items: center; justify-content: center; 
+            margin-bottom: 40px; padding: 12px; 
+            background: white; border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .sidebar-brand img { height: 48px; width: auto; object-fit: contain; filter: none !important; }
         .sidebar-brand b { display: none; }
 
         .nav-section { margin-bottom: 24px; }
