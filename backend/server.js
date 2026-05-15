@@ -333,18 +333,13 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   
   // Marca como offline quem não envia sinal há 2 min
   const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000);
-  await Team.updateMany({ lastUpdate: { $lt: twoMinsAgo } }, { status: 'Offline' });
+  await Team.updateMany({ lastSeen: { $lt: twoMinsAgo } }, { status: 'Offline' });
 
-  const teamsTotal = await Team.countDocuments();
-  const teamsActive = await Team.countDocuments({ status: 'Online' });
-  
+  const total = await Team.countDocuments();
+  const active = await Team.countDocuments({ status: 'Online' });
   const alerts = await Alert.countDocuments({ read: false });
   
-  // Filtro operacional: 
-  // 1. Em andamento (EX, DS)
-  // 2. Agendadas para HOJE (AG + scheduledDate)
-  // 3. Finalizadas HOJE (F + timestamp)
-  const osOperational = await ServiceOrder.countDocuments({ 
+  const osToday = await ServiceOrder.countDocuments({ 
     $or: [
       { status: { $in: ['EX', 'DS'] } },
       { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
@@ -352,17 +347,14 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
     ]
   });
   
-  const osDoneToday = await ServiceOrder.countDocuments({ status: 'F', timestamp: { $gte: today } });
+  const osDone = await ServiceOrder.countDocuments({ status: 'F', timestamp: { $gte: today } });
   
   res.json({
-    teamsActive,
-    teamsTotal: Math.max(teamsTotal, 1),
-    devicesOnline: teamsActive,
-    devicesTotal: Math.max(teamsTotal, 1),
-    osToday: osOperational,
-    osDone: osDoneToday,
-    alertsCritical: alerts,
-    sla: 96
+    active,
+    total: Math.max(total, 1),
+    osToday,
+    osDone,
+    alerts
   });
 });
 
@@ -475,9 +467,6 @@ async function checkGeofences(teamId, lat, lon) {
 // ── TRACCAR INTEGRATION ──
 const handleTraccarUpdate = async (req, res) => {
   const data = { ...req.query, ...req.body };
-  console.log(`[Traccar] Nova requisição recebida:`, JSON.stringify(data));
-
-  // Extração Robusta de Dados (Suporta formatos aninhados e raiz)
   const coords = data.coords || (data.location && data.location.coords) || data.location || data;
   const battery = data.battery || (data.location && data.location.battery) || {};
 
@@ -486,65 +475,37 @@ const handleTraccarUpdate = async (req, res) => {
   let lon = coords.lon || coords.lng || coords.longitude;
   let speed = coords.speed || coords.velocity || coords.spd || data.speed || data.velocity || data.spd;
   let heading = coords.heading || coords.bearing || coords.direction || data.bearing || data.heading || data.direction;
+  let batt = battery.level || battery.batt || battery.battery || (typeof data.battery === 'number' ? data.battery : undefined) || data.batt || data.level;
 
-  // Trata bateria se for objeto ou valor direto
-  let batt = battery.level || battery.batt || battery.battery ||
-    (typeof data.battery === 'number' ? data.battery : undefined) ||
-    data.batt || data.level;
-
-  // Normalização de bateria (0.0 - 1.0 para 0 - 100)
-  if (batt !== undefined && parseFloat(batt) <= 1 && parseFloat(batt) > 0) {
-    batt = parseFloat(batt) * 100;
-  }
+  if (batt !== undefined && parseFloat(batt) <= 1 && parseFloat(batt) > 0) batt = parseFloat(batt) * 100;
 
   const timestamp = data.timestamp || data.time;
-  console.log(`[Traccar] Processado -> ID: ${id}, Lat: ${lat}, Lon: ${lon}, Bateria: ${batt}`);
+  if (!id || !lat || !lon) return res.status(400).send('Missing params');
 
-  if (!id || !lat || !lon) {
-    console.error(`[Traccar] Erro: Parâmetros obrigatórios ausentes (ID/Lat/Lon).`);
-    return res.status(400).send('Missing params');
-  }
-
-  const teamId = id;
   const now = timestamp ? (isNaN(timestamp) ? new Date(timestamp) : new Date(parseInt(timestamp) * 1000)) : new Date();
-
   const speedNum = speed ? parseFloat(speed) * 1.852 : 0;
   const lastLocation = { lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, heading: parseFloat(heading || 0), timestamp: now };
 
-  // Busca o técnico por ID de Funcionário ou ID de Equipe
   let team = await Team.findOne({ $or: [{ id: String(id) }, { teamId: String(id) }] });
-
-  const updateData = {
-    status: 'Online',
-    lastSeen: now,
-    lastLocation,
-    battery: batt
-  };
+  const updateData = { status: 'Online', lastSeen: now, lastLocation, battery: batt };
 
   if (!team) {
-    team = await Team.findOneAndUpdate(
-      { id: String(id) },
-      { ...updateData, $setOnInsert: { name: id } },
-      { upsert: true, new: true }
-    );
+    team = await Team.findOneAndUpdate({ id: String(id) }, { ...updateData, $setOnInsert: { name: id } }, { upsert: true, new: true });
   } else {
     await Team.updateOne({ _id: team._id }, updateData);
     team = await Team.findById(team._id);
   }
 
-  console.log(`[Traccar] Equipe Atualizada: ${team.name || id} (ID: ${teamId}) -> Status: ${team.status}`);
-
   try {
-    await new Location({ teamId, name: team.name, lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, battery: batt, network: 'Traccar', timestamp: now }).save();
+    await new Location({ teamId: id, name: team.name, lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, battery: batt, network: 'Traccar', timestamp: now }).save();
+    await checkGeofences(id, parseFloat(lat), parseFloat(lon));
   } catch (e) { }
 
-  await checkGeofences(teamId, parseFloat(lat), parseFloat(lon));
-
-  io.emit('team_location_update', { socketId: teamId, team: team });
-  
-  // Envia a lista completa para garantir que o status Online/Offline reflita no painel na hora
-  const allTeams = await Team.find();
-  io.emit('update_teams', allTeams);
+  // Emitir atualização em tempo real (Formato Objeto)
+  const allTeamsArray = await Team.find();
+  const allTeamsObj = {};
+  allTeamsArray.forEach(t => { allTeamsObj[t.id] = t; });
+  io.emit('update_teams', allTeamsObj);
 
   res.send('OK');
 };
@@ -552,18 +513,23 @@ const handleTraccarUpdate = async (req, res) => {
 app.post('/traccar', handleTraccarUpdate);
 app.get('/traccar', handleTraccarUpdate);
 
-// ── REALTIME ──
+// ── REALTIME & SERVER ──
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 io.on('connection', async (socket) => {
-  const teams = await Team.find();
-  socket.emit('update_teams', teams);
-  socket.on('disconnect', () => {
-    // Para persistência, não marcamos como offline no disconnect imediato, 
-    // mas sim pelo timeout de 10 min no endpoint de stats.
-  });
+  console.log('[Socket] Novo cliente conectado');
+  const teamsArray = await Team.find();
+  const teamsObj = {};
+  teamsArray.forEach(t => { teamsObj[t.id] = t; });
+  socket.emit('update_teams', teamsObj);
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => console.log(`Mundonet Tracker running on port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Mundonet Tracker running on port ${PORT}`);
+  // Inicia a primeira sincronização após 5 segundos
+  setTimeout(syncIXCServiceOrders, 5000);
+  // Sincronização periódica a cada 10 minutos
+  setInterval(syncIXCServiceOrders, 10 * 60 * 1000);
+});
