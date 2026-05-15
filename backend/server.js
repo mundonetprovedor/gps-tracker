@@ -128,7 +128,7 @@ async function syncIXCServiceOrders() {
     };
 
     const response = await fetch(`${IXC_URL}/su_oss_chamado`, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'ixcsoft': 'listar',
@@ -212,9 +212,11 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const osDone = await ServiceOrder.countDocuments({ status: 'F', timestamp: { $gte: today } });
   const alerts = await Alert.countDocuments({ read: false });
 
+  const teamsCount = Object.keys(teams).length;
+  
   res.json({
     teamsActive: Object.keys(teams).filter(id => teams[id].status === 'Online').length,
-    teamsTotal: Math.max(Object.keys(teams).length, 32),
+    teamsTotal: teamsCount > 0 ? Math.max(teamsCount, 32) : 32,
     devicesOnline: Object.keys(teams).filter(id => teams[id].status === 'Online').length,
     devicesTotal: 60,
     osToday,
