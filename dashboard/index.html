@@ -197,7 +197,32 @@
             <div class="nav-item"><i data-lucide="flame"></i><span>Mapa de Calor</span></div>
             <div class="nav-item"><i data-lucide="settings"></i><span>Configurações</span></div>
         </div>
+        <div class="weather-widget" id="weather-box">
+            <div class="weather-main">
+                <i data-lucide="cloud-rain" id="weather-icon"></i>
+                <div>
+                    <div id="weather-temp">--°C</div>
+                    <div id="weather-desc">Carregando clima...</div>
+                </div>
+            </div>
+            <div class="weather-rain-chance">
+                <i data-lucide="droplets" size="12"></i> 
+                <span>Chuva: <b id="rain-prob">--%</b></span>
+            </div>
+        </div>
 
+        <style>
+            .weather-widget { 
+                margin-bottom: 16px; background: #f7fafc; border-radius: 16px; padding: 16px; 
+                border: 1px solid #e2e8f0; color: #2d3748;
+            }
+            .weather-main { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+            .weather-main i { color: #3b82f6; width: 28px; height: 28px; }
+            #weather-temp { font-size: 20px; font-weight: 800; line-height: 1; }
+            #weather-desc { font-size: 11px; color: #718096; font-weight: 600; text-transform: capitalize; }
+            .weather-rain-chance { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4a5568; font-weight: 600; }
+            .weather-rain-chance b { color: #3b82f6; }
+        </style>
 
         <div class="sidebar-status">
             <div class="status-row"><span>Status da Rede</span><b style="color:var(--success)">Online</b></div>
@@ -316,9 +341,34 @@
             initMap();
             initSocket();
             loadDashboardData();
+            updateWeather();
             
             setInterval(loadDashboardData, 30000);
+            setInterval(updateWeather, 1800000); // 30 min
         });
+
+        async function updateWeather() {
+            try {
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-2.53&longitude=-44.30&current=temperature_2m,weather_code&hourly=precipitation_probability&timezone=auto');
+                const data = await res.json();
+                const temp = Math.round(data.current.temperature_2m);
+                const code = data.current.weather_code;
+                const rainProb = data.hourly.precipitation_probability[0];
+                
+                document.getElementById('weather-temp').innerText = `${temp}°C`;
+                document.getElementById('rain-prob').innerText = `${rainProb}%`;
+                
+                let desc = 'Céu Limpo';
+                let icon = 'sun';
+                if (code > 0) { desc = 'Nublado'; icon = 'cloud'; }
+                if (code > 50) { desc = 'Chuva'; icon = 'cloud-rain'; }
+                if (code > 80) { desc = 'Trovoadas'; icon = 'cloud-lightning'; }
+                
+                document.getElementById('weather-desc').innerText = desc;
+                document.getElementById('weather-icon').setAttribute('data-lucide', icon);
+                lucide.createIcons();
+            } catch (e) { console.error('Weather error:', e); }
+        }
 
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView([-2.53, -44.30], 12);
