@@ -233,12 +233,18 @@ const handleTraccarUpdate = async (req, res) => {
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lon);
 
-    if (deviceId === '8' || deviceId === '9') {
-      logger.info(`[DEBUG BRUTO] Dispositivo: ${deviceId} | Dados: %j`, data);
-      logger.info(`[BATTERY DEBUG] Dispositivo: ${deviceId}, Bruto: ${rawBattery}, Calculado: ${battery}%`);
+    const now = new Date();
+    
+    // Captura da Bateria (0.55 -> 55%)
+    let battery = data.battery || data.level || data.location?.battery?.level || 0;
+    const rawBattery = battery;
+    if (battery > 0 && battery <= 1) {
+        battery = Math.round(battery * 100);
+    } else {
+        battery = parseFloat(battery) || 0;
     }
 
-    const now = new Date();
+    // Velocidade: converte m/s para km/h
     let speedNum = 0;
     if (data.location?.coords?.speed && data.location.coords.speed > 0) {
         speedNum = data.location.coords.speed * 3.6; 
@@ -246,20 +252,14 @@ const handleTraccarUpdate = async (req, res) => {
         speedNum = (parseFloat(data.speed || 0) * 1.852);
     }
 
-    let battery = data.battery || data.level || data.location?.battery?.level || 0;
-    const rawBattery = battery;
-    // Se o valor vier como decimal (ex: 0.84), converte para porcentagem (84%)
-    if (battery > 0 && battery <= 1) {
-        battery = Math.round(battery * 100);
-    } else {
-        battery = parseFloat(battery) || 0;
-    }
+    const heading = data.heading || data.location?.coords?.heading || 0;
+    const odometer = data.location?.odometer || data.odometer || 0;
+    const activity = data.location?.activity?.type || 'unknown';
 
     if (deviceId === '8' || deviceId === '9') {
-      logger.info(`[BATTERY DEBUG] Device: ${deviceId}, Raw: ${rawBattery}, Calculated: ${battery}%`);
+      logger.info(`[DEBUG BRUTO] Dispositivo: ${deviceId} | Dados: %j`, data);
+      logger.info(`[BATTERY DEBUG] Dispositivo: ${deviceId}, Bruto: ${rawBattery}, Calculado: ${battery}%`);
     }
-
-    const heading = data.heading || data.location?.coords?.heading || 0;
 
     res.send('OK');
 
@@ -274,7 +274,9 @@ const handleTraccarUpdate = async (req, res) => {
             lng: longitude, 
             speed: speedNum, 
             heading: parseFloat(heading), 
-            timestamp: now 
+            timestamp: now,
+            odometer: odometer,
+            activity: activity
           }
         };
 
