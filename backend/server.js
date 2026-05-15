@@ -207,24 +207,35 @@ app.get('/api/optimize-route/:teamId', auth, async (req, res) => {
 const handleTraccarUpdate = async (req, res) => {
   try {
     const data = { ...req.query, ...req.body };
-    const id = data.id || data.deviceid || data.uniqueId;
-    const lat = data.lat || data.latitude;
-    const lon = data.lon || data.lng || data.longitude;
+    
+    // Suporte para o formato do app (React Native Background Geolocation)
+    const id = data.id || data.deviceid || data.uniqueId || (data.location?.extras?.id);
+    const lat = data.lat || data.latitude || data.location?.coords?.latitude;
+    const lon = data.lon || data.lng || data.longitude || data.location?.coords?.longitude;
     
     if (!id || !lat || !lon) {
+      logger.warn('[TRACCAR] 400 - Parâmetros ausentes. Recebido: %j', data);
       return res.status(400).send('Missing params');
     }
 
     // Log especial para debug do seu dispositivo
-    if (id === '8' || id === 8) {
+    if (String(id) === '8') {
       logger.info(`[TRACCAR] Recebendo sinal do seu celular (ID: 8) - Lat: ${lat}, Lon: ${lon}`);
     }
 
     const now = new Date();
-    const speedNum = (parseFloat(data.speed || 0) * 1.852);
-    const battery = data.battery || data.level;
+    // Velocidade: Traccar manda em nós (knots), Background Geolocation manda em m/s
+    let speedNum = 0;
+    if (data.location?.coords?.speed) {
+        speedNum = data.location.coords.speed * 3.6; // m/s to km/h
+    } else {
+        speedNum = (parseFloat(data.speed || 0) * 1.852); // knots to km/h
+    }
 
-    // Responde ao celular IMEDIATAMENTE para evitar timeout/busy
+    const battery = data.battery || data.level || data.location?.battery?.level;
+    const heading = data.heading || data.location?.coords?.heading || 0;
+
+    // Responde ao celular IMEDIATAMENTE
     res.send('OK');
 
     // Processa o restante em "background" (não espera o await para responder o HTTP)
@@ -238,7 +249,7 @@ const handleTraccarUpdate = async (req, res) => {
             lat: parseFloat(lat), 
             lng: parseFloat(lon), 
             speed: speedNum, 
-            heading: parseFloat(data.heading || 0), 
+            heading: parseFloat(heading), 
             timestamp: now 
           }
         };
