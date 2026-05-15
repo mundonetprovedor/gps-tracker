@@ -360,7 +360,7 @@ app.get('/api/teams', auth, async (req, res) => {
 app.delete('/api/teams/:id', auth, async (req, res) => {
   const { id } = req.params;
   await Team.deleteOne({ id });
-  io.emit('update_teams_trigger'); // Trigger frontend to reload
+  io.emit('team_removed', id); 
   res.json({ success: true });
 });
 
@@ -451,8 +451,6 @@ const handleTraccarUpdate = async (req, res) => {
   try {
     await new Location({ teamId, name: team.name, lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, battery: batt, network: 'Traccar', timestamp: now }).save();
   } catch (e) { }
-
-  await checkGeofences(teamId, parseFloat(lat), parseFloat(lon));
 
   await checkGeofences(teamId, parseFloat(lat), parseFloat(lon));
 

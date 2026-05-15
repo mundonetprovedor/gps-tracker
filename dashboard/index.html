@@ -385,6 +385,11 @@
                 updateMarker(data.socketId, data.team);
                 renderTeamsTable();
             });
+            socket.on('team_removed', id => {
+                delete teams[id];
+                if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+                renderTeamsTable();
+            });
             socket.on('os_synced', () => {
                 loadDashboardData();
             });
@@ -554,10 +559,16 @@
                 const res = await fetch(`/api/teams/${id}`, { method: 'DELETE', headers });
                 if (res.ok) {
                     delete teams[id];
-                    renderTeamsTable();
                     if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+                    renderTeamsTable();
+                    alert('Dispositivo removido com sucesso!');
+                } else {
+                    alert('Erro ao remover: ' + res.status);
                 }
-            } catch (e) { console.error('Delete Error:', e); }
+            } catch (e) { 
+                console.error('Delete Error:', e);
+                alert('Erro de conexão ao tentar remover.');
+            }
         }
 
         function initChart() {
