@@ -150,7 +150,19 @@ app.get('/api/service-orders', auth, async (req, res) => {
     };
 
     const orders = await ServiceOrder.find(query);
-    logger.info(`[API] Enviando ${orders.length} O.S. filtradas (com técnico atribuído) para o dia ${start.toLocaleDateString()}`);
+    
+    // Diagnóstico detalhado para bater com os 63 do IXC
+    const stats = {
+      total: orders.length,
+      status: {},
+      tecnicos: {}
+    };
+    orders.forEach(o => {
+      stats.status[o.status] = (stats.status[o.status] || 0) + 1;
+      stats.tecnicos[o.teamId] = (stats.tecnicos[o.teamId] || 0) + 1;
+    });
+    logger.info(`[STATS] Distribuição das O.S. de hoje:`, JSON.stringify(stats));
+
     res.json(orders);
   } catch (error) {
     logger.error('[API] Erro ao buscar O.S.: %s', error.message);
