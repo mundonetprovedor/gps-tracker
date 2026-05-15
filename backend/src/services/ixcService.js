@@ -16,8 +16,48 @@ const STATUS_MAP = {
   'F': { label: 'Finalizado' }
 };
 
-let subjectMap = {};
-let clientMap = {};
+let subjectCache = {};
+let clientCache = {};
+
+async function getClientName(id) {
+  if (!id) return 'Não identificado';
+  if (clientCache[id]) return clientCache[id];
+  try {
+    const response = await fetch(`${IXC_URL}/cliente/${id}`, {
+      method: 'GET',
+      headers: {
+        'ixcsoft': 'listar',
+        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+      }
+    });
+    const data = await response.json();
+    const name = data.razao || data.nome_fantasia || 'Não identificado';
+    clientCache[id] = name;
+    return name;
+  } catch (e) {
+    return 'Não identificado';
+  }
+}
+
+async function getSubjectName(id) {
+  if (!id) return 'Não informado';
+  if (subjectCache[id]) return subjectCache[id];
+  try {
+    const response = await fetch(`${IXC_URL}/su_assunto/${id}`, {
+      method: 'GET',
+      headers: {
+        'ixcsoft': 'listar',
+        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+      }
+    });
+    const data = await response.json();
+    const name = data.assunto || 'Não informado';
+    subjectCache[id] = name;
+    return name;
+  } catch (e) {
+    return 'Não informado';
+  }
+}
 
 function parseIXCDate(dateStr) {
   if (!dateStr || dateStr.includes('0000-00-00') || dateStr === '') return null;
@@ -107,9 +147,16 @@ async function syncIXCServiceOrders(io) {
     for (const os of data.registros) {
       const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
       
-      // Tenta capturar o nome do cliente de todas as formas possíveis no IXC (incluindo variações de joins)
-      const clientName = os.razao || os.cliente || os.nome_cliente || os.razao_social || os.cliente_razao || os.nome || os.fantasia || os.cliente_nome || 'Não identificado';
-      const subjectName = os.assunto || os.su_assunto || os.descricao_assunto || os.assunto_nome || 'Não informado';
+      // Se os campos de nome não vierem no join, buscamos via API individual com cache
+      let clientName = os.razao || os.cliente || os.nome_cliente || os.razao_social || os.cliente_razao || os.nome || os.fantasia || os.cliente_nome;
+      if (!clientName || clientName === 'Não identificado') {
+        clientName = await getClientName(os.id_cliente);
+      }
+
+      let subjectName = os.assunto || os.su_assunto || os.descricao_assunto || os.assunto_nome;
+      if (!subjectName || subjectName === 'Não informado') {
+        subjectName = await getSubjectName(os.id_assunto);
+      }
 
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
