@@ -21,40 +21,46 @@ let clientCache = {};
 
 async function getClientName(id) {
   if (!id) return 'Não identificado';
-  if (clientCache[id]) return clientCache[id];
+  if (clientCache[id] && clientCache[id] !== 'Não identificado') return clientCache[id];
   try {
-    const response = await fetch(`${IXC_URL}/cliente/${id}`, {
-      method: 'GET',
+    const response = await fetch(`${IXC_URL}/cliente`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
-      }
+      },
+      body: JSON.stringify({ qtype: 'cliente.id', query: id, oper: '=', rp: '1' })
     });
     const data = await response.json();
-    const name = data.razao || data.nome_fantasia || 'Não identificado';
+    const name = data.registros?.[0]?.razao || data.registros?.[0]?.nome_fantasia || 'Não identificado';
     clientCache[id] = name;
     return name;
   } catch (e) {
+    logger.error(`[IXC] Erro ao buscar cliente ${id}: ${e.message}`);
     return 'Não identificado';
   }
 }
 
 async function getSubjectName(id) {
   if (!id) return 'Não informado';
-  if (subjectCache[id]) return subjectCache[id];
+  if (subjectCache[id] && subjectCache[id] !== 'Não informado') return subjectCache[id];
   try {
-    const response = await fetch(`${IXC_URL}/su_assunto/${id}`, {
-      method: 'GET',
+    const response = await fetch(`${IXC_URL}/su_assunto`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
-      }
+      },
+      body: JSON.stringify({ qtype: 'su_assunto.id', query: id, oper: '=', rp: '1' })
     });
     const data = await response.json();
-    const name = data.assunto || 'Não informado';
+    const name = data.registros?.[0]?.assunto || 'Não informado';
     subjectCache[id] = name;
     return name;
   } catch (e) {
+    logger.error(`[IXC] Erro ao buscar assunto ${id}: ${e.message}`);
     return 'Não informado';
   }
 }
