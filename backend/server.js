@@ -54,8 +54,10 @@ const LocationSchema = new mongoose.Schema({
 const Location = mongoose.model('Location', LocationSchema);
 
 const TeamSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
+  id: String,           // ID Principal (geralmente ID de funcionário)
+  teamId: String,       // ID da Equipe no IXC (alias)
   name: String,
+  status: { type: String, default: 'Offline' },
   lastLocation: {
     lat: Number,
     lng: Number,
@@ -156,7 +158,7 @@ function parseIXCDate(dateStr) {
 async function syncIXCTeamCollaborators() {
   console.log('[IXC] Cruzando dados de Equipes e Colaboradores...');
   try {
-    // 1. Busca apenas os funcionários ATIVOS
+    // 1. Busca funcionários ativos
     const employeesResponse = await fetch(`${IXC_URL}/funcionarios`, {
       method: 'POST',
       headers: {
@@ -164,12 +166,7 @@ async function syncIXCTeamCollaborators() {
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
       },
-      body: JSON.stringify({ 
-        qtype: 'funcionarios.ativo', 
-        query: 'S', 
-        oper: '=', 
-        rp: '1000' 
-      })
+      body: JSON.stringify({ qtype: 'funcionarios.ativo', query: 'S', oper: '=', rp: '1000' })
     });
     const employeesData = await employeesResponse.json();
     const nameMap = {};
@@ -183,7 +180,7 @@ async function syncIXCTeamCollaborators() {
       });
     }
 
-    // 2. Busca os vínculos de equipe
+    // 2. Busca vínculos de equipe
     const response = await fetch(`${IXC_URL}/funcionarios_equipes`, {
       method: 'POST',
       headers: {
@@ -195,8 +192,11 @@ async function syncIXCTeamCollaborators() {
     });
 
     const data = await response.json();
-    const activeTeamIds = new Set();
+    const activeIds = new Set();
     
+    // Limpeza radical para evitar duplicatas de lógica anterior
+    await Team.deleteMany({ id: { $nin: ['Nilson', 'teste'] } });
+
     if (data && data.registros) {
       console.log(`[IXC] Analisando ${data.registros.length} registros de equipe...`);
       for (const f of data.registros) {
@@ -207,23 +207,20 @@ async function syncIXCTeamCollaborators() {
 
           console.log(`[IXC] Mapeando: ${nomeReal} -> ID Equipe: ${idEquipe}, ID Funcionario: ${idFuncionario}`);
           
-          // Registra ambos os IDs apontando para o mesmo nome real
-          await Team.findOneAndUpdate({ id: idEquipe }, { name: nomeReal }, { upsert: true });
-          await Team.findOneAndUpdate({ id: idFuncionario }, { name: nomeReal }, { upsert: true });
+          // Cria UM ÚNICO registro usando o ID de Funcionário como chave principal
+          await Team.findOneAndUpdate(
+            { id: idFuncionario },
+            { 
+              name: nomeReal,
+              teamId: idEquipe 
+            },
+            { upsert: true }
+          );
           
-          activeTeamIds.add(idEquipe);
-          activeTeamIds.add(idFuncionario);
+          activeIds.add(idFuncionario);
         }
       }
-      
-      // Limpeza: Só remove se não for nenhum dos IDs ativos (Equipe ou Funcionário)
-      const allTeamsInDb = await Team.find({}, 'id');
-      for (const t of allTeamsInDb) {
-        if (!activeTeamIds.has(t.id) && t.id !== 'Nilson' && t.id !== 'teste') {
-          await Team.deleteOne({ id: t.id });
-        }
-      }
-      console.log(`[IXC] Sincronização finalizada. Total de IDs monitorados: ${activeTeamIds.size}`);
+      console.log(`[IXC] Sincronização finalizada. ${activeIds.size} técnicos únicos mapeados.`);
     }
   } catch (error) {
     console.error('[IXC] Erro no cruzamento de dados:', error.message);
@@ -514,17 +511,26 @@ const handleTraccarUpdate = async (req, res) => {
   const speedNum = speed ? parseFloat(speed) * 1.852 : 0;
   const lastLocation = { lat: parseFloat(lat), lng: parseFloat(lon), speed: speedNum, heading: parseFloat(heading || 0), timestamp: now };
 
-  const team = await Team.findOneAndUpdate(
-    { id: String(teamId) },
-    { 
-      status: 'Online', 
-      lastUpdate: now,
-      lastLocation,
-      battery: batt,
-      $setOnInsert: { name: id }
-    },
-    { upsert: true, new: true }
-  );
+  // Busca o técnico por ID de Funcionário ou ID de Equipe
+  let team = await Team.findOne({ $or: [{ id: String(id) }, { teamId: String(id) }] });
+
+  const updateData = {
+    status: 'Online',
+    lastSeen: now,
+    lastLocation,
+    battery: batt
+  };
+
+  if (!team) {
+    team = await Team.findOneAndUpdate(
+      { id: String(id) },
+      { ...updateData, $setOnInsert: { name: id } },
+      { upsert: true, new: true }
+    );
+  } else {
+    await Team.updateOne({ _id: team._id }, updateData);
+    team = await Team.findById(team._id);
+  }
 
   console.log(`[Traccar] Equipe Atualizada: ${team.name || id} (ID: ${teamId}) -> Status: ${team.status}`);
 
