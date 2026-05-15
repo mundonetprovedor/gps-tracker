@@ -812,14 +812,17 @@
 
         function togglePanel(id) {
             const el = document.getElementById(id);
+            if (!el) return;
             el.classList.toggle('collapsed');
             const icon = el.querySelector('.collapse-btn i');
-            if (el.classList.contains('collapsed')) {
-                icon.setAttribute('data-lucide', 'maximize-2');
-            } else {
-                icon.setAttribute('data-lucide', 'minus');
+            if (icon) {
+                if (el.classList.contains('collapsed')) {
+                    icon.setAttribute('data-lucide', 'maximize-2');
+                } else {
+                    icon.setAttribute('data-lucide', 'minus');
+                }
+                lucide.createIcons();
             }
-            lucide.createIcons();
         }
 
         function toggleStats() {
