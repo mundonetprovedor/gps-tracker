@@ -123,26 +123,34 @@ app.get('/api/teams', auth, async (req, res) => {
 app.get('/api/service-orders', auth, async (req, res) => {
   try {
     const now = new Date();
-    // Ajuste para fuso horário de Brasília (UTC-3)
-    const brToday = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-    const start = new Date(brToday.getFullYear(), brToday.getMonth(), brToday.getDate());
-    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    // Força o início e fim do dia no fuso local (Brasília)
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     
+    // Busca todos os IDs de equipes válidas para filtrar O.S. sem técnico
+    const validTeams = await Team.find({}, 'id');
+    const teamIds = validTeams.map(t => t.id);
+
     const query = {
-      $or: [
-        { 
-          status: { $in: ['AG', 'DS', 'EX'] }, 
-          scheduledDate: { $gte: start, $lt: end } 
-        },
-        { 
-          status: 'F', 
-          lastSeen: { $gte: start } 
+      $and: [
+        { teamId: { $in: teamIds } }, // Somente O.S. atribuídas a técnicos da nossa lista
+        {
+          $or: [
+            { 
+              status: { $in: ['AG', 'DS', 'EX'] }, 
+              scheduledDate: { $gte: start, $lte: end } 
+            },
+            { 
+              status: 'F', 
+              lastSeen: { $gte: start } 
+            }
+          ]
         }
       ]
     };
 
     const orders = await ServiceOrder.find(query);
-    logger.info(`[API] Enviando ${orders.length} O.S. filtradas para o dia ${start.toLocaleDateString()}`);
+    logger.info(`[API] Enviando ${orders.length} O.S. filtradas (com técnico atribuído) para o dia ${start.toLocaleDateString()}`);
     res.json(orders);
   } catch (error) {
     logger.error('[API] Erro ao buscar O.S.: %s', error.message);
