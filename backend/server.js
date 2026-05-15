@@ -208,37 +208,48 @@ const handleTraccarUpdate = async (req, res) => {
   try {
     const data = { ...req.query, ...req.body };
     
-    // Suporte para o formato do app (React Native Background Geolocation)
-    const id = data.id || data.deviceid || data.uniqueId || (data.location?.extras?.id);
-    const lat = data.lat || data.latitude || data.location?.coords?.latitude;
-    const lon = data.lon || data.lng || data.longitude || data.location?.coords?.longitude;
-    
+    // 1. Tenta pegar do nível principal ou do objeto 'location'
+    let id = data.id || data.deviceid || data.device_id || data.uniqueId || data.location?.extras?.id || data.location?.extras?.device_id || data.device_id;
+    let lat = data.lat || data.latitude || data.location?.coords?.latitude;
+    let lon = data.lon || data.lng || data.longitude || data.location?.coords?.longitude;
+
+    // 2. Fallback: Se o app mandou tudo dentro do campo "_" (como vimos no log)
+    if (data.location?.["_"]) {
+        const nestedStr = data.location["_"];
+        const params = new URLSearchParams(nestedStr);
+        if (!id) id = params.get('id');
+        if (!lat) lat = params.get('lat');
+        if (!lon) lon = params.get('lon');
+    }
+
+    // 3. Validação final
     if (!id || !lat || !lon) {
-      logger.warn('[TRACCAR] 400 - Parâmetros ausentes. Recebido: %j', data);
+      logger.warn('[TRACCAR] 400 - Parâmetros ausentes. ID: %s, Lat: %s, Lon: %s. Recebido: %j', id, lat, lon, data);
       return res.status(400).send('Missing params');
     }
 
-    // Log especial para debug do seu dispositivo
-    if (String(id) === '8') {
-      logger.info(`[TRACCAR] Recebendo sinal do seu celular (ID: 8) - Lat: ${lat}, Lon: ${lon}`);
+    // Normalização
+    const deviceId = String(id);
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lon);
+
+    if (deviceId === '8' || deviceId === '9') {
+      logger.info(`[TRACCAR] Sinal recebido (ID: ${deviceId}) - Lat: ${latitude}, Lon: ${longitude}`);
     }
 
     const now = new Date();
-    // Velocidade: Traccar manda em nós (knots), Background Geolocation manda em m/s
     let speedNum = 0;
-    if (data.location?.coords?.speed) {
-        speedNum = data.location.coords.speed * 3.6; // m/s to km/h
+    if (data.location?.coords?.speed && data.location.coords.speed > 0) {
+        speedNum = data.location.coords.speed * 3.6; 
     } else {
-        speedNum = (parseFloat(data.speed || 0) * 1.852); // knots to km/h
+        speedNum = (parseFloat(data.speed || 0) * 1.852);
     }
 
-    const battery = data.battery || data.level || data.location?.battery?.level;
+    const battery = data.battery || data.level || data.location?.battery?.level || (data.battery ? data.battery * 100 : 0);
     const heading = data.heading || data.location?.coords?.heading || 0;
 
-    // Responde ao celular IMEDIATAMENTE
     res.send('OK');
 
-    // Processa o restante em "background" (não espera o await para responder o HTTP)
     (async () => {
       try {
         const updateData = { 
@@ -246,8 +257,8 @@ const handleTraccarUpdate = async (req, res) => {
           lastSeen: now, 
           battery: battery,
           lastLocation: { 
-            lat: parseFloat(lat), 
-            lng: parseFloat(lon), 
+            lat: latitude, 
+            lng: longitude, 
             speed: speedNum, 
             heading: parseFloat(heading), 
             timestamp: now 
@@ -255,8 +266,8 @@ const handleTraccarUpdate = async (req, res) => {
         };
 
         const team = await Team.findOneAndUpdate(
-          { id: String(id) }, 
-          { ...updateData, $setOnInsert: { name: `Dispositivo ${id}` } }, 
+          { id: deviceId }, 
+          { ...updateData, $setOnInsert: { name: `Dispositivo ${deviceId}` } }, 
           { upsert: true, new: true }
         );
         
