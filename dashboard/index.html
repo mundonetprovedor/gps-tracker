@@ -31,6 +31,20 @@
             --danger: #ef4444;
             --border: rgba(255, 255, 255, 0.08);
             --glass: rgba(30, 41, 59, 0.7);
+            --popup-bg: #ffffff;
+            --popup-text: #1e293b;
+        }
+
+        [data-theme="light"] {
+            --bg-sidebar: #f8fafc;
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: rgba(0, 0, 0, 0.08);
+            --glass: rgba(255, 255, 255, 0.8);
+            --popup-bg: #ffffff;
+            --popup-text: #1e293b;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -282,6 +296,10 @@
             <div class="nav-item" onclick="togglePlaybackPanel()"><i data-lucide="history"></i><span>Histórico de Rotas</span></div>
             <div class="nav-item"><i data-lucide="bar-chart-3"></i><span>Relatórios</span></div>
 
+            <div class="nav-item" onclick="toggleTheme()" id="theme-toggle">
+                <i data-lucide="sun" id="theme-icon"></i>
+                <span id="theme-text">Modo Claro</span>
+            </div>
             <div class="nav-item"><i data-lucide="settings"></i><span>Configurações</span></div>
         </div>
         <div class="weather-widget" id="weather-box">
@@ -478,6 +496,11 @@
 
         // ── INIT ──
         document.addEventListener('DOMContentLoaded', async () => {
+            // Restore theme
+            const savedTheme = localStorage.getItem('m_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+
             lucide.createIcons();
             
             if (!localStorage.getItem('m_token')) {
@@ -500,6 +523,27 @@
             setInterval(loadDashboardData, 30000);
             setInterval(updateWeather, 1800000); // 30 min
         });
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const target = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', target);
+            localStorage.setItem('m_theme', target);
+            updateThemeUI(target);
+        }
+
+        function updateThemeUI(theme) {
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            if (theme === 'light') {
+                icon?.setAttribute('data-lucide', 'moon');
+                if (text) text.innerText = 'Modo Escuro';
+            } else {
+                icon?.setAttribute('data-lucide', 'sun');
+                if (text) text.innerText = 'Modo Claro';
+            }
+            lucide.createIcons();
+        }
 
         async function updateWeather() {
             try {
