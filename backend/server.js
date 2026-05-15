@@ -197,31 +197,32 @@ async function syncIXCTeamCollaborators() {
     const activeTeamIds = new Set();
     
     if (data && data.registros) {
+      console.log(`[IXC] Analisando ${data.registros.length} registros de equipe...`);
       for (const f of data.registros) {
         if (activeEmployeeIds.has(String(f.id_funcionario))) {
-          const nomeReal = nameMap[f.id_funcionario] || f.id_funcionario_label || f.funcionario || `Técnico ${f.id_funcionario}`;
-          
-          // Mapeia o ID da Equipe (ex: 20)
-          await Team.findOneAndUpdate({ id: String(f.id) }, { name: nomeReal }, { upsert: true });
-          activeTeamIds.add(String(f.id));
+          const nomeReal = nameMap[f.id_funcionario];
+          const idEquipe = String(f.id);
+          const idFuncionario = String(f.id_funcionario);
 
-          // Mapeia TAMBÉM o ID do Funcionário (ex: 122) para o mesmo nome
-          // Isso permite que o técnico use qualquer um dos dois IDs no Traccar
-          await Team.findOneAndUpdate({ id: String(f.id_funcionario) }, { name: nomeReal }, { upsert: true });
-          activeTeamIds.add(String(f.id_funcionario));
+          console.log(`[IXC] Mapeando: ${nomeReal} -> ID Equipe: ${idEquipe}, ID Funcionario: ${idFuncionario}`);
+          
+          // Registra ambos os IDs apontando para o mesmo nome real
+          await Team.findOneAndUpdate({ id: idEquipe }, { name: nomeReal }, { upsert: true });
+          await Team.findOneAndUpdate({ id: idFuncionario }, { name: nomeReal }, { upsert: true });
+          
+          activeTeamIds.add(idEquipe);
+          activeTeamIds.add(idFuncionario);
         }
       }
       
-      // Limpeza: Remove do nosso banco quem não está mais ativo ou sumiu do IXC
-      // (Mantemos o Nilson e teste se quiser, mas aqui vou limpar tudo que não for ID ativo)
+      // Limpeza: Só remove se não for nenhum dos IDs ativos (Equipe ou Funcionário)
       const allTeamsInDb = await Team.find({}, 'id');
       for (const t of allTeamsInDb) {
         if (!activeTeamIds.has(t.id) && t.id !== 'Nilson' && t.id !== 'teste') {
           await Team.deleteOne({ id: t.id });
         }
       }
-      
-      console.log(`[IXC] Sincronização concluída. ${activeTeamIds.size} colaboradores ativos mapeados.`);
+      console.log(`[IXC] Sincronização finalizada. Total de IDs monitorados: ${activeTeamIds.size}`);
     }
   } catch (error) {
     console.error('[IXC] Erro no cruzamento de dados:', error.message);
