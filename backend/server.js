@@ -433,9 +433,10 @@ app.delete('/api/teams/:id', auth, async (req, res) => {
 });
 app.get('/api/admin/clear-alerts', async (req, res) => {
   try {
-    const result = await Alert.deleteMany({});
-    res.send(`✅ Sucesso! ${result.deletedCount} alertas removidos. Pode fechar esta aba e atualizar o painel.`);
-  } catch (e) { res.status(500).send('Erro ao limpar alertas'); }
+    const alertsResult = await Alert.deleteMany({});
+    const osResult = await ServiceOrder.deleteMany({});
+    res.send(`✅ Sistema Limpo! <br> - ${alertsResult.deletedCount} alertas removidos. <br> - ${osResult.deletedCount} ordens de serviço removidas. <br><br> Pode fechar esta aba e atualizar o painel.`);
+  } catch (e) { res.status(500).send('Erro ao limpar sistema'); }
 });
 
 // ── INTELLIGENCE ──
