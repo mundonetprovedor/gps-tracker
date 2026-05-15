@@ -167,14 +167,9 @@ async function syncIXCTeamCollaborators() {
 
 async function syncIXCServiceOrders(io) {
   await syncIXCTeamCollaborators();
+  const now = new Date();
   try {
     // 1. Busca as O.S. ativas do IXC (Abertas, Agendadas, Deslocamento, Execução, etc.)
-    // Filtramos por status que NÃO são 'F' (Finalizado) ou 'C' (Cancelado)
-    const activeStatuses = ['A', 'AN', 'EN', 'AS', 'AG', 'DS', 'EX'];
-    
-    // Para simplificar e garantir que pegamos tudo que importa, pegamos as últimas 1000
-    // mas vamos cruzar com o que temos no banco.
-    const now = new Date();
     const todayStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
     
     // Filtro avançado usando grid_param conforme documentação Postman
@@ -231,7 +226,6 @@ async function syncIXCServiceOrders(io) {
         if (oldOS && oldOS.status !== os.status && ['DS', 'EX', 'F'].includes(os.status)) {
             const techName = await getTechnicianName(tecnicoId);
             let msg = '';
-            const now = new Date();
 
             if (os.status === 'DS') {
                 msg = `${techName} iniciou deslocamento para O.S. do cliente ${clientName}.`;
@@ -308,10 +302,6 @@ async function syncIXCServiceOrders(io) {
     }
 
     // ── LIMPEZA DE O.S. ANTIGAS ──
-    // Se a O.S. está no nosso banco como ativa (AG, DS, EX) mas não veio no 'listar' do IXC,
-    // significa que ela foi finalizada ou saiu da fila de prioridade.
-    // Marcamos como 'F' para sumir do mapa.
-    const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     await ServiceOrder.updateMany(
