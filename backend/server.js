@@ -228,6 +228,34 @@ async function syncIXCTeamCollaborators() {
 }
 
 let subjectMap = {};
+let clientMap = {};
+
+async function syncIXCClientes() {
+  console.log('[IXC] Sincronizando tabela de clientes...');
+  try {
+    const response = await fetch(`${IXC_URL}/cliente`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ixcsoft': 'listar',
+        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+      },
+      body: JSON.stringify({
+        qtype: 'cliente.id',
+        query: '0',
+        oper: '>',
+        rp: '5000' // Busca até 5000 clientes recentes
+      })
+    });
+    const data = await response.json();
+    if (data && data.registros) {
+      data.registros.forEach(r => {
+        clientMap[String(r.id)] = r.razao;
+      });
+      console.log(`[IXC] ${Object.keys(clientMap).length} clientes mapeados.`);
+    }
+  } catch (e) { console.error('[IXC] Erro ao sincronizar clientes:', e.message); }
+}
 
 async function syncIXCAssuntos() {
   console.log('[IXC] Sincronizando tabela de assuntos...');
@@ -259,6 +287,7 @@ async function syncIXCAssuntos() {
 async function syncIXCServiceOrders() {
   await syncIXCTeamCollaborators();
   await syncIXCAssuntos(); 
+  await syncIXCClientes();
   console.log('[IXC] Iniciando sincronização de O.S...');
   try {
     const body = {
@@ -287,12 +316,13 @@ async function syncIXCServiceOrders() {
     for (const os of data.registros) {
       const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
       const assuntoReal = subjectMap[String(os.id_assunto)] || os.assunto || os.id_assunto || 'Não informado';
+      const clienteReal = clientMap[String(os.id_cliente)] || os.nome_cliente || os.cliente || os.razao_social || os.razao || os.nome || 'Cliente não identificado';
       
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
         {
           number: os.protocolo,
-          client: os.razao_social || os.cliente_razao || os.nome_cliente || os.cliente || os.razao || os.nome || 'Cliente não identificado',
+          client: clienteReal,
           address: os.endereco || os.endereco_padrao || '',
           lat: parseFloat(os.latitude) || 0,
           lng: parseFloat(os.longitude) || 0,
