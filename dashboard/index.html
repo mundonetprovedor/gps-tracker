@@ -50,77 +50,74 @@
         .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
         .progress-fill { height: 100%; background: var(--success); transition: 0.5s; }
 
-        /* ── MAIN CONTENT ── */
-        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        /* ── MAIN         /* ── MAIN CONTENT (MAP FOCUS) ── */
+        .main-wrapper { flex: 1; position: relative; display: flex; flex-direction: column; }
         
-        /* Header */
-        header { height: 80px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); z-index: 10; }
-        .header-title h1 { font-size: 22px; font-weight: 800; }
-        .header-title p { font-size: 13px; color: var(--text-muted); }
-        .header-actions { display: flex; align-items: center; gap: 20px; }
-        .user-profile { display: flex; align-items: center; gap: 12px; background: var(--bg-card); padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border); }
-        .user-profile img { width: 32px; height: 32px; border-radius: 10px; }
-        .user-info b { display: block; font-size: 13px; }
-        .user-info small { font-size: 11px; color: var(--text-muted); }
-
-        /* Dashboard Grid */
-        .dashboard-content { flex: 1; padding: 24px; display: grid; grid-template-columns: 1fr 400px; grid-template-rows: min-content 1fr min-content; gap: 24px; overflow-y: auto; align-content: start; }
-        
-        /* KPI Cards */
-        .kpi-row { grid-column: 1 / 3; display: flex; gap: 20px; overflow-x: auto; padding-bottom: 12px; min-height: 140px; }
-        .kpi-card { flex: 1; min-width: 200px; background: var(--bg-card); border-radius: 20px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; transition: 0.2s; }
-        .kpi-card:hover { transform: translateY(-4px); border-color: var(--primary); }
-        .kpi-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(37, 99, 235, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-        .kpi-card span { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .kpi-card h2 { font-size: 26px; font-weight: 800; }
-        .kpi-trend { font-size: 11px; font-weight: 700; color: var(--success); }
-
-        /* Center Column */
-        .center-col { display: flex; flex-direction: column; gap: 24px; }
-        .map-card { flex: 1; min-height: 450px; background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+        .map-container { position: absolute; inset: 0; z-index: 1; }
         #map { height: 100%; width: 100%; }
-        
-        .table-card { background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border); padding: 24px; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .card-header h3 { font-size: 18px; font-weight: 700; }
-        
-        .pro-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .pro-table th { text-align: left; padding: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
-        .pro-table td { padding: 16px 12px; border-bottom: 1px solid var(--border); }
-        .status-pill { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
-        .pill-online { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-        .pill-busy { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
-        
-        /* Right Column */
-        .right-col { display: flex; flex-direction: column; gap: 24px; }
-        .details-card { background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-        .tech-list { display: flex; flex-direction: column; gap: 12px; }
-        .tech-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 16px; border: 1px solid var(--border); }
-        .tech-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--bg-sidebar); border: 2px solid var(--border); }
-        .tech-info b { font-size: 13px; display: block; }
-        .tech-info small { font-size: 11px; color: var(--text-muted); }
 
-        .activity-card { background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border); padding: 24px; flex: 1; }
-        .activity-list { display: flex; flex-direction: column; gap: 16px; }
-        .activity-item { display: flex; gap: 16px; position: relative; }
-        .activity-item::before { content: ''; position: absolute; left: 18px; top: 32px; bottom: -8px; width: 1px; background: var(--border); }
-        .activity-item:last-child::before { display: none; }
-        .activity-icon { width: 36px; height: 36px; border-radius: 12px; background: var(--bg-main); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; z-index: 1; }
-        .activity-content { flex: 1; font-size: 13px; }
-        .activity-content b { color: var(--text-main); }
-        .activity-content p { color: var(--text-muted); margin-top: 2px; }
-        .activity-time { font-size: 11px; color: var(--text-muted); }
+        /* Floating Overlay Panels */
+        .overlay-panels { position: absolute; inset: 0; pointer-events: none; z-index: 10; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+        .overlay-panels > * { pointer-events: auto; }
 
-        .btn-action {
-            flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--border);
-            background: rgba(255,255,255,0.05); color: white; font-size: 13px; font-weight: 600;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: 0.2s;
+        /* Top Bar Widgets */
+        .stats-overlay { display: flex; gap: 16px; width: 100%; }
+        .stat-widget { 
+            background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            padding: 12px 20px; border-radius: 16px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
-        .btn-action:hover { background: var(--primary); border-color: var(--primary); }
-        .btn-action.primary { background: var(--primary); border-color: var(--primary); }
+        .stat-widget i { color: var(--primary-light); }
+        .stat-widget .val { font-size: 18px; font-weight: 800; }
+        .stat-widget .lab { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
 
-        .chart-card { background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border); padding: 24px; min-height: 300px; }
+        /* Left Sidebar Panel (Teams) */
+        .teams-panel {
+            position: absolute; left: 24px; top: 100px; bottom: 24px; width: 320px;
+            background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border);
+            border-radius: 24px; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        .panel-header { padding: 20px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.03); }
+        .panel-header h3 { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .teams-list-scroll { flex: 1; overflow-y: auto; padding: 12px; }
+        
+        .compact-team-row {
+            padding: 12px; border-radius: 16px; margin-bottom: 8px; cursor: pointer;
+            transition: 0.2s; border: 1px solid transparent; display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,0.03);
+        }
+        .compact-team-row:hover { background: rgba(255,255,255,0.08); border-color: var(--border); }
+        .compact-team-row.active { background: var(--primary); border-color: var(--primary-light); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .dot-online { background: var(--success); box-shadow: 0 0 10px var(--success); }
+        .dot-offline { background: var(--text-muted); }
+
+        /* Right Activity Panel */
+        .activity-panel {
+            position: absolute; right: 24px; bottom: 24px; width: 350px; max-height: 250px;
+            background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            border-radius: 20px; padding: 16px; overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        
+        /* Map Controls Overlay */
+        .map-controls { position: absolute; right: 24px; top: 100px; display: flex; flex-direction: column; gap: 10px; }
+        .map-btn {
+            width: 44px; height: 44px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; color: white;
+        }
+        .map-btn:hover { background: var(--primary); }
+
+        .search-bar-floating {
+            position: absolute; left: 360px; top: 100px; width: 400px;
+            background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            border-radius: 16px; padding: 0 16px; height: 44px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        .search-bar-floating input { background: transparent; border: none; color: white; flex: 1; outline: none; font-size: 14px; }
+-height: 300px; }
         
         /* Map Customizations */
         .map-search { position: absolute; top: 20px; left: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px; }
@@ -210,113 +207,72 @@
         </div>
     </div>
 
-    <!-- ── MAIN WRAPPER ── -->
     <div class="main-wrapper">
-        <header>
-            <div class="header-title">
-                <h1>Monitoramento <small id="api-status" style="font-size:10px; color:var(--text-muted)">● Conectando...</small></h1>
-                <p>Acompanhe suas equipes em tempo real</p>
-            </div>
-            <div class="header-actions">
-                <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=Admin+Mundonet&background=2563eb&color=fff" alt="User">
-                    <div class="user-info">
-                        <b>Administrador</b>
-                        <small>admin@mundonet.com</small>
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <div class="overlay-panels">
+            <!-- Top Stats -->
+            <div class="stats-overlay">
+                <div class="stat-widget">
+                    <i data-lucide="users"></i>
+                    <div>
+                        <div class="lab">Equipes Ativas</div>
+                        <div class="val" id="stats-active-teams">0 / 0</div>
                     </div>
                 </div>
-            </div>
-        </header>
+                <div class="stat-widget">
+                    <i data-lucide="clipboard-list"></i>
+                    <div>
+                        <div class="lab">O.S. Hoje</div>
+                        <div class="val" id="stats-total-os">0</div>
+                    </div>
+                </div>
+                <div class="stat-widget">
+                    <i data-lucide="alert-circle"></i>
+                    <div>
+                        <div class="lab">Alertas</div>
+                        <div class="val" id="stats-alerts">0</div>
+                    </div>
+                </div>
+                
+                <div class="search-bar-floating" style="position: static; margin-left: auto;">
+                    <i data-lucide="search" size="18" style="color: var(--text-muted)"></i>
+                    <input type="text" placeholder="Buscar técnico ou endereço...">
+                </div>
 
-        <div class="dashboard-content">
-            <!-- KPI Row -->
-            <div class="kpi-row">
-                <div class="kpi-card">
-                    <div class="kpi-icon"><i data-lucide="users"></i></div>
-                    <span>Equipes Ativas</span>
-                    <h2 id="kpi-teams">0 / 0</h2>
-                    <div class="kpi-trend">75% online</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="color:var(--accent); background:rgba(56, 189, 248, 0.1)"><i data-lucide="smartphone"></i></div>
-                    <span>Dispositivos</span>
-                    <h2 id="kpi-devices">0 / 0</h2>
-                    <div class="kpi-trend">80% online</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="color:var(--success); background:rgba(16, 185, 129, 0.1)"><i data-lucide="clipboard-list"></i></div>
-                    <span>Ordens de Serviço</span>
-                    <h2 id="kpi-os">0</h2>
-                    <div class="kpi-trend" style="color:var(--text-muted)"><b id="kpi-os-done" style="color:var(--success)">0</b> concluídas</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="color:var(--warning); background:rgba(245, 158, 11, 0.1)"><i data-lucide="alert-circle"></i></div>
-                    <span>Alertas Críticos</span>
-                    <h2 id="kpi-alerts">0</h2>
-                    <div class="kpi-trend" style="color:var(--danger)">2 não lidos</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="color:var(--primary-light); background:rgba(59, 130, 246, 0.1)"><i data-lucide="clock"></i></div>
-                    <span>SLA do Dia</span>
-                    <h2 id="kpi-sla">96%</h2>
-                    <div class="kpi-trend">Meta: 95%</div>
+                <div class="user-profile" style="background: var(--glass); backdrop-filter: blur(12px);">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="User">
+                    <div class="user-info"><b>Administrador</b><small>Mundonet</small></div>
                 </div>
             </div>
 
-            <!-- Left Column -->
-            <div class="center-col">
-                <div class="map-card">
-                    <div class="map-search">
-                        <input type="text" placeholder="Buscar endereço, equipe ou dispositivo...">
-                        <button class="btn-primary" style="width:50px; border-radius:14px;"><i data-lucide="search"></i></button>
-                    </div>
-                    <div id="map"></div>
-                    <div class="map-layers">
-                        <div class="layer-btn active" onclick="setLayer('std', this)">PADRÃO</div>
-                        <div class="layer-btn" onclick="setLayer('sat', this)">SATÉLITE</div>
-                    </div>
+            <!-- Left Panel: Teams -->
+            <div class="teams-panel">
+                <div class="panel-header">
+                    <h3><i data-lucide="navigation"></i> Monitoramento</h3>
                 </div>
-
-                <div class="table-card">
-                    <div class="card-header">
-                        <h3>Equipes (24)</h3>
-                        <button class="nav-item" style="padding:8px 12px; margin:0;"><i data-lucide="filter"></i> Filtros</button>
-                    </div>
-                    <table class="pro-table">
-                        <thead>
-                            <tr>
-                                <th>Equipe</th>
-                                <th>Status</th>
-                                <th>Técnicos</th>
-                                <th>OS Hoje</th>
-                                <th>Progresso</th>
-                                <th>Localização</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="teams-table-body">
-                            <!-- JS content -->
-                        </tbody>
-                    </table>
+                <div class="teams-list-scroll" id="teams-list-floating">
+                    <!-- Teams will be rendered here -->
                 </div>
             </div>
 
-            <!-- Right Column -->
-            <div class="right-col">
-
-                <div class="activity-card">
-                    <h3>Atividades Recentes</h3>
-                    <div class="activity-list" id="activity-list" style="margin-top:20px;">
-                        <!-- JS content -->
-                    </div>
+            <!-- Right Panel: Activity -->
+            <div class="activity-panel">
+                <div class="panel-header" style="padding: 10px 0; margin-bottom: 10px;">
+                    <h3 style="font-size: 14px;"><i data-lucide="activity"></i> Atividades Recentes</h3>
                 </div>
-
-                <div class="chart-card">
-                    <h3>Ordens de Serviço</h3>
-                    <div style="height: 200px; margin-top:20px; position:relative;">
-                        <canvas id="osChart"></canvas>
-                    </div>
+                <div class="activity-list" id="activity-list-floating" style="overflow-y: auto; flex: 1;">
+                    <!-- Activities will be rendered here -->
                 </div>
+            </div>
+
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <div class="map-btn" onclick="setMapLayer('standard')"><i data-lucide="map"></i></div>
+                <div class="map-btn" onclick="setMapLayer('satellite')"><i data-lucide="layers"></i></div>
+                <div class="map-btn" onclick="centerMap()"><i data-lucide="crosshair"></i></div>
             </div>
         </div>
     </div>
@@ -499,11 +455,49 @@
             });
         }
 
-        function renderTeamsTable() {
-            const body = document.getElementById('teams-table-body');
-            body.innerHTML = '';
+        function setMapLayer(type) {
+            if (type === 'satellite') {
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri'
+                }).addTo(map);
+            } else {
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}/{x}.png', {
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(map);
+            }
+        }
+
+        function centerMap() {
+            const activeMarkers = Object.values(markers);
+            if (activeMarkers.length > 0) {
+                const group = new L.featureGroup(activeMarkers);
+                map.fitBounds(group.getBounds().pad(0.2));
+            }
+        }
+
+        async function loadDashboardData() {
+            const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
+            try {
+                const stats = await (await fetch('/api/dashboard/stats', { headers })).json();
+                const os = await (await fetch('/api/service-orders', { headers })).json();
+                const activities = await (await fetch('/api/activities', { headers })).json();
+
+                // Update Stats Overlays
+                document.getElementById('stats-active-teams').innerText = `${stats.active}/${stats.total}`;
+                document.getElementById('stats-total-os').innerText = os.length;
+                document.getElementById('stats-alerts').innerText = stats.alerts;
+
+                updateOSMarkers(os);
+                updateRouteLines(os);
+                renderActivitiesPanel(activities);
+                renderTeamsPanel();
+            } catch (e) { console.error('Data Load Error:', e); }
+        }
+
+        function renderTeamsPanel() {
+            const list = document.getElementById('teams-list-floating');
+            list.innerHTML = '';
             
-            // Converte para array e ordena: Online primeiro, depois por nome
             const sortedTeams = Object.entries(teams).sort((a, b) => {
                 const teamA = a[1];
                 const teamB = b[1];
@@ -513,25 +507,47 @@
             });
 
             sortedTeams.forEach(([id, team]) => {
-                const row = document.createElement('tr');
-                row.onclick = () => selectTeam(id);
+                const row = document.createElement('div');
+                row.className = `compact-team-row ${selectedTeamId === id ? 'active' : ''}`;
+                row.onclick = () => { selectedTeamId = id; selectTeam(id); renderTeamsPanel(); };
+                
+                const batteryColor = team.battery < 20 ? 'var(--danger)' : (team.battery < 50 ? 'var(--warning)' : 'var(--success)');
+                
                 row.innerHTML = `
-                    <td><b>${team.name}</b> <small style="opacity:0.6">(${id})</small></td>
-                    <td><span class="status-pill ${team.status === 'Online' ? 'pill-online' : 'pill-busy'}">${team.status}</span></td>
-                    <td>${team.technicians?.length || 1}</td>
-                    <td>8/12</td>
-                    <td>
-                        <div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:75%"></div></div>
-                    </td>
-                    <td>São Luís, MA</td>
-                    <td>
-                        <i data-lucide="trash-2" style="cursor:pointer; color:var(--danger); margin-left:12px;" onclick="event.stopPropagation(); deleteTeam('${id}')"></i>
-                    </td>
+                    <div class="status-dot ${team.status === 'Online' ? 'dot-online' : 'dot-offline'}"></div>
+                    <div style="flex:1">
+                        <div style="font-size:13px; font-weight:700;">${team.name}</div>
+                        <div style="font-size:10px; color:var(--text-muted)">${team.status} • <span style="color:${batteryColor}">${team.battery || 100}% Bateria</span></div>
+                    </div>
+                    <i data-lucide="chevron-right" size="14" style="opacity:0.3"></i>
                 `;
-                body.appendChild(row);
+                list.appendChild(row);
             });
             lucide.createIcons();
         }
+
+        function renderActivitiesPanel(activities) {
+            const list = document.getElementById('activity-list-floating');
+            list.innerHTML = '';
+            activities.forEach(a => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                const icon = a.type === 'OS' ? 'clipboard' : 'alert-triangle';
+                const color = a.critical ? 'var(--danger)' : (a.type === 'OS' ? 'var(--success)' : 'var(--warning)');
+                item.innerHTML = `
+                    <div class="activity-icon" style="color:${color}; width:28px; height:28px;"><i data-lucide="${icon}" size="14"></i></div>
+                    <div class="activity-content">
+                        <b style="font-size:12px;">${a.content}</b>
+                        <p style="font-size:11px;">${a.client || a.device || ''}</p>
+                    </div>
+                    <div class="activity-time">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                `;
+                list.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        let selectedTeamId = null;
 
         function updateMarker(id, team) {
             if (!team.lastLocation) return;
@@ -549,100 +565,25 @@
                 iconAnchor: [50, 60]
             });
 
-            if (!markers[id]) markers[id] = L.marker(pos, { icon }).addTo(map).bindPopup(`<b>${team.name}</b>`);
-            else { markers[id].setLatLng(pos); markers[id].setIcon(icon); }
+            if (!markers[id]) {
+                markers[id] = L.marker(pos, { icon }).addTo(map).bindPopup(`<b>${team.name}</b>`);
+                markers[id].on('click', () => { selectedTeamId = id; selectTeam(id); renderTeamsPanel(); });
+            } else {
+                markers[id].setLatLng(pos);
+                markers[id].setIcon(icon);
+            }
             lucide.createIcons();
         }
-
-        function updateMarkers() { Object.keys(teams).forEach(id => updateMarker(id, teams[id])); }
 
         function selectTeam(id) {
             const team = teams[id];
-            document.getElementById('det-name').innerText = team.name;
-            const techList = document.getElementById('det-techs');
-            techList.innerHTML = '';
-            (team.technicians || []).forEach(t => {
-                const item = document.createElement('div');
-                item.className = 'tech-item';
-                item.innerHTML = `
-                    <img src="https://ui-avatars.com/api/?name=${t.name}&background=random" class="tech-avatar">
-                    <div class="tech-info"><b>${t.name}</b><small>Atendendo OS #1234</small></div>
-                    <span style="margin-left:auto; font-size:11px; color:var(--success)">${t.status}</span>
-                `;
-                techList.appendChild(item);
-            });
-            if (team.lastLocation) map.setView([team.lastLocation.lat, team.lastLocation.lng], 16);
-        }
-
-        function renderActivities(activities) {
-            const list = document.getElementById('activity-list');
-            list.innerHTML = '';
-            activities.forEach(a => {
-                const item = document.createElement('div');
-                item.className = 'activity-item';
-                const icon = a.type === 'OS' ? 'clipboard' : 'alert-triangle';
-                const color = a.critical ? 'var(--danger)' : (a.type === 'OS' ? 'var(--success)' : 'var(--warning)');
-                item.innerHTML = `
-                    <div class="activity-icon" style="color:${color}"><i data-lucide="${icon}" size="16"></i></div>
-                    <div class="activity-content">
-                        <b>${a.content}</b>
-                        <p>${a.client || a.device || ''}</p>
-                    </div>
-                    <div class="activity-time">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                `;
-                list.appendChild(item);
-            });
-            lucide.createIcons();
-        }
-
-        async function deleteTeam(id) {
-            const teamName = teams[id] ? teams[id].name : id;
-            if (!confirm(`Deseja remover o dispositivo "${teamName}" do painel?`)) return;
-            const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
-            try {
-                const res = await fetch(`/api/teams/${id}`, { method: 'DELETE', headers });
-                if (res.ok) {
-                    delete teams[id];
-                    if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
-                    renderTeamsTable();
-                    alert('Dispositivo removido com sucesso!');
-                } else {
-                    alert('Erro ao remover: ' + res.status);
-                }
-            } catch (e) { 
-                console.error('Delete Error:', e);
-                alert('Erro de conexão ao tentar remover.');
+            if (team && team.lastLocation) {
+                map.setView([team.lastLocation.lat, team.lastLocation.lng], 16);
             }
         }
-
-        function initChart() {
-            const ctx = document.getElementById('osChart').getContext('2d');
-            osChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.values(STATUS_MAP).map(s => s.label),
-                    datasets: [{
-                        data: new Array(Object.keys(STATUS_MAP).length).fill(0),
-                        backgroundColor: Object.values(STATUS_MAP).map(s => s.color),
-                        borderWidth: 0,
-                        cutout: '70%'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 }, usePointStyle: true, padding: 10 } } }
-                }
-            });
-        }
-
-        function updateChart(osList) {
-            const counts = {};
-            Object.keys(STATUS_MAP).forEach(k => counts[k] = 0);
-            osList.forEach(o => { if (counts[o.status] !== undefined) counts[o.status]++; });
-            osChart.data.datasets[0].data = Object.keys(STATUS_MAP).map(k => counts[k]);
-            osChart.update();
-        }
+    </script>
+</body>
+</html>
     </script>
 </body>
 </html>
