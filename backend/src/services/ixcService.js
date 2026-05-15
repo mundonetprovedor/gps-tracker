@@ -273,12 +273,5 @@ async function syncIXCServiceOrders(io) {
     logger.error('[IXC] Erro na sincronização: %s', error.message);
   }
 }
-    
-    logger.info('[IXC] Sincronização de O.S. concluída.');
-    if (io) io.emit('os_synced');
-  } catch (error) {
-    logger.error('[IXC] Erro na sincronização: %s', error.message);
-  }
-}
 
 module.exports = { syncIXCServiceOrders, syncIXCTeamCollaborators };
