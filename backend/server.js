@@ -453,7 +453,7 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
       { status: 'F', timestamp: { $gte: today } }
     ]
   });
-  
+
   const osDone = await ServiceOrder.countDocuments({ status: 'F', timestamp: { $gte: today } });
   
   res.json({
@@ -474,7 +474,7 @@ app.get('/api/service-orders', auth, async (req, res) => {
   const orders = await ServiceOrder.find({
     $or: [
       { status: { $in: ['EX', 'DS'] } },
-      { status: { $in: ['AG', 'A', 'RAG'] }, scheduledDate: { $gte: today, $lt: tomorrow } },
+      { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
       { status: 'F', timestamp: { $gte: today } }
     ]
   }).sort({ timestamp: -1 });
