@@ -182,7 +182,7 @@
     <div class="main-wrapper">
         <header>
             <div class="header-title">
-                <h1>Monitoramento</h1>
+                <h1>Monitoramento <small id="api-status" style="font-size:10px; color:var(--text-muted)">● Conectando...</small></h1>
                 <p>Acompanhe suas equipes em tempo real</p>
             </div>
             <div class="header-actions">
@@ -328,8 +328,23 @@
         };
 
         // ── INIT ──
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
+            
+            // Auto-login fallback for admin
+            if (!localStorage.getItem('m_token')) {
+                console.log('Tentando login automático...');
+                try {
+                    const res = await fetch('/auth/login', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({username: 'admin', password: 'admin123'})
+                    });
+                    const data = await res.json();
+                    if (data.token) localStorage.setItem('m_token', data.token);
+                } catch (e) { console.error('Auto-login falhou'); }
+            }
+
             initMap();
             initSocket();
             initChart();
@@ -380,6 +395,8 @@
                     return;
                 }
                 const stats = await res.json();
+                document.getElementById('api-status').innerHTML = '● Online';
+                document.getElementById('api-status').style.color = 'var(--success)';
                 
                 document.getElementById('kpi-teams').innerText = `${stats.teamsActive} / ${stats.teamsTotal}`;
                 document.getElementById('kpi-devices').innerText = `${stats.devicesOnline} / ${stats.devicesTotal}`;
