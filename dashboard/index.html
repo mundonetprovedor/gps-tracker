@@ -833,8 +833,18 @@
                 let icon = 'bell';
                 let color = 'var(--primary)';
                 let subtitle = a.client || a.device || 'Atividade';
+                let isStatusAlert = false;
+
+                // 🔥 Cores vibrantes para status dinâmicos
+                if (a.content.includes('iniciou deslocamento')) { 
+                    color = '#ff9100'; icon = 'truck'; isStatusAlert = true; 
+                } else if (a.content.includes('iniciou o serviço')) { 
+                    color = '#ff00ff'; icon = 'play-circle'; isStatusAlert = true; 
+                } else if (a.content.includes('finalizou o serviço')) { 
+                    color = '#00ff88'; icon = 'check-circle'; isStatusAlert = true; 
+                }
                 
-                if (a.type === 'OS') {
+                if (a.type === 'OS' && !isStatusAlert) {
                     icon = 'clipboard-list';
                     color = '#10b981';
                     const subText = a.subject && a.subject !== 'Não informado' ? a.subject : 'Sem assunto';
@@ -842,21 +852,27 @@
                     if (a.content.includes(a.protocol)) {
                         subtitle = `${a.client || 'Cliente não identificado'} • ${subText}`;
                     }
-                } else if (a.type === 'Alert') {
+                } else if (a.type === 'Alert' && !isStatusAlert) {
                     icon = 'alert-triangle';
                     color = a.critical ? '#ef4444' : '#f59e0b';
                     subtitle = `Alerta: ${a.device || 'Dispositivo'}`;
                 }
 
+                const fontScale = isStatusAlert ? '15px' : '13px';
+                const weightScale = isStatusAlert ? '800' : '700';
+                const glowEffect = isStatusAlert ? `box-shadow: 0 0 15px ${color}30; border: 1px solid ${color}40; background: ${color}08;` : '';
+
+                item.style = `padding: 12px; margin-bottom: 8px; border-radius: 12px; transition: 0.2s; display: flex; align-items: center; ${glowEffect}`;
+
                 item.innerHTML = `
-                    <div class="activity-icon" style="background: ${color}15; color: ${color}; min-width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                        <i data-lucide="${icon}" style="width: 16px; height: 16px;"></i>
+                    <div class="activity-icon" style="background: ${color}20; color: ${color}; min-width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="${icon}" style="width: 22px; height: 22px; stroke-width: 2.5;"></i>
                     </div>
-                    <div class="activity-content" style="flex: 1; margin-left: 12px;">
-                        <div style="font-size: 13px; font-weight: 700; color: white; line-height: 1.2;">${a.content}</div>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${subtitle}</div>
+                    <div class="activity-content" style="flex: 1; margin-left: 14px;">
+                        <div style="font-size: ${fontScale}; font-weight: ${weightScale}; color: var(--text-main); line-height: 1.2; text-transform: uppercase; letter-spacing: -0.2px;">${a.content}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-top: 3px; opacity: 0.8;">${subtitle}</div>
                     </div>
-                    <div class="activity-time" style="font-size: 10px; font-weight: 700; color: #94a3b8;">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    <div class="activity-time" style="font-size: 11px; font-weight: 800; color: var(--text-muted); margin-left: 10px;">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                 `;
                 list.appendChild(item);
             });
