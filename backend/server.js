@@ -292,7 +292,7 @@ async function syncIXCServiceOrders() {
         { ixcId: os.id },
         {
           number: os.protocolo,
-          client: os.nome_cliente || os.cliente || os.razao || os.nome || 'Cliente não identificado',
+          client: os.razao_social || os.nome_cliente || os.cliente || os.razao || os.nome || 'Cliente não identificado',
           address: os.endereco || os.endereco_padrao || '',
           lat: parseFloat(os.latitude) || 0,
           lng: parseFloat(os.longitude) || 0,
