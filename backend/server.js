@@ -345,4 +345,21 @@ server.listen(PORT, '0.0.0.0', () => {
   setTimeout(() => syncIXCServiceOrders(io), 5000);
   // Sincronização Periódica (5 min)
   setInterval(() => syncIXCServiceOrders(io), 5 * 60 * 1000);
+
+  // Vigilante de Inatividade (1 min)
+  setInterval(async () => {
+    try {
+      const threshold = new Date(Date.now() - 5 * 60 * 1000); // 5 minutos atrás
+      const result = await Team.updateMany(
+        { lastSeen: { $lt: threshold }, status: 'Online' },
+        { status: 'Offline' }
+      );
+      if (result.modifiedCount > 0) {
+        logger.info(`[Idle] ${result.modifiedCount} técnicos marcados como Offline por inatividade.`);
+        io.emit('os_synced'); // Força o refresh no mapa para refletir o offline
+      }
+    } catch (error) {
+      logger.error('[Idle] Erro ao processar inatividade: %s', error.message);
+    }
+  }, 60000);
 });
