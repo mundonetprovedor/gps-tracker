@@ -357,7 +357,7 @@ async function syncIXCServiceOrders() {
           subject: assuntoReal,
           teamId: tecnicoId ? String(tecnicoId) : null,
           scheduledDate: parseIXCDate(os.data_agenda),
-          timestamp: new Date() // Atualiza o tempo de "visto por último"
+          lastSeen: new Date() // Novo campo separado para limpeza
         },
         { upsert: true }
       );
@@ -451,7 +451,7 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
   
   const osToday = await ServiceOrder.countDocuments({ 
-    timestamp: { $gte: fifteenMinsAgo }, // Só mostra o que foi visto na última sincronização
+    lastSeen: { $gte: fifteenMinsAgo }, // Limpeza por recência
     $or: [
       { status: { $in: ['EX', 'DS'] } },
       { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
@@ -481,7 +481,7 @@ app.get('/api/service-orders', auth, async (req, res) => {
   const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
 
   const orders = await ServiceOrder.find({
-    timestamp: { $gte: fifteenMinsAgo }, // Filtro de recência
+    lastSeen: { $gte: fifteenMinsAgo }, 
     $or: [
       { status: { $in: ['EX', 'DS'] } },
       { status: 'AG', scheduledDate: { $gte: today, $lt: tomorrow } },
