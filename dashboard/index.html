@@ -148,6 +148,25 @@
         .layer-btn:hover { background: rgba(255,255,255,0.05); }
         .layer-btn.active { background: var(--primary); color: white; }
 
+        /* Subject Filter Panel */
+        .filter-btn { padding: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; border-left: 1px solid var(--border); margin-left: 8px; display: flex; align-items: center; }
+        .filter-btn:hover { color: white; }
+        .subject-filter-panel {
+            position: absolute; right: 24px; top: 78px; width: 300px;
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--border);
+            border-radius: 20px; z-index: 1100; display: none; flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        .subject-filter-panel.active { display: flex; }
+        .subject-list { padding: 20px; max-height: 350px; overflow-y: auto; }
+        .subject-item { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 13px; cursor: pointer; color: #cbd5e1; }
+        .subject-item:hover { color: white; }
+        .subject-item input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+        .filter-footer { padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+        .filter-footer button { flex: 1; padding: 10px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-apply { background: var(--primary); color: white; }
+        .btn-clear { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
         /* Custom Marker */
         .custom-marker { width: 44px !important; height: 44px !important; border-radius: 14px; background: white; border: 3px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
         .marker-inner { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
@@ -293,7 +312,22 @@
                 
                 <div class="search-bar-floating">
                     <i data-lucide="search" size="18" style="color: var(--text-muted)"></i>
-                    <input type="text" placeholder="Buscar técnico ou endereço...">
+                    <input type="text" placeholder="Buscar técnico ou endereço..." id="search-input">
+                    <div class="filter-btn" onclick="toggleSubjectFilter()"><i data-lucide="filter" size="18"></i></div>
+                </div>
+            </div>
+
+            <!-- Subject Filter Modal -->
+            <div class="subject-filter-panel" id="subject-filter-panel">
+                <div class="panel-header">
+                    <h3><i data-lucide="filter"></i> Filtrar Assuntos</h3>
+                </div>
+                <div class="subject-list" id="subject-checkbox-list">
+                    <!-- Dinamicamente preenchido -->
+                </div>
+                <div class="filter-footer">
+                    <button class="btn-clear" onclick="clearSubjectFilter()">Limpar</button>
+                    <button class="btn-apply" onclick="toggleSubjectFilter()">Fechar</button>
                 </div>
             </div>
 
@@ -341,6 +375,8 @@
         let routeLines = {}; 
         let selectedTeamId = null;
         let currentStatusFilter = 'all';
+        let selectedSubjects = []; // Lista de nomes de assuntos selecionados
+        let allOS = []; // Cache de todas as OS carregadas
 
         const STATUS_MAP = {
             'A': { label: 'Aberto', color: '#3b82f6' },
@@ -479,30 +515,38 @@
         async function loadDashboardData() {
             const headers = { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` };
             try {
-                // Fetch Teams first to ensure the list is populated
                 const teamsArray = await (await fetch('/api/teams', { headers })).json();
                 teamsArray.forEach(t => { teams = { ...teams, [t.id]: t }; });
 
                 const stats = await (await fetch('/api/dashboard/stats', { headers })).json();
-                const os = await (await fetch('/api/service-orders', { headers })).json();
+                allOS = await (await fetch('/api/service-orders', { headers })).json();
                 const activities = await (await fetch('/api/activities', { headers })).json();
 
                 document.getElementById('stats-active-teams').innerText = `${stats.active || 0}/${stats.total || 0}`;
-                document.getElementById('stats-total-os').innerText = os.length;
+                document.getElementById('stats-total-os').innerText = allOS.length;
                 document.getElementById('stats-alerts').innerText = stats.alerts || 0;
                 document.getElementById('alert-count').innerText = stats.alerts || 0;
 
-                updateOSMarkers(os);
-                updateRouteLines(os);
+                updateOSMarkers(allOS);
+                updateRouteLines(allOS);
                 renderActivitiesPanel(activities);
                 renderTeamsPanel();
                 updateMarkers();
+                renderSubjectFilters(allOS);
             } catch (e) { console.error('Data Load Error:', e); }
         }
 
         function updateOSMarkers(osList) {
+            // Limpa markers anteriores
+            Object.values(osMarkers).forEach(m => map.removeLayer(m));
+            osMarkers = {};
+
             osList.forEach(os => {
                 if (!os.lat || !os.lng) return;
+                
+                // Aplica Filtro de Assunto
+                if (selectedSubjects.length > 0 && !selectedSubjects.includes(os.subject)) return;
+
                 const statusInfo = STATUS_MAP[os.status] || { label: 'Outro', color: '#fff' };
                 const icon = L.divIcon({
                     className: 'os-marker',
@@ -663,6 +707,49 @@
         function selectTeam(id) {
             const team = teams[id];
             if (team?.lastLocation) map.setView([team.lastLocation.lat, team.lastLocation.lng], 16);
+        }
+
+        function toggleSubjectFilter() {
+            const panel = document.getElementById('subject-filter-panel');
+            panel.classList.toggle('active');
+            lucide.createIcons();
+        }
+
+        function renderSubjectFilters(osList) {
+            const container = document.getElementById('subject-checkbox-list');
+            const subjects = [...new Set(osList.map(o => o.subject || 'Sem Assunto'))].sort();
+            
+            // Só reconstrói se a lista de assuntos mudar
+            if (container.children.length === subjects.length) return;
+
+            container.innerHTML = '';
+            subjects.forEach(sub => {
+                const item = document.createElement('label');
+                item.className = 'subject-item';
+                const isChecked = selectedSubjects.includes(sub);
+                item.innerHTML = `
+                    <input type="checkbox" value="${sub}" ${isChecked ? 'checked' : ''} onchange="handleSubjectChange(this)">
+                    <span>${sub}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function handleSubjectChange(checkbox) {
+            if (checkbox.checked) {
+                selectedSubjects.push(checkbox.value);
+            } else {
+                selectedSubjects = selectedSubjects.filter(s => s !== checkbox.value);
+            }
+            updateOSMarkers(allOS);
+            updateRouteLines(allOS);
+        }
+
+        function clearSubjectFilter() {
+            selectedSubjects = [];
+            document.querySelectorAll('#subject-checkbox-list input').forEach(c => c.checked = false);
+            updateOSMarkers(allOS);
+            updateRouteLines(allOS);
         }
     </script>
 </body>
