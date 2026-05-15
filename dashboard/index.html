@@ -997,6 +997,15 @@
                 });
 
             sortedTeams.forEach(([id, team]) => {
+                const teamOS = allOS.filter(os => {
+                    const osTeam = teams[os.teamId] || Object.values(teams).find(t => t.name === os.teamId || t.id === os.teamId);
+                    return osTeam?.id === id;
+                });
+                
+                const finishedCount = teamOS.filter(os => os.status === 'F').length;
+                const totalCount = teamOS.length;
+                const progressText = totalCount > 0 ? `${finishedCount}/${totalCount}` : '';
+
                 const row = document.createElement('div');
                 row.className = `compact-team-row ${selectedTeamId === id ? 'active' : ''}`;
                 row.onclick = () => { selectedTeamId = id; selectTeam(id); renderTeamsPanel(); };
@@ -1008,7 +1017,10 @@
                 row.innerHTML = `
                     <div class="status-dot ${team.status === 'Online' ? 'dot-online' : 'dot-offline'}"></div>
                     <div style="flex:1">
-                        <div style="font-size:13px; font-weight:700;">${team.name}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:13px; font-weight:700;">${team.name}</div>
+                            ${progressText ? `<div style="font-size:10px; font-weight:800; background:var(--primary)20; color:var(--primary); padding:2px 6px; border-radius:10px;">${progressText}</div>` : ''}
+                        </div>
                         <div style="font-size:10px; color:var(--text-muted)">${team.status} • <span style="color:${batteryColor}">${batteryText}</span></div>
                     </div>
                     <i data-lucide="chevron-right" size="14" style="opacity:0.3"></i>

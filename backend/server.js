@@ -117,19 +117,20 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
 });
 
 app.get('/api/service-orders', auth, async (req, res) => {
-  const now = new Date();
-  const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-  today.setUTCHours(3, 0, 0, 0);
-  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-  const orders = await ServiceOrder.find({
-    status: { $in: ['AG', 'DS', 'EX'] },
-    scheduledDate: { $gte: today, $lt: tomorrow }
-  }).sort({ timestamp: -1 });
-  res.json(orders);
-});
-
 app.get('/api/teams', auth, async (req, res) => {
   res.json(await Team.find());
+});
+
+app.get('/api/service-orders', auth, async (req, res) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  res.json(await ServiceOrder.find({
+    $or: [
+      { status: { $ne: 'F' } },
+      { status: 'F', lastSeen: { $gte: today } }
+    ]
+  }));
 });
 
 app.get('/api/service-orders/:id/nearest', auth, async (req, res) => {
