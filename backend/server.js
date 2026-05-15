@@ -53,6 +53,24 @@ const LocationSchema = new mongoose.Schema({
 });
 const Location = mongoose.model('Location', LocationSchema);
 
+const TeamSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: String,
+  lastLocation: {
+    lat: Number,
+    lng: Number,
+    timestamp: Date,
+    speed: Number,
+    battery: Number
+  },
+  battery: Number,
+  status: { type: String, default: 'Offline' },
+  technicians: [{ name: String, status: String, battery: Number }]
+}, { timestamps: true });
+
+const Team = mongoose.model('Team', TeamSchema);
+Team.collection.dropIndex('teamId_1').catch(() => {});
+
 const UserSchema = new mongoose.Schema({
   username: { type: String, unique: true },
   password: { type: String }
@@ -84,23 +102,6 @@ const AlertSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 const Alert = mongoose.model('Alert', AlertSchema);
-
-const TeamSchema = new mongoose.Schema({
-  id: { type: String, unique: true },
-  name: String,
-  status: { type: String, default: 'Offline' },
-  lastLocation: {
-    lat: Number,
-    lng: Number,
-    speed: Number,
-    heading: Number,
-    timestamp: Date
-  },
-  battery: Number,
-  lastUpdate: { type: Date, default: Date.now },
-  technicians: [{ name: String, status: String, battery: Number }]
-});
-const Team = mongoose.model('Team', TeamSchema);
 
 // ── GLOBAL REALTIME STATE (RAM) ──
 let socketToTeam = {};
@@ -355,6 +356,11 @@ app.get('/api/history/:teamId', auth, async (req, res) => {
 app.get('/api/teams', auth, async (req, res) => {
   const teams = await Team.find();
   res.json(teams);
+});
+
+app.get('/api/debug/ids', auth, async (req, res) => {
+  const ids = await ServiceOrder.distinct('teamId');
+  res.json(ids);
 });
 
 app.delete('/api/teams/:id', auth, async (req, res) => {
