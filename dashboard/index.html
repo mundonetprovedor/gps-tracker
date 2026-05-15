@@ -101,6 +101,15 @@
         .dot-online { background: var(--success); box-shadow: 0 0 10px var(--success); }
         .dot-offline { background: var(--text-muted); }
 
+        .status-filters { display: flex; gap: 8px; margin-top: 12px; }
+        .filter-chip { 
+            padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; 
+            background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: pointer; 
+            transition: 0.2s; border: 1px solid var(--border);
+        }
+        .filter-chip:hover { background: rgba(255,255,255,0.1); }
+        .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary-light); }
+
         /* Right Activity Panel */
         .activity-panel {
             position: absolute; right: 24px; bottom: 24px; width: 350px; max-height: 250px;
@@ -273,6 +282,11 @@
             <div class="teams-panel">
                 <div class="panel-header">
                     <h3><i data-lucide="navigation"></i> Monitoramento</h3>
+                    <div class="status-filters">
+                        <div class="filter-chip active" data-filter="all" onclick="setStatusFilter('all')">Todos</div>
+                        <div class="filter-chip" data-filter="Online" onclick="setStatusFilter('Online')">Online</div>
+                        <div class="filter-chip" data-filter="Offline" onclick="setStatusFilter('Offline')">Offline</div>
+                    </div>
                 </div>
                 <div class="teams-list-scroll" id="teams-list-floating">
                     <!-- Teams will be rendered here -->
@@ -305,7 +319,7 @@
         let osMarkers = {};
         let routeLines = {}; 
         let selectedTeamId = null;
-        let osChart;
+        let currentStatusFilter = 'all';
 
         const STATUS_MAP = {
             'A': { label: 'Aberto', color: '#3b82f6' },
@@ -496,13 +510,18 @@
             if (!list) return;
             list.innerHTML = '';
             
-            const sortedTeams = Object.entries(teams).sort((a, b) => {
-                const teamA = a[1];
-                const teamB = b[1];
-                if (teamA.status === 'Online' && teamB.status !== 'Online') return -1;
-                if (teamA.status !== 'Online' && teamB.status === 'Online') return 1;
-                return teamA.name.localeCompare(teamB.name);
-            });
+            const sortedTeams = Object.entries(teams)
+                .filter(([id, team]) => {
+                    if (currentStatusFilter === 'all') return true;
+                    return team.status === currentStatusFilter;
+                })
+                .sort((a, b) => {
+                    const teamA = a[1];
+                    const teamB = b[1];
+                    if (teamA.status === 'Online' && teamB.status !== 'Online') return -1;
+                    if (teamA.status !== 'Online' && teamB.status === 'Online') return 1;
+                    return teamA.name.localeCompare(teamB.name);
+                });
 
             sortedTeams.forEach(([id, team]) => {
                 const row = document.createElement('div');
@@ -584,6 +603,14 @@
         }
 
         function updateMarkers() { Object.keys(teams).forEach(id => updateMarker(id, teams[id])); }
+
+        function setStatusFilter(filter) {
+            currentStatusFilter = filter;
+            document.querySelectorAll('.filter-chip').forEach(c => {
+                c.classList.toggle('active', c.getAttribute('data-filter') === filter);
+            });
+            renderTeamsPanel();
+        }
 
         function selectTeam(id) {
             const team = teams[id];
