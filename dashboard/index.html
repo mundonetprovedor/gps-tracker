@@ -533,15 +533,31 @@
             activities.forEach(a => {
                 const item = document.createElement('div');
                 item.className = 'activity-item';
-                const icon = a.type === 'OS' ? 'clipboard' : 'alert-triangle';
-                const color = a.critical ? 'var(--danger)' : (a.type === 'OS' ? 'var(--success)' : 'var(--warning)');
+                
+                // Melhor lógica de ícones
+                let icon = 'bell';
+                let color = 'var(--primary)';
+                
+                if (a.type === 'OS') {
+                    icon = 'clipboard-list';
+                    color = '#10b981'; // Verde esmeralda
+                } else if (a.critical || a.content.toLowerCase().includes('offline')) {
+                    icon = 'alert-octagon';
+                    color = '#ef4444'; // Vermelho
+                } else {
+                    icon = 'alert-triangle';
+                    color = '#f59e0b'; // Âmbar
+                }
+
                 item.innerHTML = `
-                    <div class="activity-icon" style="color:${color}; width:28px; height:28px;"><i data-lucide="${icon}" size="14"></i></div>
-                    <div class="activity-content">
-                        <b style="font-size:12px;">${a.content}</b>
-                        <p style="font-size:11px;">${a.client || a.device || ''}</p>
+                    <div class="activity-icon" style="background: ${color}15; color: ${color}; min-width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="${icon}" style="width: 16px; height: 16px;"></i>
                     </div>
-                    <div class="activity-time">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    <div class="activity-content" style="flex: 1; margin-left: 12px;">
+                        <div style="font-size: 13px; font-weight: 700; color: #1e293b; line-height: 1.2;">${a.content}</div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${a.client || a.device || ''}</div>
+                    </div>
+                    <div class="activity-time" style="font-size: 10px; font-weight: 700; color: #94a3b8;">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                 `;
                 list.appendChild(item);
             });
