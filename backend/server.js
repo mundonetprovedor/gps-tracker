@@ -341,6 +341,8 @@ async function syncIXCServiceOrders() {
 
       if (!clienteReal) clienteReal = os.nome_cliente || os.cliente || os.razao_social || os.razao || os.nome || 'Cliente não identificado';
       
+      const oldOS = await ServiceOrder.findOne({ ixcId: os.id });
+      
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
         {
@@ -358,6 +360,19 @@ async function syncIXCServiceOrders() {
         },
         { upsert: true }
       );
+
+      // Notificações em tempo real se o status mudou
+      if (oldOS && oldOS.status !== os.status) {
+        const teamName = Object.values(teams).find(t => String(t.id) === String(tecnicoId))?.name || 'Um técnico';
+        let message = '';
+        if (os.status === 'DS') message = `O técnico ${teamName} iniciou o deslocamento para a O.S. do cliente ${clienteReal}.`;
+        if (os.status === 'EX') message = `O técnico ${teamName} iniciou o serviço na O.S. do cliente ${clienteReal}.`;
+        
+        if (message) {
+          io.emit('status_notification', { message, type: os.status });
+          console.log(`[Notification] ${message}`);
+        }
+      }
     }
     console.log(`[IXC] Sincronização concluída: ${data.registros.length} O.S. processadas.`);
     io.emit('os_synced');

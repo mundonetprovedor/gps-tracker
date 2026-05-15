@@ -195,6 +195,25 @@
         @keyframes dash {
             to { stroke-dashoffset: -1000; }
         }
+
+        /* Toast Notifications */
+        #notification-container {
+            position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+        }
+        .toast {
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
+            border: 1px solid var(--border); color: white; padding: 12px 20px;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 12px; pointer-events: auto;
+            animation: slideIn 0.3s ease-out forwards; min-width: 300px;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .toast.DS { border-left: 4px solid var(--warning); }
+        .toast.EX { border-left: 4px solid var(--success); }
     </style>
 </head>
 <body>
@@ -312,6 +331,8 @@
         </div>
     </div>
 
+    <div id="notification-container"></div>
+
     <script>
         let map, stdLayer, satLayer;
         let teams = {};
@@ -426,6 +447,33 @@
                 renderTeamsPanel();
             });
             socket.on('os_synced', loadDashboardData);
+            
+            socket.on('status_notification', data => {
+                showToast(data.message, data.type);
+            });
+        }
+
+        function showToast(message, type) {
+            const container = document.getElementById('notification-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = type === 'DS' ? 'truck' : 'play-circle';
+            const color = type === 'DS' ? 'var(--warning)' : 'var(--success)';
+            
+            toast.innerHTML = `
+                <div style="background:${color}20; color:${color}; padding:8px; border-radius:8px; display:flex;">
+                    <i data-lucide="${icon}" size="18"></i>
+                </div>
+                <div style="font-size:13px; font-weight:600;">${message}</div>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease-out reverse forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
         }
 
         async function loadDashboardData() {
