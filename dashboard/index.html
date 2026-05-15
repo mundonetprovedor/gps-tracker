@@ -62,19 +62,24 @@
         .overlay-panels > * { pointer-events: auto; }
 
         /* Top Bar Widgets */
-        .stats-overlay { display: flex; gap: 16px; width: 100%; }
-        .stat-widget { 
-            background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
-            padding: 12px 20px; border-radius: 16px; display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        .stats-overlay { 
+            display: flex; gap: 10px; position: absolute; 
+            left: 24px; top: 24px; width: 320px; z-index: 100; 
         }
-        .stat-widget i { color: var(--primary-light); }
-        .stat-widget .val { font-size: 18px; font-weight: 800; }
-        .stat-widget .lab { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+        .stat-widget { 
+            flex: 1; background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            padding: 10px 8px; border-radius: 14px; display: flex; flex-direction: column; 
+            align-items: center; gap: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            transition: 0.2s;
+        }
+        .stat-widget:hover { border-color: var(--primary-light); transform: translateY(-2px); }
+        .stat-widget i { color: var(--primary-light); width: 16px; height: 16px; }
+        .stat-widget .val { font-size: 15px; font-weight: 800; color: white; }
+        .stat-widget .lab { font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; text-align: center; }
 
         /* Left Sidebar Panel (Teams) */
         .teams-panel {
-            position: absolute; left: 24px; top: 100px; bottom: 24px; width: 320px;
+            position: absolute; left: 24px; top: 105px; bottom: 24px; width: 320px;
             background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border);
             border-radius: 24px; display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
@@ -112,10 +117,10 @@
         .map-btn:hover { background: var(--primary); }
 
         .search-bar-floating {
-            position: absolute; left: 360px; top: 100px; width: 400px;
+            position: absolute; right: 24px; top: 24px; width: 400px;
             background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
             border-radius: 16px; padding: 0 16px; height: 44px; display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 100;
         }
         .search-bar-floating input { background: transparent; border: none; color: white; flex: 1; outline: none; font-size: 14px; }
         
