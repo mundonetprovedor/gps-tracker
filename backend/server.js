@@ -221,7 +221,8 @@ async function syncIXCServiceOrders() {
     if (!data || !data.registros) return;
 
     for (const os of data.registros) {
-      const tecnicoId = os.id_tecnico || os.id_colaborador || os.id_responsavel;
+      // Prioridade para o responsável direto, depois colaborador, depois técnico
+      const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
       
       await ServiceOrder.findOneAndUpdate(
         { ixcId: os.id },
