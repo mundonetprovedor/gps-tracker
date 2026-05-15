@@ -203,11 +203,18 @@ app.use(express.static(path.join(__dirname, '../dashboard')));
 // ── AUTH ENDPOINTS ──
 app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
+  console.log(`[Auth] Tentativa de login: ${username}`);
   const user = await User.findOne({ username });
-  if (user && await bcrypt.compare(password, user.password)) {
+  if (!user) {
+    console.log('[Auth] Usuário não encontrado');
+    return res.status(401).json({ error: 'Login inválido' });
+  }
+  const match = await bcrypt.compare(password, user.password);
+  if (user && match) {
     const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
     return res.json({ token });
   }
+  console.log('[Auth] Senha incorreta');
   res.status(401).json({ error: 'Login inválido' });
 });
 

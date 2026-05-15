@@ -391,7 +391,12 @@
             try {
                 const res = await fetch('/api/dashboard/stats', { headers });
                 if (!res.ok) {
-                    document.getElementById('api-status').innerHTML = '● Erro: ' + res.status;
+                    if (res.status === 401) {
+                        document.getElementById('api-status').innerHTML = '● Erro: 401 (Não Logado) <a href="#" onclick="location.reload()" style="color:var(--accent)">[Repetir]</a>';
+                        localStorage.removeItem('m_token'); // Limpa token inválido
+                    } else {
+                        document.getElementById('api-status').innerHTML = '● Erro: ' + res.status;
+                    }
                     document.getElementById('api-status').style.color = 'var(--danger)';
                     return;
                 }
