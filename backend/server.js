@@ -96,10 +96,8 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const active = await Team.countDocuments({ status: 'Online' });
   const alerts = await Alert.countDocuments({ read: false });
   const osToday = await ServiceOrder.countDocuments({ 
-    $or: [
-      { status: { $in: ['EX', 'DS'] } },
-      { status: { $in: ['AG', 'F', 'EN', 'AS'] }, scheduledDate: { $gte: today, $lt: tomorrow } }
-    ]
+    status: { $in: ['AG', 'DS', 'EX'] },
+    scheduledDate: { $gte: today, $lt: tomorrow }
   });
   const osDone = await ServiceOrder.countDocuments({ status: 'F', scheduledDate: { $gte: today, $lt: tomorrow } });
 
@@ -112,10 +110,8 @@ app.get('/api/service-orders', auth, async (req, res) => {
   today.setUTCHours(3, 0, 0, 0);
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
   const orders = await ServiceOrder.find({
-    $or: [
-      { status: { $in: ['A', 'AN', 'EN', 'AS', 'AG', 'DS', 'EX', 'RAG'] } },
-      { status: 'F', scheduledDate: { $gte: today, $lt: tomorrow } }
-    ]
+    status: { $in: ['AG', 'DS', 'EX'] },
+    scheduledDate: { $gte: today, $lt: tomorrow }
   }).sort({ timestamp: -1 });
   res.json(orders);
 });
@@ -125,7 +121,10 @@ app.get('/api/teams', auth, async (req, res) => {
 });
 
 app.get('/api/activities', auth, async (req, res) => {
-  const os = await ServiceOrder.find().sort({ timestamp: -1 }).limit(10).lean();
+  const os = await ServiceOrder.find({
+    status: { $in: ['AG', 'DS', 'EX'] },
+    scheduledDate: { $gte: today, $lt: tomorrow }
+  }).sort({ timestamp: -1 }).limit(10).lean();
   const alerts = await Alert.find().sort({ timestamp: -1 }).limit(10).lean();
   const combined = [
     ...os.map(o => ({ 
