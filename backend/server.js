@@ -297,9 +297,9 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   
-  // Marca como offline quem não envia sinal há 10 min
-  const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
-  await Team.updateMany({ lastUpdate: { $lt: tenMinsAgo } }, { status: 'Offline' });
+  // Marca como offline quem não envia sinal há 2 min
+  const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000);
+  await Team.updateMany({ lastUpdate: { $lt: twoMinsAgo } }, { status: 'Offline' });
 
   const teamsTotal = await Team.countDocuments();
   const teamsActive = await Team.countDocuments({ status: 'Online' });
@@ -497,6 +497,11 @@ const handleTraccarUpdate = async (req, res) => {
   await checkGeofences(teamId, parseFloat(lat), parseFloat(lon));
 
   io.emit('team_location_update', { socketId: teamId, team: team });
+  
+  // Envia a lista completa para garantir que o status Online/Offline reflita no painel na hora
+  const allTeams = await Team.find();
+  io.emit('update_teams', allTeams);
+
   res.send('OK');
 };
 
