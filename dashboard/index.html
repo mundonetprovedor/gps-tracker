@@ -452,14 +452,18 @@
                 });
 
                 if (!osMarkers[os.ixcId]) {
-                    const addressSummary = os.address ? os.address.split(',')[0] : 'Endereço não informado';
+                    let addressSummary = os.address || 'Endereço não informado';
+                    // Remove prefixos comuns do IXC (Estado, Cidade, CEP)
+                    addressSummary = addressSummary.replace(/^MA\s+S[ãa]o\s+Lu[íi]s\s+\d{5}-\d{3}\s+/, '');
+                    
                     const popupContent = `
-                        <div style="min-width: 180px; padding: 4px;">
-                            <div style="font-weight: 800; color: #1e293b; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">OS ${os.number}</div>
-                            <div style="font-size: 12px; margin-bottom: 3px;"><b>Cliente:</b> ${os.client}</div>
-                            <div style="font-size: 12px; margin-bottom: 3px;"><b>Assunto:</b> ${os.subject || 'Não informado'}</div>
-                            <div style="font-size: 11px; color: #64748b; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
-                                <i data-lucide="map-pin" style="width:10px; height:10px;"></i> ${addressSummary}
+                        <div style="min-width: 200px; padding: 4px;">
+                            <div style="font-weight: 800; color: #1e293b; font-size: 14px; margin-bottom: 8px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 4px;">OS ${os.number}</div>
+                            <div style="font-size: 12px; margin-bottom: 4px;"><b>Cliente:</b> ${os.client}</div>
+                            <div style="font-size: 12px; margin-bottom: 4px;"><b>Assunto:</b> ${os.subject || 'Não informado'}</div>
+                            <div style="font-size: 11px; color: #475569; background: #f1f5f9; padding: 6px; border-radius: 8px; margin-top: 8px; display: flex; align-items: flex-start; gap: 6px;">
+                                <i data-lucide="map-pin" style="width:12px; height:12px; margin-top: 2px; flex-shrink: 0;"></i> 
+                                <span>${addressSummary}</span>
                             </div>
                         </div>
                     `;
