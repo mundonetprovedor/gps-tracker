@@ -167,6 +167,12 @@ async function syncIXCTeamCollaborators() {
 async function syncIXCServiceOrders(io) {
   await syncIXCTeamCollaborators();
   try {
+    // 1. Busca as O.S. ativas do IXC (Abertas, Agendadas, Deslocamento, Execução, etc.)
+    // Filtramos por status que NÃO são 'F' (Finalizado) ou 'C' (Cancelado)
+    const activeStatuses = ['A', 'AN', 'EN', 'AS', 'AG', 'DS', 'EX'];
+    
+    // Para simplificar e garantir que pegamos tudo que importa, pegamos as últimas 1000
+    // mas vamos cruzar com o que temos no banco.
     const response = await fetch(`${IXC_URL}/su_oss_chamado`, {
       method: 'POST',
       headers: {
@@ -174,27 +180,28 @@ async function syncIXCServiceOrders(io) {
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
       },
-      body: JSON.stringify({ qtype: 'su_oss_chamado.id', query: '0', oper: '>', rp: '1000', sortname: 'su_oss_chamado.id', sortorder: 'desc' })
+      body: JSON.stringify({ 
+        qtype: 'su_oss_chamado.id', 
+        query: '0', 
+        oper: '>', 
+        rp: '1000', 
+        sortname: 'su_oss_chamado.id', 
+        sortorder: 'desc' 
+      })
     });
-
+    
     const data = await response.json();
     if (!data || !data.registros) return;
 
-    if (data.registros && data.registros.length > 0) {
-      const sample = data.registros[0];
-      logger.info(`[IXC] Amostra de campos da O.S.: ${Object.keys(sample).join(', ')}`);
-    }
+    const ixcIdsPresent = new Set();
 
-    logger.info(`[IXC] Processando ${data.registros.length} Ordens de Serviço...`);
-    
-    logger.info(`[IXC] Processando ${data.registros.length} Ordens de Serviço em paralelo...`);
-    
-    // Processamento em lotes paralelos para máxima velocidade
-    const batchSize = 10;
+    // Processamento em lotes paralelos
+    const batchSize = 20;
     for (let i = 0; i < data.registros.length; i += batchSize) {
       const batch = data.registros.slice(i, i + batchSize);
       
       await Promise.all(batch.map(async (os) => {
+        ixcIdsPresent.add(String(os.id));
         const tecnicoId = os.id_responsavel || os.id_colaborador || os.id_tecnico;
         
         let clientName = os.razao || os.cliente || os.nome_cliente || os.razao_social || os.cliente_razao || os.nome || os.fantasia || os.cliente_nome;
@@ -207,23 +214,18 @@ async function syncIXCServiceOrders(io) {
           subjectName = await getSubjectName(os.id_assunto);
         }
 
-        // Busca o estado anterior da O.S. para detectar mudanças de status
         const oldOS = await ServiceOrder.findOne({ ixcId: os.id });
+        
+        // Detecta mudança de status para Alertas
         if (oldOS && oldOS.status !== os.status && ['DS', 'EX', 'F'].includes(os.status)) {
             const techName = await getTechnicianName(tecnicoId);
             let msg = '';
-            
             if (os.status === 'DS') msg = `${techName} iniciou deslocamento para O.S. do cliente ${clientName}.`;
             else if (os.status === 'EX') msg = `${techName} iniciou o serviço na O.S. do cliente ${clientName}.`;
             else if (os.status === 'F') msg = `${techName} finalizou o serviço na O.S. do cliente ${clientName}.`;
 
             if (msg) {
-                await Alert.create({
-                    type: 'Warning',
-                    message: msg,
-                    device: techName,
-                    timestamp: new Date()
-                });
+                await Alert.create({ type: 'Warning', message: msg, device: techName, timestamp: new Date() });
                 if (io) io.emit('status_notification', { message: msg, type: os.status, tech: techName });
             }
         }
@@ -248,6 +250,29 @@ async function syncIXCServiceOrders(io) {
         );
       }));
     }
+
+    // ── LIMPEZA DE O.S. ANTIGAS ──
+    // Se a O.S. está no nosso banco como ativa (AG, DS, EX) mas não veio no 'listar' do IXC,
+    // significa que ela foi finalizada ou saiu da fila de prioridade.
+    // Marcamos como 'F' para sumir do mapa.
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    await ServiceOrder.updateMany(
+        { 
+          ixcId: { $nin: Array.from(ixcIdsPresent) },
+          status: { $in: ['AG', 'DS', 'EX', 'A', 'EN', 'AS'] },
+          scheduledDate: { $gte: today } // Apenas O.S. de hoje ou futuro
+        },
+        { status: 'F', lastSeen: new Date() }
+    );
+    
+    logger.info('[IXC] Sincronização de O.S. concluída.');
+    if (io) io.emit('os_synced');
+  } catch (error) {
+    logger.error('[IXC] Erro na sincronização: %s', error.message);
+  }
+}
     
     logger.info('[IXC] Sincronização de O.S. concluída.');
     if (io) io.emit('os_synced');
