@@ -1200,18 +1200,30 @@
 
         function updateMarker(id, team) {
             if (!team.lastLocation) return;
+            const color = team.status === 'Online' ? 'var(--primary)' : 'var(--text-muted)';
+            const iconName = 'car'; // Pode ser dinâmico depois
+            
+            const iconHtml = `
+                <div class="team-marker-container">
+                    <div class="team-marker-label">${team.name}</div>
+                    <div class="team-marker-icon-box" style="background-color: ${color}; transform: rotate(${team.lastLocation.heading || 0}deg)">
+                        <i data-lucide="${iconName}" style="width: 22px; height: 22px;"></i>
+                    </div>
+                </div>
+            `;
+
             const icon = L.divIcon({
-                className: 'custom-team-icon',
-                html: `<div class="team-marker-container">
-                        <div class="team-marker-label">${team.name}</div>
-                        <div class="team-marker-icon-box" style="transform: rotate(${team.lastLocation.heading || 0}deg)">
-                            <i data-lucide="car"></i>
-                        </div>
-                       </div>`,
-                iconSize: [100, 70], iconAnchor: [50, 60]
+                className: 'custom-team-div-icon',
+                html: iconHtml,
+                iconSize: [40, 60],
+                iconAnchor: [20, 50]
             });
+
             if (!markers[id]) {
-                markers[id] = L.marker([team.lastLocation.lat, team.lastLocation.lng], { icon }).addTo(map);
+                const marker = L.marker([team.lastLocation.lat, team.lastLocation.lng], { icon });
+                marker.bindPopup(`<b>${team.name}</b><br>Status: ${team.status}<br>Bat: ${team.battery || '--'}%`);
+                teamGroup.addLayer(marker);
+                markers[id] = marker;
             } else {
                 markers[id].setLatLng([team.lastLocation.lat, team.lastLocation.lng]).setIcon(icon);
             }
