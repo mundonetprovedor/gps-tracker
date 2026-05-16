@@ -1491,7 +1491,7 @@
 
                 tbody.innerHTML = '';
                 data.forEach(h => {
-                    const total = (h.durationDrive || 0) + (h.durationService || 0);
+                    const total = Math.max(0, h.durationDrive || 0) + Math.max(0, h.durationService || 0);
                     const tr = document.createElement('tr');
                     tr.style.borderBottom = '1px solid var(--border)';
                     tr.innerHTML = `
