@@ -527,20 +527,20 @@ server.listen(PORT, '0.0.0.0', () => {
   // Sincronização Periódica (5 min)
   setInterval(() => syncIXCServiceOrders(io), 5 * 60 * 1000);
 
-  // Vigilante de Inatividade (1 min)
-  setInterval(async () => {
+  // A cada 5 minutos, verifica técnicos offline por inatividade (mais de 15 min)
+  cron.schedule('*/5 * * * *', async () => {
     try {
-      const threshold = new Date(Date.now() - 5 * 60 * 1000); // 5 minutos atrás
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
       const result = await Team.updateMany(
-        { lastSeen: { $lt: threshold }, status: 'Online' },
+        { lastSeen: { $lt: fifteenMinutesAgo }, status: 'Online' },
         { status: 'Offline' }
       );
       if (result.modifiedCount > 0) {
         logger.info(`[Idle] ${result.modifiedCount} técnicos marcados como Offline por inatividade.`);
-        io.emit('os_synced'); // Força o refresh no mapa para refletir o offline
+        io.emit('os_synced'); // Força refresh no dashboard
       }
     } catch (error) {
-      logger.error('[Idle] Erro ao processar inatividade: %s', error.message);
+      logger.error('[Cron] Erro ao verificar inatividade: %s', error.message);
     }
-  }, 60000);
+  });
 });
