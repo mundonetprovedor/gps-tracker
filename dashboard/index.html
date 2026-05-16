@@ -689,7 +689,7 @@
         // ── INIT ──
         document.addEventListener('DOMContentLoaded', async () => {
             // Restore theme
-            const savedTheme = localStorage.getItem('m_theme') || 'dark';
+            const savedTheme = localStorage.getItem('m_theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
             updateThemeUI(savedTheme);
 
