@@ -631,6 +631,10 @@
         let playbackInterval = null;
         let isPlaying = false;
 
+        let socketInitialized = false;
+        let notificationQueue = [];
+        let isProcessingQueue = false;
+
         const STATUS_MAP = {
             'A': { label: 'Aberto', color: '#3b82f6', icon: 'info' },
             'DS': { label: 'Deslocamento', color: '#f59e0b', icon: 'truck' },
@@ -738,6 +742,9 @@
         }
 
         function startDashboard() {
+            if (window.dashboardStarted) return;
+            window.dashboardStarted = true;
+            
             initMap();
             initSocket();
             loadDashboardData();
@@ -832,6 +839,9 @@
         }
 
         function initSocket() {
+            if (socketInitialized) return;
+            socketInitialized = true;
+
             const socket = io(window.location.origin);
             socket.on('update_teams', data => {
                 teams = data;
@@ -855,12 +865,13 @@
             });
             socket.on('os_synced', loadDashboardData);
             
-            let notificationQueue = [];
-            let isProcessingQueue = false;
-
             socket.on('status_notification', data => {
-                notificationQueue.push(data);
-                processNotificationQueue();
+                // Evita duplicados idênticos na mesma fila
+                const isDuplicate = notificationQueue.some(n => n.message === data.message);
+                if (!isDuplicate) {
+                    notificationQueue.push(data);
+                    processNotificationQueue();
+                }
             });
 
             async function processNotificationQueue() {
@@ -870,11 +881,11 @@
                 const data = notificationQueue.shift();
                 showToast(data.message, data.type);
 
-                // Aguarda 1.5 segundos antes de mostrar a próxima para não poluir a tela
+                // Aumentado para 2.5 segundos para dar tempo de ler cada uma
                 setTimeout(() => {
                     isProcessingQueue = false;
                     processNotificationQueue();
-                }, 1500);
+                }, 2500);
             }
         }
 
