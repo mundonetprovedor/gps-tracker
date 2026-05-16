@@ -247,7 +247,7 @@ async function syncIXCServiceOrders(io) {
                         teamName: techName, 
                         client: clientName, 
                         subject: subjectName, 
-                        startTime: new Date(),
+                        startTime: parseIXCDate(os.data_deslocamento) || new Date(),
                         location: { lat: parseFloat(os.latitude), lng: parseFloat(os.longitude) }
                     },
                     { upsert: true }
@@ -257,13 +257,15 @@ async function syncIXCServiceOrders(io) {
                 msg = `${techName} iniciou o serviço na O.S. do cliente ${clientName}.`;
                 // Registra chegada e calcula tempo de deslocamento
                 const hist = await ServiceHistory.findOne({ osId: String(os.id) });
+                const arrivalDate = parseIXCDate(os.data_inicio) || new Date();
+
                 if (hist && hist.startTime) {
-                    const diffMin = Math.round((new Date() - hist.startTime) / 60000);
-                    await ServiceHistory.updateOne({ _id: hist._id }, { arrivalTime: new Date(), durationDrive: diffMin });
+                    const diffMin = Math.max(0, Math.round((arrivalDate - hist.startTime) / 60000));
+                    await ServiceHistory.updateOne({ _id: hist._id }, { arrivalTime: arrivalDate, durationDrive: diffMin });
                 } else {
                     await ServiceHistory.findOneAndUpdate(
                         { osId: String(os.id) },
-                        { osNumber: os.protocolo, teamId: String(tecnicoId), teamName: techName, client: clientName, subject: subjectName, arrivalTime: new Date() },
+                        { osNumber: os.protocolo, teamId: String(tecnicoId), teamName: techName, client: clientName, subject: subjectName, arrivalTime: arrivalDate },
                         { upsert: true }
                     );
                 }
@@ -278,7 +280,7 @@ async function syncIXCServiceOrders(io) {
                 // Finaliza histórico e calcula tempo de atendimento
                 const hist = await ServiceHistory.findOne({ osId: String(os.id) });
                 if (hist && hist.arrivalTime) {
-                    const diffMin = Math.round((completionDate - hist.arrivalTime) / 60000);
+                    const diffMin = Math.max(0, Math.round((completionDate - hist.arrivalTime) / 60000));
                     await ServiceHistory.updateOne({ _id: hist._id }, { endTime: completionDate, durationService: diffMin });
                 } else if (hist) {
                     await ServiceHistory.updateOne({ _id: hist._id }, { endTime: completionDate });
