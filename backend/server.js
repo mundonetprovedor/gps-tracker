@@ -476,7 +476,9 @@ const handleOwnTracksUpdate = async (req, res) => {
           lng: loc.lon,
           lastSeen: loc.tst ? new Date(loc.tst * 1000) : new Date(),
           status: 'Online',
-          name: teamName // Garante que o nome seja mantido ou preenchido
+          name: teamName,
+          battery: loc.batt || 100, // Captura a bateria real do OwnTracks
+          type: 'vehicle' // Força o ícone de carro/veículo
         };
 
         // Atualiza técnico
