@@ -457,6 +457,8 @@ const handleOwnTracksUpdate = async (req, res) => {
     // OwnTracks envia array de objetos ou objeto único
     const locations = Array.isArray(data) ? data : [data];
     
+    logger.info(`[OwnTracks] Recebida atualização de ${locations.length} localizações. Dados: ${JSON.stringify(data)}`);
+    
     for (const loc of locations) {
       if (loc._type === 'location') {
         const teamId = req.headers['x-limit-u'] || loc.username || loc.tid; 
