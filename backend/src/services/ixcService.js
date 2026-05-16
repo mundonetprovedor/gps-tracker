@@ -291,33 +291,51 @@ async function syncIXCServiceOrders(io) {
             }
         }
 
-        // Função interna para reformatar o endereço do IXC (inverter a ordem de trás pra frente)
+        // Tradutor de Endereços Inteligente (Premium)
         const reformatAddress = (rawAddr) => {
             if (!rawAddr) return '';
-            // Exemplo: "MA São Luís 65000-000 Fátima - Travessa do Mercado, 75"
-            // Queremos: "Travessa do Mercado, 75 - Fátima, São Luís - MA"
             try {
-                const parts = rawAddr.split(' - ');
+                // Limpa espaços extras e normaliza
+                let clean = rawAddr.replace(/\s+/g, ' ').trim();
+                
+                // Se o endereço já parecer estar no formato correto (Rua primeiro), não mexe
+                const streetKeywords = ['Rua', 'Avenida', 'Av.', 'Travessa', 'Tv.', 'Rodovia', 'Vila', 'Conjunto', 'Alameda', 'Praça'];
+                const startsWithStreet = streetKeywords.some(k => clean.toLowerCase().startsWith(k.toLowerCase()));
+                if (startsWithStreet && clean.includes(',')) return clean;
+
+                const parts = clean.split(' - ').map(p => p.trim());
+                
+                // Estratégia: Encontrar qual parte contém a Rua/Avenida
+                let streetPartIndex = parts.findIndex(p => streetKeywords.some(k => p.toLowerCase().includes(k.toLowerCase())));
+                
+                if (streetPartIndex !== -1) {
+                    const streetInfo = parts[streetPartIndex];
+                    // Remove a parte da rua da lista para processar o resto (Cidade/Bairro)
+                    parts.splice(streetPartIndex, 1);
+                    
+                    let cityInfo = parts.join(' ');
+                    // Remove CEP e UF repetidos
+                    cityInfo = cityInfo.replace(/\d{5}-\d{3}/g, '').replace(/\bMA\b/g, '').replace(/São Luís/gi, '').replace(/\s+/g, ' ').trim();
+                    
+                    // O que sobrou geralmente é o bairro
+                    const neighborhood = cityInfo.replace(/^[,\-\s]+|[,\-\s]+$/g, '');
+                    
+                    return `${streetInfo}${neighborhood ? ' - ' + neighborhood : ''}, São Luís - MA`;
+                }
+
+                // Fallback para o formato antigo se não achou palavras-chave
                 if (parts.length >= 2) {
-                    const streetInfo = parts[parts.length - 1]; // "Travessa do Mercado, 75"
-                    const cityInfo = parts[0]; // "MA São Luís 65000-000 Fátima" (ops, Fátima está aqui ou no meio?)
-                    
-                    // Se tiver mais de 2 partes, a do meio geralmente é o bairro
-                    if (parts.length === 3) {
-                        return `${parts[2]} - ${parts[1]}, ${parts[0]}`;
-                    }
-                    
-                    // Se tiver só 2 partes, tentamos quebrar a primeira parte para pegar o bairro
-                    // "MA São Luís 65000-000 Fátima" -> Pega a última palavra como bairro
-                    const cityWords = cityInfo.split(' ');
-                    const uf = cityWords[0];
-                    const neighborhood = cityWords[cityWords.length - 1];
-                    const city = cityWords.slice(1, cityWords.length - 1).join(' ').replace(/\d{5}-\d{3}/, '').trim();
+                    const streetInfo = parts[parts.length - 1];
+                    let cityInfo = parts[0].replace(/\d{5}-\d{3}/g, '').trim();
+                    const words = cityInfo.split(' ');
+                    const uf = words[0].length === 2 ? words[0] : 'MA';
+                    const neighborhood = words[words.length - 1];
+                    const city = words.slice(uf.length === 2 ? 1 : 0, -1).join(' ') || 'São Luís';
                     
                     return `${streetInfo} - ${neighborhood}, ${city} - ${uf}`;
                 }
             } catch (e) {
-                return rawAddr; // Se falhar, mantém o original
+                return rawAddr;
             }
             return rawAddr;
         };
