@@ -845,9 +845,27 @@
             });
             socket.on('os_synced', loadDashboardData);
             
+            let notificationQueue = [];
+            let isProcessingQueue = false;
+
             socket.on('status_notification', data => {
-                showToast(data.message, data.type);
+                notificationQueue.push(data);
+                processNotificationQueue();
             });
+
+            async function processNotificationQueue() {
+                if (isProcessingQueue || notificationQueue.length === 0) return;
+                isProcessingQueue = true;
+
+                const data = notificationQueue.shift();
+                showToast(data.message, data.type);
+
+                // Aguarda 1.5 segundos antes de mostrar a próxima para não poluir a tela
+                setTimeout(() => {
+                    isProcessingQueue = false;
+                    processNotificationQueue();
+                }, 1500);
+            }
         }
 
         function togglePanel(id) {
@@ -898,11 +916,11 @@
             container.appendChild(toast);
             lucide.createIcons();
             
-            // 🕒 Fica 30 segundos na tela
+            // 🕒 Fica 15 segundos na tela
             setTimeout(() => {
                 toast.style.animation = 'slideIn 0.3s ease-out reverse forwards';
                 setTimeout(() => toast.remove(), 300);
-            }, 30000);
+            }, 15000);
         }
 
         async function loadDashboardData() {
