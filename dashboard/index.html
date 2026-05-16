@@ -1462,6 +1462,14 @@
             lucide.createIcons();
         }
 
+        function formatDuration(min) {
+            if (min === null || min === undefined || min === '--' || isNaN(min)) return '--';
+            const abs = Math.abs(min);
+            const h = Math.floor(abs / 60);
+            const m = abs % 60;
+            return `${min < 0 ? '-' : ''}${h}h ${m < 10 ? '0' + m : m}m`;
+        }
+
         async function loadServiceReport() {
             const date = document.getElementById('report-start').value;
             const start = new Date(date + 'T00:00:00Z').toISOString();
@@ -1490,9 +1498,9 @@
                         <td style="padding:14px; font-weight:700;">${h.osNumber}</td>
                         <td style="padding:14px;">${h.teamName}</td>
                         <td style="padding:14px; color:var(--text-muted);">${h.client}</td>
-                        <td style="padding:14px;"><span style="background:rgba(245,158,11,0.1); color:#f59e0b; padding:4px 8px; border-radius:6px; font-weight:700;">${h.durationDrive || '--'} min</span></td>
-                        <td style="padding:14px;"><span style="background:rgba(16,185,129,0.1); color:#10b981; padding:4px 8px; border-radius:6px; font-weight:700;">${h.durationService || '--'} min</span></td>
-                        <td style="padding:14px; font-weight:800;">${total} min</td>
+                        <td style="padding:14px;"><span style="background:rgba(245,158,11,0.1); color:#f59e0b; padding:4px 8px; border-radius:6px; font-weight:700;">${formatDuration(h.durationDrive)}</span></td>
+                        <td style="padding:14px;"><span style="background:rgba(16,185,129,0.1); color:#10b981; padding:4px 8px; border-radius:6px; font-weight:700;">${formatDuration(h.durationService)}</span></td>
+                        <td style="padding:14px; font-weight:800;">${formatDuration(total)}</td>
                     `;
                     tbody.appendChild(tr);
                 });
