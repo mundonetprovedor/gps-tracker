@@ -1464,10 +1464,10 @@
 
         function formatDuration(min) {
             if (min === null || min === undefined || min === '--' || isNaN(min)) return '--';
-            const abs = Math.abs(min);
-            const h = Math.floor(abs / 60);
-            const m = abs % 60;
-            return `${min < 0 ? '-' : ''}${h}h ${m < 10 ? '0' + m : m}m`;
+            const val = Math.max(0, min);
+            const h = Math.floor(val / 60);
+            const m = val % 60;
+            return `${h}h ${m < 10 ? '0' + m : m}m`;
         }
 
         async function loadServiceReport() {
