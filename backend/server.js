@@ -454,40 +454,48 @@ const handleTraccarUpdate = async (req, res) => {
 const handleOwnTracksUpdate = async (req, res) => {
   try {
     const data = req.body;
-    // OwnTracks envia array de objetos ou objeto único
     const locations = Array.isArray(data) ? data : [data];
     
-    logger.info(`[OwnTracks] Recebida atualização de ${locations.length} localizações. Dados: ${JSON.stringify(data)}`);
+    logger.info(`[OwnTracks] Recebido: ${JSON.stringify(data)}`);
     
     for (const loc of locations) {
       if (loc._type === 'location') {
-        const teamId = req.headers['x-limit-u'] || loc.username || loc.tid; 
-        if (!teamId) continue;
+        const teamId = loc.username || loc.tid || req.headers['x-limit-u']; 
+        
+        if (!teamId) {
+          logger.warn('[OwnTracks] Localização ignorada: Sem ID de técnico (username ou tid)');
+          continue;
+        }
 
         const update = {
           lat: loc.lat,
           lng: loc.lon,
-          lastSeen: new Date(loc.tst * 1000),
+          lastSeen: loc.tst ? new Date(loc.tst * 1000) : new Date(),
           status: 'Online'
         };
 
+        // Atualiza técnico
         await Team.findOneAndUpdate({ id: String(teamId) }, update, { upsert: true });
         
+        // Salva histórico
         await Location.create({
           teamId: String(teamId),
           lat: loc.lat,
           lng: loc.lon,
-          timestamp: new Date(loc.tst * 1000)
+          timestamp: update.lastSeen
         });
 
-        io.emit('location_update', { teamId, ...update });
-        checkGeofences(teamId, loc.lat, loc.lon, io);
+        io.emit('location_update', { teamId: String(teamId), ...update });
+        checkGeofences(String(teamId), loc.lat, loc.lon, io);
       }
     }
-    res.status(200).json([]);
+    
+    // OwnTracks exige um retorno 200 (sucesso) com um array (mesmo que vazio)
+    return res.status(200).json([]);
   } catch (error) {
-    logger.error('[OwnTracks] Erro: %s', error.message);
-    res.status(500).json({ error: error.message });
+    logger.error('[OwnTracks] Erro crítico: %s', error.message);
+    // Mesmo com erro, retornamos 200 para o App não ficar tentando re-enviar e travar
+    return res.status(200).json([]);
   }
 };
 
