@@ -450,6 +450,46 @@ const handleTraccarUpdate = async (req, res) => {
   }
 };
 
+// Handler para OwnTracks
+const handleOwnTracksUpdate = async (req, res) => {
+  try {
+    const data = req.body;
+    // OwnTracks envia array de objetos ou objeto único
+    const locations = Array.isArray(data) ? data : [data];
+    
+    for (const loc of locations) {
+      if (loc._type === 'location') {
+        const teamId = req.headers['x-limit-u'] || loc.username || loc.tid; 
+        if (!teamId) continue;
+
+        const update = {
+          lat: loc.lat,
+          lng: loc.lon,
+          lastSeen: new Date(loc.tst * 1000),
+          status: 'Online'
+        };
+
+        await Team.findOneAndUpdate({ id: String(teamId) }, update, { upsert: true });
+        
+        await Location.create({
+          teamId: String(teamId),
+          lat: loc.lat,
+          lng: loc.lon,
+          timestamp: new Date(loc.tst * 1000)
+        });
+
+        io.emit('location_update', { teamId, ...update });
+        checkGeofences(teamId, loc.lat, loc.lon, io);
+      }
+    }
+    res.status(200).json([]);
+  } catch (error) {
+    logger.error('[OwnTracks] Erro: %s', error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+app.post('/api/owntracks', handleOwnTracksUpdate);
 app.post('/traccar', handleTraccarUpdate);
 app.get('/traccar', handleTraccarUpdate);
 
