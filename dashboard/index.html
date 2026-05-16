@@ -106,21 +106,21 @@
 
         /* Left Sidebar Panel (Teams) */
         .teams-panel {
-            width: 320px; flex: 1; margin-bottom: 0;
+            width: 320px; max-height: 70vh; height: auto; margin-bottom: 0;
             background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border);
             border-radius: 24px; display: flex; flex-direction: column; overflow: hidden;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
             transition: all 0.4s ease;
         }
-        .teams-panel.collapsed { max-height: 58px; flex: none; height: 58px; width: 200px; }
+        .teams-panel.collapsed { max-height: 58px; height: 58px; width: 200px; }
         .teams-panel.collapsed .panel-content { display: none; }
         .panel-header { padding: 20px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.03); }
         .panel-header h3 { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
         .teams-list-scroll { flex: 1; overflow-y: auto; padding: 12px; }
         
         .compact-team-row {
-            padding: 12px; border-radius: 16px; margin-bottom: 8px; cursor: pointer;
-            transition: 0.2s; border: 1px solid transparent; display: flex; align-items: center; gap: 12px;
+            padding: 8px 12px; border-radius: 12px; margin-bottom: 6px; cursor: pointer;
+            transition: 0.2s; border: 1px solid transparent; display: flex; align-items: center; gap: 10px;
             background: rgba(255,255,255,0.03);
         }
         .compact-team-row:hover { background: var(--border); border-color: var(--border); }
@@ -503,8 +503,7 @@
                 <div class="panel-content">
                     <div style="padding: 0 20px;">
                         <div class="status-filters">
-                            <div class="filter-chip active" data-filter="all" onclick="setStatusFilter('all')">Todos</div>
-                            <div class="filter-chip" data-filter="Online" onclick="setStatusFilter('Online')">Online</div>
+                            <div class="filter-chip active" data-filter="Online" onclick="setStatusFilter('Online')">Online</div>
                             <div class="filter-chip" data-filter="Offline" onclick="setStatusFilter('Offline')">Offline</div>
                         </div>
                     </div>
@@ -580,7 +579,7 @@
         let osMarkers = {};
         let routeLines = {}; 
         let selectedTeamId = null;
-        let currentStatusFilter = 'all';
+        let currentStatusFilter = 'Online';
         let selectedSubjects = []; // Lista de nomes de assuntos selecionados
         let allOS = []; // Cache de todas as OS carregadas
 
