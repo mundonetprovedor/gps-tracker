@@ -610,7 +610,7 @@
 
     <script>
         let map, stdLayer, satLayer;
-        let osClusterGroup;
+        let osClusterGroup, teamGroup;
         let teams = {};
         let markers = {};
         let osMarkers = {};
@@ -798,6 +798,13 @@
                 showCoverageOnHover: false,
                 maxClusterRadius: 50,
                 spiderfyOnMaxZoom: true
+            }).addTo(map);
+
+            teamGroup = L.markerClusterGroup({
+                showCoverageOnHover: false,
+                maxClusterRadius: 40,
+                spiderfyOnMaxZoom: true,
+                disableClusteringAtZoom: 17
             }).addTo(map);
 
             map.on('popupopen', () => lucide.createIcons());
