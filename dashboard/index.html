@@ -215,6 +215,21 @@
         .btn-apply { background: var(--primary); color: white; }
         .btn-clear { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 
+        /* Team Workload View */
+        .team-group-container { margin-bottom: 8px; border-radius: 16px; overflow: hidden; border: 1px solid transparent; transition: 0.3s; }
+        .team-group-container.active { background: rgba(255,255,255,0.04); border-color: var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .team-os-list { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(0,0,0,0.05); }
+        .team-group-container.active .team-os-list { max-height: 800px; padding: 4px 8px 12px 8px; border-top: 1px solid var(--border); }
+        .team-group-container.active .toggle-icon { transform: rotate(180deg); opacity: 1; color: var(--primary); }
+        
+        .os-mini-card { 
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; 
+            margin-top: 6px; background: rgba(255,255,255,0.02); border: 1px solid transparent; 
+            transition: 0.2s; cursor: pointer; position: relative;
+        }
+        .os-mini-card:hover { background: rgba(255,255,255,0.06); border-color: var(--border); transform: translateX(4px); }
+        .os-mini-status { width: 3px; height: 24px; border-radius: 4px; flex-shrink: 0; }
+        
         /* Custom Marker */
         .custom-marker { width: 44px !important; height: 44px !important; border-radius: 14px; background: white; border: 3px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
         .marker-inner { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
@@ -994,7 +1009,6 @@
                 .sort((a, b) => {
                     const teamA = a[1];
                     const teamB = b[1];
-                    if (teamA.status === 'Online' && teamB.status !== 'Online') return -1;
                     if (teamA.status !== 'Online' && teamB.status === 'Online') return 1;
                     return teamA.name.localeCompare(teamB.name);
                 });
@@ -1007,30 +1021,81 @@
                 
                 const finishedCount = teamOS.filter(os => os.status === 'F').length;
                 const totalCount = teamOS.length;
-                const progressText = totalCount > 0 ? `${finishedCount}/${totalCount}` : '';
+                const progressText = totalCount > 0 ? `${totalCount} O.S` : 'Sem O.S';
 
-                const row = document.createElement('div');
-                row.className = `compact-team-row ${selectedTeamId === id ? 'active' : ''}`;
-                row.onclick = () => { selectedTeamId = id; selectTeam(id); renderTeamsPanel(); };
+                const container = document.createElement('div');
+                container.className = `team-group-container ${selectedTeamId === id ? 'active' : ''}`;
                 
                 const batteryPercent = (team.battery !== undefined && team.battery !== null) ? Math.round(team.battery) : null;
                 const batteryColor = batteryPercent === null ? 'var(--text-muted)' : (batteryPercent < 20 ? 'var(--danger)' : (batteryPercent < 50 ? 'var(--warning)' : 'var(--success)'));
-                const batteryText = batteryPercent !== null ? `${batteryPercent}% Bat.` : 'Sem sinal';
+                const batteryText = batteryPercent !== null ? `${batteryPercent}%` : '--%';
                 
-                row.innerHTML = `
-                    <div class="status-dot ${team.status === 'Online' ? 'dot-online' : 'dot-offline'}"></div>
-                    <div style="flex:1">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="font-size:13px; font-weight:700;">${team.name}</div>
-                            ${progressText ? `<div style="font-size:10px; font-weight:800; background:var(--primary)20; color:var(--primary); padding:2px 6px; border-radius:10px;">${progressText}</div>` : ''}
+                container.innerHTML = `
+                    <div class="compact-team-row" onclick="selectAndToggleTeam('${id}')">
+                        <div class="status-dot ${team.status === 'Online' ? 'dot-online' : 'dot-offline'}"></div>
+                        <div style="flex:1">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div style="font-size:13px; font-weight:800; letter-spacing:-0.3px;">${team.name}</div>
+                                <div style="font-size:10px; font-weight:800; background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:8px; border:1px solid var(--border);">${progressText}</div>
+                            </div>
+                            <div style="font-size:10px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:8px;">
+                                <span>${team.status}</span>
+                                <span style="opacity:0.3">•</span>
+                                <span style="color:${batteryColor}; display:flex; align-items:center; gap:3px;"><i data-lucide="battery" style="width:10px; height:10px;"></i>${batteryText}</span>
+                            </div>
                         </div>
-                        <div style="font-size:10px; color:var(--text-muted)">${team.status} • <span style="color:${batteryColor}">${batteryText}</span></div>
+                        <i data-lucide="chevron-down" class="toggle-icon" style="width:14px; opacity:0.4; transition: 0.3s;"></i>
                     </div>
-                    <i data-lucide="chevron-right" size="14" style="opacity:0.3"></i>
+                    <div class="team-os-list" id="os-list-${id}">
+                        ${teamOS.length > 0 ? teamOS.map(os => {
+                            const statusInfo = STATUS_MAP[os.status] || { label: 'Pendente', color: '#94a3b8' };
+                            return `
+                                <div class="os-mini-card" onclick="event.stopPropagation(); focusOS('${os.ixcId}')">
+                                    <div class="os-mini-status" style="background:${statusInfo.color}"></div>
+                                    <div style="flex:1">
+                                        <div style="display:flex; justify-content:space-between;">
+                                            <span style="font-weight:700; font-size:11px;">OS ${os.number}</span>
+                                            <span style="font-size:9px; font-weight:800; color:${statusInfo.color}; text-transform:uppercase;">${statusInfo.label}</span>
+                                        </div>
+                                        <div style="font-size:10px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
+                                            ${os.client}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') : '<div style="font-size:10px; color:var(--text-muted); padding:10px; text-align:center; opacity:0.5;">Nenhuma O.S. agendada para hoje</div>'}
+                    </div>
                 `;
-                list.appendChild(row);
+                list.appendChild(container);
             });
             lucide.createIcons();
+        }
+
+        function selectAndToggleTeam(id) {
+            const list = document.getElementById(`os-list-${id}`);
+            const container = list?.parentElement;
+            if (!container) return;
+
+            const wasActive = container.classList.contains('active');
+            
+            // Opcional: Fecha os outros grupos ao abrir um novo
+            document.querySelectorAll('.team-group-container').forEach(c => c.classList.remove('active'));
+            
+            if (!wasActive) {
+                container.classList.add('active');
+                selectedTeamId = id;
+                selectTeam(id);
+            } else {
+                selectedTeamId = null;
+            }
+        }
+
+        function focusOS(id) {
+            const marker = osMarkers[id];
+            if (marker) {
+                map.setView(marker.getLatLng(), 18);
+                marker.openPopup();
+            }
         }
 
         function renderActivitiesPanel(activities) {
