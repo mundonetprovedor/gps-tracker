@@ -241,6 +241,14 @@
         .workload-item:hover { background: rgba(255,255,255,0.05); border-color: var(--border); transform: scale(1.01); }
         .workload-status-dot { width: 4px; height: 32px; border-radius: 2px; flex-shrink: 0; }
         
+        .workload-search-container { padding: 8px 16px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.1); }
+        .workload-search-container input {
+            width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            padding: 8px 12px; border-radius: 10px; color: white; font-size: 12px; outline: none;
+            transition: 0.2s;
+        }
+        .workload-search-container input:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
+        
         /* Custom Marker */
         .custom-marker { width: 44px !important; height: 44px !important; border-radius: 14px; background: white; border: 3px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
         .marker-inner { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
@@ -541,14 +549,17 @@
 
             <!-- Right Panel: Activity -->
             <div class="activity-panel" id="activity-panel">
-                <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; margin-bottom: 10px;">
-                    <h3 style="font-size: 14px;"><i data-lucide="activity"></i> Atividades Recentes</h3>
+                <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; margin-bottom: 5px;">
+                    <h3 style="font-size: 14px;"><i data-lucide="list-checks"></i> Carga de Trabalho</h3>
                     <button class="collapse-btn" onclick="togglePanel('activity-panel')">
                         <i data-lucide="minus"></i>
                     </button>
                 </div>
-                <div class="activity-list" id="activity-list-floating" style="overflow-y: auto; flex: 1;">
-                    <!-- Activities will be rendered here -->
+                <div class="workload-search-container">
+                    <input type="text" id="tech-search-input" placeholder="Buscar técnico..." oninput="renderActivitiesPanel()">
+                </div>
+                <div class="activity-list" id="activity-list-floating" style="overflow-y: auto; flex: 1; padding-top: 10px;">
+                    <!-- Workload will be rendered here -->
                 </div>
             </div>
 
@@ -1111,53 +1122,61 @@
 
         function renderActivitiesPanel(activities) {
             const list = document.getElementById('activity-list-floating');
+            const searchVal = document.getElementById('tech-search-input')?.value.toLowerCase() || '';
             if (!list) return;
             list.innerHTML = '';
 
-            // Agrupa O.S. por técnico
+            // Agrupa O.S. por técnico (usando Nome real)
             const groupedByTech = {};
             allOS.forEach(os => {
-                const techName = os.teamId || 'Não atribuída';
-                if (!groupedByTech[techName]) groupedByTech[techName] = [];
-                groupedByTech[techName].push(os);
-            });
-
-            Object.entries(groupedByTech).forEach(([tech, osList]) => {
-                const group = document.createElement('div');
-                group.className = 'tech-workload-group';
+                // Tenta achar o técnico pelo ID no objeto global 'teams'
+                const teamObj = teams[os.teamId] || Object.values(teams).find(t => t.id === String(os.teamId) || t.name === os.teamId);
+                const techDisplayName = teamObj ? teamObj.name : (os.teamId || 'Não atribuída');
                 
-                const techHeader = document.createElement('div');
-                techHeader.className = 'tech-workload-header';
-                techHeader.innerHTML = `
-                    <div style="font-weight: 800; font-size: 13px; color: var(--primary-light);">${tech}</div>
-                    <div style="font-size: 11px; font-weight: 700; opacity: 0.6;">${osList.length} O.S.</div>
-                `;
-                group.appendChild(techHeader);
-
-                osList.forEach(os => {
-                    const statusInfo = STATUS_MAP[os.status] || { label: 'Pendente', color: '#94a3b8', icon: 'clock' };
-                    const item = document.createElement('div');
-                    item.className = 'workload-item';
-                    item.onclick = () => focusOS(os.ixcId);
-                    
-                    item.innerHTML = `
-                        <div class="workload-status-dot" style="background: ${statusInfo.color}"></div>
-                        <div style="flex: 1;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <div style="font-size: 12px; font-weight: 700;">OS ${os.number} - ${os.client}</div>
-                                <div style="font-size: 9px; font-weight: 800; color: ${statusInfo.color}; text-transform: uppercase; background: ${statusInfo.color}15; padding: 2px 6px; border-radius: 4px;">${statusInfo.label}</div>
-                            </div>
-                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 4px;">
-                                <i data-lucide="map-pin" style="width: 10px; height: 10px;"></i>
-                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">${os.address || 'Sem endereço'}</span>
-                            </div>
-                        </div>
-                    `;
-                    group.appendChild(item);
-                });
-
-                list.appendChild(group);
+                if (!groupedByTech[techDisplayName]) groupedByTech[techDisplayName] = [];
+                groupedByTech[techDisplayName].push(os);
             });
+
+            // Ordena e Filtra pela busca
+            Object.entries(groupedByTech)
+                .filter(([techName]) => techName.toLowerCase().includes(searchVal))
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .forEach(([tech, osList]) => {
+                    const group = document.createElement('div');
+                    group.className = 'tech-workload-group';
+                    
+                    const techHeader = document.createElement('div');
+                    techHeader.className = 'tech-workload-header';
+                    techHeader.innerHTML = `
+                        <div style="font-weight: 800; font-size: 13px; color: var(--primary-light);">${tech}</div>
+                        <div style="font-size: 11px; font-weight: 700; opacity: 0.6;">${osList.length} O.S.</div>
+                    `;
+                    group.appendChild(techHeader);
+
+                    osList.forEach(os => {
+                        const statusInfo = STATUS_MAP[os.status] || { label: 'Pendente', color: '#94a3b8', icon: 'clock' };
+                        const item = document.createElement('div');
+                        item.className = 'workload-item';
+                        item.onclick = () => focusOS(os.ixcId);
+                        
+                        item.innerHTML = `
+                            <div class="workload-status-dot" style="background: ${statusInfo.color}"></div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div style="font-size: 12px; font-weight: 700;">OS ${os.number} - ${os.client}</div>
+                                    <div style="font-size: 9px; font-weight: 800; color: ${statusInfo.color}; text-transform: uppercase; background: ${statusInfo.color}15; padding: 2px 6px; border-radius: 4px;">${statusInfo.label}</div>
+                                </div>
+                                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 4px;">
+                                    <i data-lucide="map-pin" style="width: 10px; height: 10px;"></i>
+                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">${os.address || 'Sem endereço'}</span>
+                                </div>
+                            </div>
+                        `;
+                        group.appendChild(item);
+                    });
+
+                    list.appendChild(group);
+                });
             lucide.createIcons();
         }
 
