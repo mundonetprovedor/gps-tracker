@@ -413,10 +413,14 @@
             <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 1100px; height: 100%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 30px 100px rgba(0,0,0,0.7);">
                 <div class="panel-header" style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                     <h3><i data-lucide="bar-chart-3" style="color: var(--primary);"></i> Relatório de Produtividade</h3>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="date" id="report-start" style="padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: white;">
-                        <button onclick="loadServiceReport()" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">FILTRAR</button>
-                        <button onclick="toggleReportsPanel()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <i data-lucide="search" size="16" style="position: absolute; left: 12px; color: var(--text-muted);"></i>
+                            <input type="text" id="report-search-tech" placeholder="Buscar técnico..." oninput="renderReportTable()" style="padding: 10px 12px 10px 36px; border-radius: 12px; background: rgba(0,0,0,0.1); border: 1px solid var(--border); color: white; font-size: 13px; width: 220px; outline: none;">
+                        </div>
+                        <input type="date" id="report-start" style="padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.1); border: 1px solid var(--border); color: white; font-size: 13px; outline: none;">
+                        <button onclick="loadServiceReport()" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.2s;">ATUALIZAR</button>
+                        <button onclick="toggleReportsPanel()" style="background: none; border: none; color: var(--text-muted); font-size: 28px; cursor: pointer; padding-left: 10px;">&times;</button>
                     </div>
                 </div>
                 <div style="flex: 1; overflow: auto; padding: 24px;">
@@ -1470,43 +1474,69 @@
             return `${h}h ${m < 10 ? '0' + m : m}m`;
         }
 
+        let reportDataCache = [];
+
         async function loadServiceReport() {
             const date = document.getElementById('report-start').value;
             const start = new Date(date + 'T00:00:00Z').toISOString();
             const end = new Date(date + 'T23:59:59Z').toISOString();
             
             const tbody = document.getElementById('report-table-body');
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">Carregando dados...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:60px;"><i class="animate-spin" data-lucide="loader-2"></i><br><br>Carregando dados do servidor...</td></tr>';
+            lucide.createIcons();
 
             try {
                 const res = await fetch(`/api/reports/service-history?start=${start}&end=${end}`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('m_token')}` }
                 });
-                const data = await res.json();
-                
-                if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">Nenhum histórico encontrado para esta data.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = '';
-                data.forEach(h => {
-                    const total = Math.max(0, h.durationDrive || 0) + Math.max(0, h.durationService || 0);
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid var(--border)';
-                    tr.innerHTML = `
-                        <td style="padding:14px; font-weight:700;">${h.osNumber}</td>
-                        <td style="padding:14px;">${h.teamName}</td>
-                        <td style="padding:14px; color:var(--text-muted);">${h.client}</td>
-                        <td style="padding:14px;"><span style="background:rgba(245,158,11,0.1); color:#f59e0b; padding:4px 8px; border-radius:6px; font-weight:700;">${formatDuration(h.durationDrive)}</span></td>
-                        <td style="padding:14px;"><span style="background:rgba(16,185,129,0.1); color:#10b981; padding:4px 8px; border-radius:6px; font-weight:700;">${formatDuration(h.durationService)}</span></td>
-                        <td style="padding:14px; font-weight:800;">${formatDuration(total)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                reportDataCache = await res.json();
+                renderReportTable();
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--danger);">Erro ao carger relatório.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--danger);">Erro ao carregar relatório.</td></tr>';
             }
+        }
+
+        function renderReportTable() {
+            const tbody = document.getElementById('report-table-body');
+            const search = document.getElementById('report-search-tech').value.toLowerCase();
+            
+            const filtered = reportDataCache.filter(h => h.teamName.toLowerCase().includes(search));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:60px; color:var(--text-muted);">
+                    <i data-lucide="search-x" style="width:48px; height:48px; margin-bottom:15px; opacity:0.3;"></i><br>
+                    Nenhum resultado encontrado para "${search}"
+                </td></tr>`;
+                lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = '';
+            filtered.forEach(h => {
+                const total = Math.max(0, h.durationDrive || 0) + Math.max(0, h.durationService || 0);
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border)';
+                tr.style.transition = '0.2s';
+                tr.onmouseover = () => tr.style.background = 'rgba(255,255,255,0.02)';
+                tr.onmouseout = () => tr.style.background = 'transparent';
+
+                tr.innerHTML = `
+                    <td style="padding:16px; font-weight:700; color:var(--text-muted); font-family:monospace; font-size:12px;">${h.osNumber}</td>
+                    <td style="padding:16px;">
+                        <div style="font-weight:800; color:var(--primary-light); font-size:14px; letter-spacing:-0.3px;">${h.teamName}</div>
+                        <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-top:2px;">Técnico Responsável</div>
+                    </td>
+                    <td style="padding:16px;">
+                        <div style="font-weight:700; color:var(--text-main); font-size:13px;">${h.client}</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${h.subject || 'Sem Assunto'}</div>
+                    </td>
+                    <td style="padding:16px;"><span style="background:rgba(245,158,11,0.1); color:#f59e0b; padding:6px 12px; border-radius:8px; font-weight:800; font-size:12px;">${formatDuration(h.durationDrive)}</span></td>
+                    <td style="padding:16px;"><span style="background:rgba(16,185,129,0.1); color:#10b981; padding:6px 12px; border-radius:8px; font-weight:800; font-size:12px;">${formatDuration(h.durationService)}</span></td>
+                    <td style="padding:16px; font-weight:900; color:var(--text-main); font-size:15px;">${formatDuration(total)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
         }
 
         document.getElementById('playback-slider').addEventListener('input', (e) => {
