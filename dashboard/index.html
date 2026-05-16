@@ -230,6 +230,17 @@
         .os-mini-card:hover { background: rgba(255,255,255,0.06); border-color: var(--border); transform: translateX(4px); }
         .os-mini-status { width: 3px; height: 24px; border-radius: 4px; flex-shrink: 0; }
         
+        /* Right Panel Workload (Sketch Style) */
+        .tech-workload-group { margin-bottom: 24px; background: rgba(255,255,255,0.02); border-radius: 16px; padding: 12px; border: 1px solid var(--border); }
+        .tech-workload-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); }
+        .workload-item { 
+            display: flex; gap: 12px; padding: 8px; border-radius: 10px; 
+            transition: 0.2s; cursor: pointer; border: 1px solid transparent; 
+            margin-bottom: 6px; align-items: center;
+        }
+        .workload-item:hover { background: rgba(255,255,255,0.05); border-color: var(--border); transform: scale(1.01); }
+        .workload-status-dot { width: 4px; height: 32px; border-radius: 2px; flex-shrink: 0; }
+        
         /* Custom Marker */
         .custom-marker { width: 44px !important; height: 44px !important; border-radius: 14px; background: white; border: 3px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
         .marker-inner { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
@@ -1102,55 +1113,50 @@
             const list = document.getElementById('activity-list-floating');
             if (!list) return;
             list.innerHTML = '';
-            activities.forEach(a => {
-                const item = document.createElement('div');
-                item.className = 'activity-item';
+
+            // Agrupa O.S. por técnico
+            const groupedByTech = {};
+            allOS.forEach(os => {
+                const techName = os.teamId || 'Não atribuída';
+                if (!groupedByTech[techName]) groupedByTech[techName] = [];
+                groupedByTech[techName].push(os);
+            });
+
+            Object.entries(groupedByTech).forEach(([tech, osList]) => {
+                const group = document.createElement('div');
+                group.className = 'tech-workload-group';
                 
-                let icon = 'bell';
-                let color = 'var(--primary)';
-                let subtitle = a.client || a.device || 'Atividade';
-                let isStatusAlert = false;
-
-                // 🔥 Cores vibrantes para status dinâmicos
-                if (a.content.includes('iniciou deslocamento')) { 
-                    color = '#ff9100'; icon = 'truck'; isStatusAlert = true; 
-                } else if (a.content.includes('iniciou o serviço')) { 
-                    color = '#ff00ff'; icon = 'play-circle'; isStatusAlert = true; 
-                } else if (a.content.includes('finalizou o serviço')) { 
-                    color = '#00ff88'; icon = 'check-circle'; isStatusAlert = true; 
-                }
-                
-                if (a.type === 'OS' && !isStatusAlert) {
-                    icon = 'clipboard-list';
-                    color = '#10b981';
-                    const subText = a.subject && a.subject !== 'Não informado' ? a.subject : 'Sem assunto';
-                    subtitle = `OS ${a.protocol} • ${subText}`;
-                    if (a.content.includes(a.protocol)) {
-                        subtitle = `${a.client || 'Cliente não identificado'} • ${subText}`;
-                    }
-                } else if (a.type === 'Alert' && !isStatusAlert) {
-                    icon = 'alert-triangle';
-                    color = a.critical ? '#ef4444' : '#f59e0b';
-                    subtitle = `Alerta: ${a.device || 'Dispositivo'}`;
-                }
-
-                const fontScale = isStatusAlert ? '15px' : '13px';
-                const weightScale = isStatusAlert ? '800' : '700';
-                const glowEffect = isStatusAlert ? `box-shadow: 0 0 15px ${color}30; border: 1px solid ${color}40; background: ${color}08;` : '';
-
-                item.style = `padding: 12px; margin-bottom: 8px; border-radius: 12px; transition: 0.2s; display: flex; align-items: center; ${glowEffect}`;
-
-                item.innerHTML = `
-                    <div class="activity-icon" style="background: ${color}20; color: ${color}; min-width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <i data-lucide="${icon}" style="width: 22px; height: 22px; stroke-width: 2.5;"></i>
-                    </div>
-                    <div class="activity-content" style="flex: 1; margin-left: 14px;">
-                        <div style="font-size: ${fontScale}; font-weight: ${weightScale}; color: var(--text-main); line-height: 1.2; text-transform: uppercase; letter-spacing: -0.2px;">${a.content}</div>
-                        <div style="font-size: 11px; color: var(--text-muted); font-weight: 700; margin-top: 3px; opacity: 0.8;">${subtitle}</div>
-                    </div>
-                    <div class="activity-time" style="font-size: 11px; font-weight: 800; color: var(--text-muted); margin-left: 10px;">${new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                const techHeader = document.createElement('div');
+                techHeader.className = 'tech-workload-header';
+                techHeader.innerHTML = `
+                    <div style="font-weight: 800; font-size: 13px; color: var(--primary-light);">${tech}</div>
+                    <div style="font-size: 11px; font-weight: 700; opacity: 0.6;">${osList.length} O.S.</div>
                 `;
-                list.appendChild(item);
+                group.appendChild(techHeader);
+
+                osList.forEach(os => {
+                    const statusInfo = STATUS_MAP[os.status] || { label: 'Pendente', color: '#94a3b8', icon: 'clock' };
+                    const item = document.createElement('div');
+                    item.className = 'workload-item';
+                    item.onclick = () => focusOS(os.ixcId);
+                    
+                    item.innerHTML = `
+                        <div class="workload-status-dot" style="background: ${statusInfo.color}"></div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="font-size: 12px; font-weight: 700;">OS ${os.number} - ${os.client}</div>
+                                <div style="font-size: 9px; font-weight: 800; color: ${statusInfo.color}; text-transform: uppercase; background: ${statusInfo.color}15; padding: 2px 6px; border-radius: 4px;">${statusInfo.label}</div>
+                            </div>
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 4px;">
+                                <i data-lucide="map-pin" style="width: 10px; height: 10px;"></i>
+                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">${os.address || 'Sem endereço'}</span>
+                            </div>
+                        </div>
+                    `;
+                    group.appendChild(item);
+                });
+
+                list.appendChild(group);
             });
             lucide.createIcons();
         }
