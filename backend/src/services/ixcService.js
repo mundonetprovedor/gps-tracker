@@ -291,12 +291,43 @@ async function syncIXCServiceOrders(io) {
             }
         }
 
+        // Função interna para reformatar o endereço do IXC (inverter a ordem de trás pra frente)
+        const reformatAddress = (rawAddr) => {
+            if (!rawAddr) return '';
+            // Exemplo: "MA São Luís 65000-000 Fátima - Travessa do Mercado, 75"
+            // Queremos: "Travessa do Mercado, 75 - Fátima, São Luís - MA"
+            try {
+                const parts = rawAddr.split(' - ');
+                if (parts.length >= 2) {
+                    const streetInfo = parts[parts.length - 1]; // "Travessa do Mercado, 75"
+                    const cityInfo = parts[0]; // "MA São Luís 65000-000 Fátima" (ops, Fátima está aqui ou no meio?)
+                    
+                    // Se tiver mais de 2 partes, a do meio geralmente é o bairro
+                    if (parts.length === 3) {
+                        return `${parts[2]} - ${parts[1]}, ${parts[0]}`;
+                    }
+                    
+                    // Se tiver só 2 partes, tentamos quebrar a primeira parte para pegar o bairro
+                    // "MA São Luís 65000-000 Fátima" -> Pega a última palavra como bairro
+                    const cityWords = cityInfo.split(' ');
+                    const uf = cityWords[0];
+                    const neighborhood = cityWords[cityWords.length - 1];
+                    const city = cityWords.slice(1, cityWords.length - 1).join(' ').replace(/\d{5}-\d{3}/, '').trim();
+                    
+                    return `${streetInfo} - ${neighborhood}, ${city} - ${uf}`;
+                }
+            } catch (e) {
+                return rawAddr; // Se falhar, mantém o original
+            }
+            return rawAddr;
+        };
+
         await ServiceOrder.findOneAndUpdate(
           { ixcId: os.id },
           {
             number: os.protocolo,
             client: clientName,
-            address: os.endereco || '',
+            address: reformatAddress(os.endereco),
             lat: parseFloat(os.latitude) || 0,
             lng: parseFloat(os.longitude) || 0,
             status: os.status,
