@@ -792,10 +792,14 @@
                 renderTeamsPanel();
                 updateMarkers();
             });
-            socket.on('team_location_update', data => {
-                const id = data.id || data.socketId;
-                teams[id] = data.team;
-                updateMarker(id, data.team);
+            socket.on('location_update', data => {
+                console.log('📍 Recebi atualização de localização:', data);
+                if (!teams[data.teamId]) {
+                    console.log('🆕 Novo técnico detectado via GPS:', data.teamId);
+                    teams[data.teamId] = { id: data.teamId, name: data.name || `Técnico ${data.teamId}` };
+                }
+                teams[data.teamId] = { ...teams[data.teamId], ...data, lastLocation: { lat: data.lat, lng: data.lng }, lastSeen: data.lastSeen };
+                updateMarkers();
                 renderTeamsPanel();
             });
             socket.on('team_removed', id => {
