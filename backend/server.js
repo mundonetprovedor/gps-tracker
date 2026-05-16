@@ -467,11 +467,16 @@ const handleOwnTracksUpdate = async (req, res) => {
           continue;
         }
 
+        // Tenta buscar o nome do técnico se já existir no banco para não ficar anônimo no painel
+        let team = await Team.findOne({ id: String(teamId) });
+        let teamName = team ? team.name : `Técnico ${teamId}`;
+
         const update = {
           lat: loc.lat,
           lng: loc.lon,
           lastSeen: loc.tst ? new Date(loc.tst * 1000) : new Date(),
-          status: 'Online'
+          status: 'Online',
+          name: teamName // Garante que o nome seja mantido ou preenchido
         };
 
         // Atualiza técnico
