@@ -264,29 +264,31 @@
             justify-content: center;
         }
         .team-marker-label {
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
             color: white;
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-weight: 800;
-            font-size: 12px;
-            border: 1px solid var(--accent);
-            margin-bottom: 4px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 10px;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            margin-bottom: 3px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
             white-space: nowrap;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
         .team-marker-icon-box {
             background-color: var(--primary);
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
+            border-radius: 50%;
             border: 2px solid white;
             color: white;
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+            transition: transform 0.5s ease-in-out, background-color 0.3s ease;
         }
         .route-line {
             stroke-dasharray: 8, 8;
@@ -1228,7 +1230,7 @@
                 <div class="team-marker-container">
                     <div class="team-marker-label">${team.name}</div>
                     <div class="team-marker-icon-box" style="background-color: ${color}; transform: rotate(${team.lastLocation.heading || 0}deg)">
-                        <i data-lucide="${iconName}" style="width: 22px; height: 22px;"></i>
+                        <i data-lucide="${iconName}" style="width: 16px; height: 16px;"></i>
                     </div>
                 </div>
             `;
@@ -1236,8 +1238,8 @@
             const icon = L.divIcon({
                 className: 'custom-team-div-icon',
                 html: iconHtml,
-                iconSize: [40, 60],
-                iconAnchor: [20, 50]
+                iconSize: [30, 50],
+                iconAnchor: [15, 42]
             });
 
             if (!markers[id]) {
