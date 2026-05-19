@@ -59,8 +59,8 @@ class GpsTaskHandler extends TaskHandler {
 
       _positionStream = Geolocator.getPositionStream(
         locationSettings: AndroidSettings(
-          accuracy: LocationAccuracy.best,
-          distanceFilter: 0,
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 3,
           intervalDuration: const Duration(seconds: 5),
         )
       ).listen((Position position) async {
@@ -217,8 +217,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
       iosNotificationOptions: const IOSNotificationOptions(showNotification: true),
       foregroundTaskOptions: const ForegroundTaskOptions(
         interval: 5000, 
-        allowWakeLock: true,
-        allowWifiLock: true,
+        allowWakeLock: false,
+        allowWifiLock: false,
       ),
     );
   }
