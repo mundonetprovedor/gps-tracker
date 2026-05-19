@@ -160,7 +160,7 @@
             border-radius: 12px; display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: 0.2s; color: white;
         }
-        .map-btn:hover { background: var(--primary); }
+        .map-btn:hover, .map-btn.active { background: var(--primary); border-color: var(--primary-light); }
 
         .search-bar-floating {
             width: 400px; background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
@@ -573,6 +573,7 @@
                 <div class="map-btn" onclick="setMapLayer('standard')"><i data-lucide="map"></i></div>
                 <div class="map-btn" onclick="setMapLayer('satellite')"><i data-lucide="layers"></i></div>
                 <div class="map-btn" onclick="centerMap()"><i data-lucide="crosshair"></i></div>
+                <div class="map-btn" id="clustering-toggle" onclick="toggleClustering()" title="Desativar Agrupamento de O.S."><i data-lucide="boxes"></i></div>
             </div>
 
             <!-- Playback Control Panel -->
@@ -624,6 +625,7 @@
         let currentStatusFilter = 'Online';
         let selectedSubjects = []; // Lista de nomes de assuntos selecionados
         let allOS = []; // Cache de todas as OS carregadas
+        let isClusteringEnabled = true;
 
         // Playback State
         let historyData = [];
@@ -670,6 +672,43 @@
                 btn.classList.remove('active');
                 if (trafficLayer) map.removeLayer(trafficLayer);
                 showToast('Camada de trânsito desativada', 'Warning');
+            }
+        }
+
+        function toggleClustering() {
+            isClusteringEnabled = !isClusteringEnabled;
+            
+            const btn = document.getElementById('clustering-toggle');
+            if (btn) {
+                btn.classList.toggle('active', !isClusteringEnabled);
+                btn.setAttribute('title', isClusteringEnabled ? 'Desativar Agrupamento de O.S.' : 'Ativar Agrupamento de O.S.');
+            }
+
+            if (isClusteringEnabled) {
+                showToast('Agrupamento de O.S. ativado', 'Warning');
+            } else {
+                showToast('Agrupamento desativado: Exibindo todas as O.S.', 'Warning');
+            }
+
+            // Remove a camada de agrupamento atual do mapa
+            map.removeLayer(osClusterGroup);
+
+            // Cria a nova camada de acordo com a opção de agrupamento
+            if (isClusteringEnabled) {
+                osClusterGroup = L.markerClusterGroup({
+                    showCoverageOnHover: false,
+                    maxClusterRadius: 50,
+                    spiderfyOnMaxZoom: true
+                });
+            } else {
+                osClusterGroup = L.featureGroup();
+            }
+
+            osClusterGroup.addTo(map);
+
+            // Re-adiciona os marcadores atuais na nova camada
+            if (Array.isArray(allOS)) {
+                updateOSMarkers(allOS);
             }
         }
 
