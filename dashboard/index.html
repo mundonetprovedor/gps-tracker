@@ -1050,10 +1050,12 @@
             Object.values(routeLines).forEach(l => map.removeLayer(l));
             routeLines = {};
             osList.forEach(os => {
+                // Exibe a linha de rota APENAS se a O.S. estiver em status de "Deslocamento" (DS)
+                if (os.status !== 'DS') return;
                 if (!os.teamId || !os.lat || !os.lng) return;
                 const team = teams[os.teamId] || Object.values(teams).find(t => t.name === os.teamId || t.id === os.teamId);
                 if (team && team.lastLocation) {
-                    const statusInfo = STATUS_MAP[os.status] || { color: '#3b82f6' };
+                    const statusInfo = STATUS_MAP[os.status] || { color: '#f59e0b' };
                     routeLines[os.ixcId] = L.polyline([[team.lastLocation.lat, team.lastLocation.lng], [os.lat, os.lng]], { color: statusInfo.color, weight: 3, opacity: 0.6, className: 'route-line' }).addTo(map);
                 }
             });
