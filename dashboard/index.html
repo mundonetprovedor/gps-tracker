@@ -885,7 +885,7 @@
 
             const socket = io(window.location.origin);
             socket.on('update_teams', data => {
-                teams = data;
+                teams = { ...teams, ...data };
                 renderTeamsPanel();
                 updateMarkers();
             });
