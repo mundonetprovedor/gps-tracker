@@ -39,15 +39,20 @@ class GpsTaskHandler extends TaskHandler {
     _sendLog('1. Isolate iniciado');
     
     try {
-      final customData = await FlutterForegroundTask.getData<Map<String, dynamic>>(key: 'trackingData');
-      final String teamId = customData?['teamId'] ?? '';
-      final String teamName = customData?['teamName'] ?? "Técnico";
+      final customData = await FlutterForegroundTask.getData<dynamic>(key: 'trackingData');
+      final String teamId = customData?['teamId']?.toString() ?? '';
+      final String teamName = customData?['teamName']?.toString() ?? "Técnico";
       
       _sendLog('2. Técnico: $teamName (ID: $teamId)');
       _sendLog('3. Ativando GPS...');
       
       LocationPermission permission = await Geolocator.checkPermission();
       _sendLog('4. Permissão GPS: $permission');
+
+      // Envia atualização inicial
+      if (teamId.isNotEmpty) {
+        _sendCurrentLocation(teamId);
+      }
 
       _positionStream = Geolocator.getPositionStream(
         locationSettings: AndroidSettings(
@@ -56,36 +61,10 @@ class GpsTaskHandler extends TaskHandler {
           intervalDuration: const Duration(seconds: 5),
         )
       ).listen((Position position) async {
-        _sendLog('5. GPS: Localização OK 📍');
-        
-        int battLevel = await _battery.batteryLevel;
-        
-        try {
-          final url = Uri.parse('$kServerUrl/traccar').replace(
-            queryParameters: {
-              'id': teamId,
-              'lat': position.latitude.toString(),
-              'lon': position.longitude.toString(),
-              'speed': (position.speed * 1.94384).toString(), // convert m/s to knots
-              'heading': position.heading.toString(),
-              'battery': battLevel.toString(),
-            },
-          );
-
-          final response = await http.get(url).timeout(const Duration(seconds: 10));
-          if (response.statusCode == 200) {
-            _sendLog('6. Dados: ENVIADOS 🚀');
-          } else {
-            _sendLog('Erro HTTP: ${response.statusCode} ❌');
-          }
-        } catch (e) {
-          _sendLog('Erro Envio: $e ❌');
+        _sendLog('5. GPS: OK 📍');
+        if (teamId.isNotEmpty) {
+          await _sendTelemetry(teamId, position);
         }
-        
-        FlutterForegroundTask.updateService(
-          notificationTitle: 'Mundonet Tracker • OK',
-          notificationText: 'Sincronizado às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}:${DateTime.now().second.toString().padLeft(2, '0')}',
-        );
       }, onError: (err) => _sendLog('ERRO GPS: $err ❌'));
       
     } catch (e) {
@@ -100,7 +79,59 @@ class GpsTaskHandler extends TaskHandler {
   }
   
   @override
-  void onRepeatEvent(DateTime timestamp, SendPort? sendPort) {}
+  void onRepeatEvent(DateTime timestamp, SendPort? sendPort) async {
+    try {
+      final customData = await FlutterForegroundTask.getData<dynamic>(key: 'trackingData');
+      final String teamId = customData?['teamId']?.toString() ?? '';
+      if (teamId.isNotEmpty) {
+        _sendCurrentLocation(teamId);
+      }
+    } catch (e) {
+      _sendLog('Erro Repeat: $e');
+    }
+  }
+
+  Future<void> _sendCurrentLocation(String teamId) async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 5),
+      );
+      _sendLog('GPS (Ping): OK 📍');
+      await _sendTelemetry(teamId, position);
+    } catch (e) {
+      _sendLog('Erro obter GPS: $e');
+    }
+  }
+
+  Future<void> _sendTelemetry(String teamId, Position position) async {
+    int battLevel = await _battery.batteryLevel;
+    try {
+      final url = Uri.parse('$kServerUrl/traccar').replace(
+        queryParameters: {
+          'id': teamId,
+          'lat': position.latitude.toString(),
+          'lon': position.longitude.toString(),
+          'speed': (position.speed * 1.94384).toString(), // m/s to knots
+          'heading': position.heading.toString(),
+          'battery': battLevel.toString(),
+        },
+      );
+
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        _sendLog('Dados: ENVIADOS 🚀');
+        FlutterForegroundTask.updateService(
+          notificationTitle: 'Mundonet Tracker • OK',
+          notificationText: 'Sincronizado às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}:${DateTime.now().second.toString().padLeft(2, '0')}',
+        );
+      } else {
+        _sendLog('Erro HTTP: ${response.statusCode} ❌');
+      }
+    } catch (e) {
+      _sendLog('Erro Envio: $e ❌');
+    }
+  }
 }
 
 class GpsTrackerApp extends StatelessWidget {
