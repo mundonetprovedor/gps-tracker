@@ -332,6 +332,7 @@ app.get('/api/optimize-route/:teamId', auth, async (req, res) => {
 const handleTraccarUpdate = async (req, res) => {
   try {
     const data = { ...req.query, ...req.body };
+    logger.info(`[TRACCAR] Requisição recebida - Query: ${JSON.stringify(req.query)} | Body: ${JSON.stringify(req.body)}`);
     
     // 1. Tenta pegar do nível principal ou do objeto 'location'
     let id = data.id || data.deviceid || data.device_id || data.uniqueId || data.location?.extras?.id || data.location?.extras?.device_id || data.device_id;
@@ -380,6 +381,8 @@ const handleTraccarUpdate = async (req, res) => {
     const heading = data.heading || data.location?.coords?.heading || 0;
     const odometer = data.location?.odometer || data.odometer || 0;
     const activity = data.location?.activity?.type || 'unknown';
+
+    logger.info(`[TRACCAR] Sucesso: Dispositivo ${deviceId} | Lat: ${latitude} | Lon: ${longitude} | Bateria: ${battery}% | Velocidade: ${speedNum.toFixed(1)} km/h`);
 
     if (deviceId === '8' || deviceId === '9') {
       logger.info(`[DEBUG BRUTO] Dispositivo: ${deviceId} | Dados: %j`, data);
