@@ -1151,23 +1151,58 @@
                         <i data-lucide="chevron-down" class="toggle-icon" style="width:14px; opacity:0.4; transition: 0.3s;"></i>
                     </div>
                     <div class="team-os-list" id="os-list-${id}">
-                        ${teamOS.length > 0 ? teamOS.map(os => {
-                            const statusInfo = STATUS_MAP[os.status] || { label: 'Pendente', color: '#94a3b8' };
-                            return `
-                                <div class="os-mini-card" onclick="event.stopPropagation(); focusOS('${os.ixcId}')">
-                                    <div class="os-mini-status" style="background:${statusInfo.color}"></div>
-                                    <div style="flex:1">
-                                        <div style="display:flex; justify-content:space-between;">
-                                            <span style="font-weight:700; font-size:11px;">OS ${os.number}</span>
-                                            <span style="font-size:9px; font-weight:800; color:${statusInfo.color}; text-transform:uppercase;">${statusInfo.label}</span>
-                                        </div>
-                                        <div style="font-size:10px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
-                                            ${os.client}
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '<div style="font-size:10px; color:var(--text-muted); padding:10px; text-align:center; opacity:0.5;">Nenhuma O.S. agendada para hoje</div>'}
+                        ${(() => {
+                            if (teamOS.length === 0) {
+                                return '<div style="font-size:10px; color:var(--text-muted); padding:10px; text-align:center; opacity:0.5;">Nenhuma O.S. agendada para hoje</div>';
+                            }
+                            
+                            const shifts = { manha: [], tarde: [], outros: [] };
+                            teamOS.forEach(os => {
+                                if (os.scheduledDate) {
+                                    const date = new Date(os.scheduledDate);
+                                    const hour = date.getHours();
+                                    if (hour >= 8 && hour < 13) {
+                                        shifts.manha.push(os);
+                                    } else if (hour >= 13 && hour < 19) {
+                                        shifts.tarde.push(os);
+                                    } else {
+                                        shifts.outros.push(os);
+                                    }
+                                } else {
+                                    shifts.outros.push(os);
+                                }
+                            });
+
+                            const renderShiftMiniHtml = (title, listItems) => {
+                                if (listItems.length === 0) return '';
+                                return `
+                                    <div style="font-size: 9px; font-weight: 800; color: var(--accent); text-transform: uppercase; padding: 6px 10px 2px 10px; letter-spacing: 0.5px; opacity: 0.85;">${title}</div>
+                                    ${listItems.map(os => {
+                                        const statusInfo = STATUS_MAP[os.status] || { label: 'Pendente', color: '#94a3b8' };
+                                        const timeStr = os.scheduledDate ? new Date(os.scheduledDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+                                        const timeBadge = timeStr ? `<span style="font-size: 8px; background: rgba(56, 189, 248, 0.15); color: var(--accent); padding: 1px 4px; border-radius: 3px; font-weight: 800; margin-left: 4px;">${timeStr}</span>` : '';
+                                        return `
+                                            <div class="os-mini-card" onclick="event.stopPropagation(); focusOS('${os.ixcId}')">
+                                                <div class="os-mini-status" style="background:${statusInfo.color}"></div>
+                                                <div style="flex:1">
+                                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                                        <span style="font-weight:700; font-size:11px;">OS ${os.number} ${timeBadge}</span>
+                                                        <span style="font-size:9px; font-weight:800; color:${statusInfo.color}; text-transform:uppercase;">${statusInfo.label}</span>
+                                                    </div>
+                                                    <div style="font-size:10px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
+                                                        ${os.client}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                `;
+                            };
+
+                            return renderShiftMiniHtml('Manhã (08h - 12h)', shifts.manha) +
+                                   renderShiftMiniHtml('Tarde (14h - 18h)', shifts.tarde) +
+                                   renderShiftMiniHtml('Outros Horários', shifts.outros);
+                        })()}
                     </div>
                 `;
                 list.appendChild(container);
@@ -1235,27 +1270,80 @@
                     `;
                     group.appendChild(techHeader);
 
+                    const shifts = { manha: [], tarde: [], outros: [] };
                     osList.forEach(os => {
-                        const statusInfo = STATUS_MAP[os.status] || { label: 'Pendente', color: '#94a3b8', icon: 'clock' };
-                        const item = document.createElement('div');
-                        item.className = 'workload-item';
-                        item.onclick = () => focusOS(os.ixcId);
-                        
-                        item.innerHTML = `
-                            <div class="workload-status-dot" style="background: ${statusInfo.color}"></div>
-                            <div style="flex: 1;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <div style="font-size: 12px; font-weight: 700;">OS ${os.number} - ${os.client}</div>
-                                    <div style="font-size: 9px; font-weight: 800; color: ${statusInfo.color}; text-transform: uppercase; background: ${statusInfo.color}15; padding: 2px 6px; border-radius: 4px;">${statusInfo.label}</div>
-                                </div>
-                                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 4px;">
-                                    <i data-lucide="map-pin" style="width: 10px; height: 10px;"></i>
-                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">${os.address || 'Sem endereço'}</span>
-                                </div>
-                            </div>
-                        `;
-                        group.appendChild(item);
+                        if (os.scheduledDate) {
+                            const date = new Date(os.scheduledDate);
+                            const hour = date.getHours();
+                            if (hour >= 8 && hour < 13) {
+                                shifts.manha.push(os);
+                            } else if (hour >= 13 && hour < 19) {
+                                shifts.tarde.push(os);
+                            } else {
+                                shifts.outros.push(os);
+                            }
+                        } else {
+                            shifts.outros.push(os);
+                        }
                     });
+
+                    const renderShift = (title, listItems) => {
+                        if (listItems.length === 0) return;
+                        
+                        const shiftDiv = document.createElement('div');
+                        shiftDiv.style.marginBottom = '12px';
+                        
+                        const shiftHeader = document.createElement('div');
+                        shiftHeader.className = 'tech-workload-shift-header';
+                        shiftHeader.style.fontSize = '10px';
+                        shiftHeader.style.fontWeight = '800';
+                        shiftHeader.style.color = 'var(--accent)';
+                        shiftHeader.style.textTransform = 'uppercase';
+                        shiftHeader.style.letterSpacing = '0.5px';
+                        shiftHeader.style.padding = '6px 8px 4px 8px';
+                        shiftHeader.style.display = 'flex';
+                        shiftHeader.style.justifyContent = 'space-between';
+                        shiftHeader.style.alignItems = 'center';
+                        shiftHeader.style.opacity = '0.85';
+                        shiftHeader.innerHTML = `
+                            <span>${title}</span>
+                            <span style="opacity: 0.6; font-size: 9px; color: var(--text-muted); font-weight: 700;">${listItems.length} O.S.</span>
+                        `;
+                        shiftDiv.appendChild(shiftHeader);
+
+                        listItems.forEach(os => {
+                            const statusInfo = STATUS_MAP[os.status] || { label: 'Pendente', color: '#94a3b8', icon: 'clock' };
+                            const item = document.createElement('div');
+                            item.className = 'workload-item';
+                            item.onclick = () => focusOS(os.ixcId);
+                            
+                            const timeStr = os.scheduledDate ? new Date(os.scheduledDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+                            const timeBadge = timeStr ? `<span style="font-size: 9px; background: rgba(56, 189, 248, 0.15); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-weight: 800; white-space: nowrap;">${timeStr}</span>` : '';
+
+                            item.innerHTML = `
+                                <div class="workload-status-dot" style="background: ${statusInfo.color}"></div>
+                                <div style="flex: 1;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                                        <div style="font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">OS ${os.number} - ${os.client}</div>
+                                        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                            ${timeBadge}
+                                            <div style="font-size: 9px; font-weight: 800; color: ${statusInfo.color}; text-transform: uppercase; background: ${statusInfo.color}15; padding: 2px 6px; border-radius: 4px;">${statusInfo.label}</div>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 4px;">
+                                        <i data-lucide="map-pin" style="width: 10px; height: 10px;"></i>
+                                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">${os.address || 'Sem endereço'}</span>
+                                    </div>
+                                </div>
+                            `;
+                            shiftDiv.appendChild(item);
+                        });
+                        group.appendChild(shiftDiv);
+                    };
+
+                    renderShift('Turno Manhã (08h - 12h)', shifts.manha);
+                    renderShift('Turno Tarde (14h - 18h)', shifts.tarde);
+                    renderShift('Outros Horários', shifts.outros);
 
                     list.appendChild(group);
                 });
