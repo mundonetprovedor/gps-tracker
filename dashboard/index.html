@@ -1224,7 +1224,9 @@
                     const teamA = a[1];
                     const teamB = b[1];
                     if (teamA.status !== 'Online' && teamB.status === 'Online') return 1;
-                    return teamA.name.localeCompare(teamB.name);
+                    const nameA = teamA.name || '';
+                    const nameB = teamB.name || '';
+                    return nameA.localeCompare(nameB);
                 });
 
             sortedTeams.forEach(([id, team]) => {
@@ -1618,7 +1620,13 @@
         function renderTechFilters() {
             const container = document.getElementById('tech-checkbox-list');
             if (!container) return;
-            const techList = Object.values(teams).sort((a, b) => a.name.localeCompare(b.name));
+            const techList = Object.values(teams)
+                .filter(tech => tech && tech.id)
+                .sort((a, b) => {
+                    const nameA = a.name || 'Técnico Sem Nome';
+                    const nameB = b.name || 'Técnico Sem Nome';
+                    return nameA.localeCompare(nameB);
+                });
             if (container.children.length === techList.length) return;
             container.innerHTML = '';
             techList.forEach(tech => {
@@ -1626,9 +1634,10 @@
                 item.className = 'subject-item';
                 item.style.margin = '0';
                 const isChecked = selectedTeams.includes(String(tech.id));
+                const displayName = tech.name || `Técnico (${tech.id})`;
                 item.innerHTML = `
                     <input type="checkbox" value="${tech.id}" ${isChecked ? 'checked' : ''} onchange="handleTechFilterChange(this)">
-                    <span>${tech.name}</span>
+                    <span>${displayName}</span>
                 `;
                 container.appendChild(item);
             });
