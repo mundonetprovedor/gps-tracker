@@ -126,7 +126,7 @@ class GpsTaskHandler extends TaskHandler {
         _sendLog('Dados: ENVIADOS 🚀');
         FlutterForegroundTask.updateService(
           notificationTitle: 'Mundonet Tracker',
-          notificationText: 'Rastreamento de localização ativo',
+          notificationText: 'Status: Online',
         );
       } else {
         _sendLog('Erro HTTP: ${response.statusCode} ❌');
@@ -211,6 +211,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
           resType: ResourceType.mipmap,
           resPrefix: ResourcePrefix.ic,
           name: 'launcher',
+          backgroundColor: Color(0xFF34D399),
         ),
       ),
       iosNotificationOptions: const IOSNotificationOptions(showNotification: true),
@@ -279,7 +280,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
     final bool result = await FlutterForegroundTask.startService(
       notificationTitle: 'Mundonet Tracker',
-      notificationText: 'Iniciando...',
+      notificationText: 'Status: Online',
       callback: startCallback,
     );
 
