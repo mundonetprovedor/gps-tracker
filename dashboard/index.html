@@ -199,10 +199,11 @@
         .filter-btn { padding: 8px; cursor: pointer; color: var(--text-muted); transition: 0.2s; border-left: 1px solid var(--border); margin-left: 8px; display: flex; align-items: center; }
         .filter-btn:hover { color: white; }
         .subject-filter-panel {
-            position: absolute; right: 24px; top: 78px; width: 300px;
+            position: absolute; right: 24px; top: 78px; width: 320px;
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid var(--border);
             border-radius: 20px; z-index: 1100; display: none; flex-direction: column;
             box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            max-height: calc(100vh - 120px);
         }
         .subject-filter-panel.active { display: flex; }
         .subject-list { padding: 20px; max-height: 350px; overflow-y: auto; }
@@ -517,17 +518,56 @@
                 </div>
             </div>
 
-            <!-- Subject Filter Modal -->
+            <!-- Advanced Filter Panel -->
             <div class="subject-filter-panel" id="subject-filter-panel">
-                <div class="panel-header">
-                    <h3><i data-lucide="filter"></i> Filtrar Assuntos</h3>
+                <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; padding: 15px 20px; border-bottom: 1px solid var(--border)">
+                    <h3 style="font-size: 14px; margin: 0; display:flex; align-items:center; gap: 8px;"><i data-lucide="filter"></i> Filtros Avançados</h3>
+                    <button onclick="toggleSubjectFilter()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i data-lucide="x" style="width:16px; height:16px;"></i></button>
                 </div>
-                <div class="subject-list" id="subject-checkbox-list">
-                    <!-- Dinamicamente preenchido -->
+                
+                <div class="filter-sections-container" style="flex: 1; overflow-y: auto; padding: 15px 20px;">
+                    <!-- Seção Status -->
+                    <div class="filter-section" style="margin-bottom: 20px;">
+                        <h4 style="font-size: 11px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-weight: 800; letter-spacing: 0.5px;">Status da O.S.</h4>
+                        <div class="status-checkboxes" style="display: flex; flex-direction: column; gap: 8px;">
+                            <label class="subject-item" style="margin:0;"><input type="checkbox" value="AG" onchange="handleStatusFilterChange(this)"> <span>Agendado</span></label>
+                            <label class="subject-item" style="margin:0;"><input type="checkbox" value="DS" onchange="handleStatusFilterChange(this)"> <span>Deslocamento</span></label>
+                            <label class="subject-item" style="margin:0;"><input type="checkbox" value="EX" onchange="handleStatusFilterChange(this)"> <span>Execução</span></label>
+                            <label class="subject-item" style="margin:0;"><input type="checkbox" value="F" onchange="handleStatusFilterChange(this)"> <span>Finalizado</span></label>
+                            <label class="subject-item" style="margin:0;"><input type="checkbox" value="A,AN,EN,AS" onchange="handleStatusFilterChange(this)"> <span>Aberto / Outros</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Seção Turno -->
+                    <div class="filter-section" style="margin-bottom: 20px;">
+                        <h4 style="font-size: 11px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-weight: 800; letter-spacing: 0.5px;">Turno de Trabalho</h4>
+                        <div class="shift-checkboxes" style="display: flex; flex-direction: column; gap: 8px;">
+                            <label class="subject-item" style="margin:0;"><input type="checkbox" value="manha" onchange="handleShiftFilterChange(this)"> <span>Manhã (08h - 12h)</span></label>
+                            <label class="subject-item" style="margin:0;"><input type="checkbox" value="tarde" onchange="handleShiftFilterChange(this)"> <span>Tarde (14h - 18h)</span></label>
+                            <label class="subject-item" style="margin:0;"><input type="checkbox" value="outros" onchange="handleShiftFilterChange(this)"> <span>Outros Horários</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Seção Técnico -->
+                    <div class="filter-section" style="margin-bottom: 20px;">
+                        <h4 style="font-size: 11px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-weight: 800; letter-spacing: 0.5px;">Técnicos</h4>
+                        <div id="tech-checkbox-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; padding-right: 5px;">
+                            <!-- Preenchido dinamicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Seção Assunto -->
+                    <div class="filter-section" style="margin-bottom: 10px;">
+                        <h4 style="font-size: 11px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; font-weight: 800; letter-spacing: 0.5px;">Assunto da O.S.</h4>
+                        <div id="subject-checkbox-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; padding-right: 5px;">
+                            <!-- Preenchido dinamicamente -->
+                        </div>
+                    </div>
                 </div>
-                <div class="filter-footer">
-                    <button class="btn-clear" onclick="clearSubjectFilter()">Limpar</button>
-                    <button class="btn-apply" onclick="toggleSubjectFilter()">Fechar</button>
+
+                <div class="filter-footer" style="padding: 15px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px;">
+                    <button class="btn-clear" onclick="clearAllFilters()">Limpar Tudo</button>
+                    <button class="btn-apply" onclick="toggleSubjectFilter()">Aplicar</button>
                 </div>
             </div>
 
@@ -624,6 +664,9 @@
         let selectedTeamId = null;
         let currentStatusFilter = 'Online';
         let selectedSubjects = []; // Lista de nomes de assuntos selecionados
+        let selectedStatuses = []; // Lista de status selecionados
+        let selectedShifts = [];    // Lista de turnos selecionados
+        let selectedTeams = [];     // Lista de IDs de técnicos selecionados
         let allOS = []; // Cache de todas as OS carregadas
         let isClusteringEnabled = true;
 
@@ -1018,6 +1061,7 @@
                     updateOSMarkers(allOS);
                     updateRouteLines(allOS);
                     renderSubjectFilters(allOS);
+                    renderTechFilters();
                 }
                 
                 renderActivitiesPanel(activities);
@@ -1038,6 +1082,39 @@
                 
                 // Aplica Filtro de Assunto
                 if (selectedSubjects.length > 0 && !selectedSubjects.includes(os.subject)) return;
+
+                // Aplica Filtro de Status
+                if (selectedStatuses.length > 0) {
+                    let isMatch = false;
+                    for (const filterVal of selectedStatuses) {
+                        const values = filterVal.split(',');
+                        if (values.includes(os.status)) {
+                            isMatch = true;
+                            break;
+                        }
+                    }
+                    if (!isMatch) return;
+                }
+
+                // Aplica Filtro de Turno
+                if (selectedShifts.length > 0) {
+                    let osShift = 'outros';
+                    if (os.scheduledDate) {
+                        const date = new Date(os.scheduledDate);
+                        const hour = date.getHours();
+                        if (hour >= 7 && hour < 13) {
+                            osShift = 'manha';
+                        } else if (hour >= 13 && hour < 19) {
+                            osShift = 'tarde';
+                        }
+                    }
+                    if (!selectedShifts.includes(osShift)) return;
+                }
+
+                // Aplica Filtro de Técnico
+                if (selectedTeams.length > 0) {
+                    if (!selectedTeams.includes(String(os.teamId))) return;
+                }
 
                 const statusInfo = STATUS_MAP[os.status] || { label: 'Outro', color: '#fff', icon: 'help-circle' };
                 const icon = L.divIcon({
@@ -1092,6 +1169,39 @@
                 // Exibe a linha de rota APENAS se a O.S. estiver em status de "Deslocamento" (DS)
                 if (os.status !== 'DS') return;
                 if (!os.teamId || !os.lat || !os.lng) return;
+
+                // Aplica Filtro de Assunto
+                if (selectedSubjects.length > 0 && !selectedSubjects.includes(os.subject)) return;
+
+                // Aplica Filtro de Status
+                if (selectedStatuses.length > 0) {
+                    let isMatch = false;
+                    for (const filterVal of selectedStatuses) {
+                        const values = filterVal.split(',');
+                        if (values.includes(os.status)) {
+                            isMatch = true;
+                            break;
+                        }
+                    }
+                    if (!isMatch) return;
+                }
+
+                // Aplica Filtro de Turno
+                if (selectedShifts.length > 0) {
+                    let osShift = 'outros';
+                    if (os.scheduledDate) {
+                        const date = new Date(os.scheduledDate);
+                        const hour = date.getHours();
+                        if (hour >= 7 && hour < 13) osShift = 'manha';
+                        else if (hour >= 13 && hour < 19) osShift = 'tarde';
+                    }
+                    if (!selectedShifts.includes(osShift)) return;
+                }
+
+                // Aplica Filtro de Técnico
+                if (selectedTeams.length > 0) {
+                    if (!selectedTeams.includes(String(os.teamId))) return;
+                }
                 const team = teams[os.teamId] || Object.values(teams).find(t => t.name === os.teamId || t.id === os.teamId);
                 if (team && team.lastLocation) {
                     const statusInfo = STATUS_MAP[os.status] || { color: '#f59e0b' };
@@ -1470,6 +1580,66 @@
         function clearSubjectFilter() {
             selectedSubjects = [];
             document.querySelectorAll('#subject-checkbox-list input').forEach(c => c.checked = false);
+            updateOSMarkers(allOS);
+            updateRouteLines(allOS);
+        }
+
+        function handleStatusFilterChange(checkbox) {
+            if (checkbox.checked) {
+                selectedStatuses.push(checkbox.value);
+            } else {
+                selectedStatuses = selectedStatuses.filter(s => s !== checkbox.value);
+            }
+            updateOSMarkers(allOS);
+            updateRouteLines(allOS);
+        }
+
+        function handleShiftFilterChange(checkbox) {
+            if (checkbox.checked) {
+                selectedShifts.push(checkbox.value);
+            } else {
+                selectedShifts = selectedShifts.filter(s => s !== checkbox.value);
+            }
+            updateOSMarkers(allOS);
+            updateRouteLines(allOS);
+        }
+
+        function handleTechFilterChange(checkbox) {
+            const val = String(checkbox.value);
+            if (checkbox.checked) {
+                selectedTeams.push(val);
+            } else {
+                selectedTeams = selectedTeams.filter(t => t !== val);
+            }
+            updateOSMarkers(allOS);
+            updateRouteLines(allOS);
+        }
+
+        function renderTechFilters() {
+            const container = document.getElementById('tech-checkbox-list');
+            if (!container) return;
+            const techList = Object.values(teams).sort((a, b) => a.name.localeCompare(b.name));
+            if (container.children.length === techList.length) return;
+            container.innerHTML = '';
+            techList.forEach(tech => {
+                const item = document.createElement('label');
+                item.className = 'subject-item';
+                item.style.margin = '0';
+                const isChecked = selectedTeams.includes(String(tech.id));
+                item.innerHTML = `
+                    <input type="checkbox" value="${tech.id}" ${isChecked ? 'checked' : ''} onchange="handleTechFilterChange(this)">
+                    <span>${tech.name}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function clearAllFilters() {
+            selectedSubjects = [];
+            selectedStatuses = [];
+            selectedShifts = [];
+            selectedTeams = [];
+            document.querySelectorAll('#subject-filter-panel input[type="checkbox"]').forEach(c => c.checked = false);
             updateOSMarkers(allOS);
             updateRouteLines(allOS);
         }

@@ -22,6 +22,14 @@ let subjectCache = {};
 let clientCache = {};
 let techCache = {};
 
+let lastOSSyncTime = 0;
+let lastTeamSyncTime = 0;
+
+// Cache TTLs em milissegundos
+const OS_CACHE_TTL = 90000; // 1.5 minutos
+const TEAM_CACHE_TTL = 300000; // 5 minutos
+
+
 async function getTechnicianName(id) {
   if (!id) return 'Técnico';
   const sId = String(id);
@@ -146,6 +154,11 @@ function parseIXCDate(dateStr) {
 
 
 async function syncIXCTeamCollaborators() {
+  const now = Date.now();
+  if (now - lastTeamSyncTime < TEAM_CACHE_TTL) {
+    logger.info('[IXC Cache] Usando cache para colaboradores (última sincronização há menos de 5 min)');
+    return;
+  }
   logger.info('[IXC] Sincronizando Equipes e Colaboradores...');
   try {
     const employeesResponse = await fetch(`${IXC_URL}/funcionarios`, {
@@ -190,6 +203,7 @@ async function syncIXCTeamCollaborators() {
           );
         }
       }
+      lastTeamSyncTime = Date.now();
     }
   } catch (error) {
     logger.error('[IXC] Erro no cruzamento de dados: %s', error.message);
@@ -197,6 +211,11 @@ async function syncIXCTeamCollaborators() {
 }
 
 async function syncIXCServiceOrders(io) {
+  const now = Date.now();
+  if (now - lastOSSyncTime < OS_CACHE_TTL) {
+    logger.info('[IXC Cache] Ignorando sincronização de O.S. (último sync há menos de 1.5 min)');
+    return;
+  }
   await syncIXCTeamCollaborators();
   try {
     // 1. Busca as O.S. ativas do IXC    // Força o fuso horário de Brasília (UTC-3) para o filtro do IXC
@@ -407,6 +426,7 @@ async function syncIXCServiceOrders(io) {
     );
     
     logger.info('[IXC] Sincronização de O.S. concluída.');
+    lastOSSyncTime = Date.now();
     if (io) io.emit('os_synced');
   } catch (error) {
     logger.error('[IXC] Erro na sincronização: %s', error.message);

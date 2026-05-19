@@ -528,8 +528,8 @@ server.listen(PORT, '0.0.0.0', () => {
   
   // Sincronização Inicial
   setTimeout(() => syncIXCServiceOrders(io), 5000);
-  // Sincronização Periódica (5 min)
-  setInterval(() => syncIXCServiceOrders(io), 5 * 60 * 1000);
+  // Sincronização Periódica (2 min)
+  setInterval(() => syncIXCServiceOrders(io), 2 * 60 * 1000);
 
   // A cada 5 minutos, verifica técnicos offline por inatividade (mais de 15 min)
   cron.schedule('*/5 * * * *', async () => {
