@@ -3,14 +3,14 @@ import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:http/http.dart' as http;
 
-const String kServerUrl = "https://mundonet-gps.49p1k1.easypanel.host";
+const String kServerUrl = "https://mapa.mundonetbandalarga.com.br";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,6 @@ void startCallback() {
 }
 
 class GpsTaskHandler extends TaskHandler {
-  IO.Socket? _socket;
   StreamSubscription<Position>? _positionStream;
   final Battery _battery = Battery();
   final Connectivity _connectivity = Connectivity();
@@ -41,34 +40,14 @@ class GpsTaskHandler extends TaskHandler {
     
     try {
       final customData = await FlutterForegroundTask.getData<Map<String, dynamic>>(key: 'trackingData');
-      _sendLog('2. Dados carregados: ${customData?['teamName']}');
-
-      final String teamId = customData?['teamId'] ?? 'device_${DateTime.now().millisecondsSinceEpoch}';
+      final String teamId = customData?['teamId'] ?? '';
       final String teamName = customData?['teamName'] ?? "Técnico";
-
-      _sendLog('3. Conectando: $kServerUrl');
-      _socket = IO.io(kServerUrl, <String, dynamic>{
-        'transports': ['websocket', 'polling'],
-        'autoConnect': true,
-        'forceNew': true,
-        'reconnection': true,
-        'reconnectionDelay': 1000,
-        'reconnectionAttempts': 500,
-      });
-
-      _socket?.onConnect((_) {
-        _sendLog('4. Socket: CONECTADO ✅');
-        _socket?.emit('register_team', {'teamId': teamId, 'name': teamName});
-      });
-
-      _socket?.onConnectError((err) => _sendLog('Erro Socket: $err'));
-      _socket?.onConnectTimeout((_) => _sendLog('Timeout Socket ⏳'));
-
-      _sendLog('5. Ativando GPS...');
       
-      // Verificar permissão antes de ouvir
+      _sendLog('2. Técnico: $teamName (ID: $teamId)');
+      _sendLog('3. Ativando GPS...');
+      
       LocationPermission permission = await Geolocator.checkPermission();
-      _sendLog('6. Permissão GPS: $permission');
+      _sendLog('4. Permissão GPS: $permission');
 
       _positionStream = Geolocator.getPositionStream(
         locationSettings: AndroidSettings(
@@ -77,30 +56,35 @@ class GpsTaskHandler extends TaskHandler {
           intervalDuration: const Duration(seconds: 5),
         )
       ).listen((Position position) async {
-        _sendLog('7. GPS: Localização OK 📍');
+        _sendLog('5. GPS: Localização OK 📍');
         
         int battLevel = await _battery.batteryLevel;
-        var connResult = await _connectivity.checkConnectivity();
-        String network = connResult.toString().split('.').last;
+        
+        try {
+          final url = Uri.parse('$kServerUrl/traccar').replace(
+            queryParameters: {
+              'id': teamId,
+              'lat': position.latitude.toString(),
+              'lon': position.longitude.toString(),
+              'speed': (position.speed * 1.94384).toString(), // convert m/s to knots
+              'heading': position.heading.toString(),
+              'battery': battLevel.toString(),
+            },
+          );
 
-        if (_socket != null && _socket!.connected) {
-          _socket!.emit('update_location', {
-            'lat': position.latitude, 
-            'lng': position.longitude, 
-            'speed': position.speed * 3.6,
-            'heading': position.heading,
-            'battery': battLevel,
-            'network': network,
-            'status': 'Online'
-          });
-          _sendLog('8. Dados: ENVIADOS 🚀');
-        } else {
-          _sendLog('Aguardando Socket... ⏳');
+          final response = await http.get(url).timeout(const Duration(seconds: 10));
+          if (response.statusCode == 200) {
+            _sendLog('6. Dados: ENVIADOS 🚀');
+          } else {
+            _sendLog('Erro HTTP: ${response.statusCode} ❌');
+          }
+        } catch (e) {
+          _sendLog('Erro Envio: $e ❌');
         }
         
         FlutterForegroundTask.updateService(
           notificationTitle: 'Mundonet Tracker • OK',
-          notificationText: 'Sincronizado às ${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}',
+          notificationText: 'Sincronizado às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}:${DateTime.now().second.toString().padLeft(2, '0')}',
         );
       }, onError: (err) => _sendLog('ERRO GPS: $err ❌'));
       
@@ -113,7 +97,6 @@ class GpsTaskHandler extends TaskHandler {
   void onDestroy(DateTime timestamp, SendPort? sendPort) async {
     _sendLog('Serviço finalizado');
     await _positionStream?.cancel();
-    _socket?.disconnect();
   }
   
   @override
@@ -146,6 +129,7 @@ class TrackerScreen extends StatefulWidget {
 }
 
 class _TrackerScreenState extends State<TrackerScreen> {
+  final TextEditingController _idController = TextEditingController();
   final TextEditingController _controller = TextEditingController();
   bool _isRunning = false;
   final List<String> _logs = [];
@@ -154,7 +138,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStoredName();
+    _loadStoredData();
     _initForegroundTask();
     _checkStatus();
   }
@@ -162,6 +146,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
   @override
   void dispose() {
     _closeReceivePort();
+    _idController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -170,10 +156,11 @@ class _TrackerScreenState extends State<TrackerScreen> {
     _receivePort = null;
   }
 
-  Future<void> _loadStoredName() async {
+  Future<void> _loadStoredData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _controller.text = prefs.getString('currentTeamName') ?? "";
+      _idController.text = prefs.getString('currentTeamId') ?? "";
     });
   }
 
@@ -227,8 +214,12 @@ class _TrackerScreenState extends State<TrackerScreen> {
   }
 
   Future<void> _start() async {
-    if (_controller.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Identifique o técnico')));
+    if (_idController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Digite o ID do Técnico (IXC)')));
+      return;
+    }
+    if (_controller.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Identifique o nome do técnico')));
       return;
     }
     
@@ -244,11 +235,13 @@ class _TrackerScreenState extends State<TrackerScreen> {
     }
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('currentTeamName', _controller.text);
-    String? teamId = prefs.getString('deviceTeamId') ?? 'team_${DateTime.now().millisecondsSinceEpoch}';
-    if (prefs.getString('deviceTeamId') == null) await prefs.setString('deviceTeamId', teamId);
+    await prefs.setString('currentTeamName', _controller.text.trim());
+    await prefs.setString('currentTeamId', _idController.text.trim());
     
-    await FlutterForegroundTask.saveData(key: 'trackingData', value: {'teamId': teamId, 'teamName': _controller.text});
+    await FlutterForegroundTask.saveData(key: 'trackingData', value: {
+      'teamId': _idController.text.trim(),
+      'teamName': _controller.text.trim()
+    });
 
     final bool result = await FlutterForegroundTask.startService(
       notificationTitle: 'Mundonet Tracker',
@@ -328,11 +321,34 @@ class _TrackerScreenState extends State<TrackerScreen> {
           _buildStatusIndicator(),
           const SizedBox(height: 20),
           if (!_isRunning) ...[
-            TextField(controller: _controller, textAlign: TextAlign.center, decoration: InputDecoration(hintText: 'Nome do Técnico', filled: true, fillColor: Colors.black26, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+            TextField(
+              controller: _idController,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: 'ID do Técnico (IXC)',
+                filled: true,
+                fillColor: Colors.black26,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+              ),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: _controller,
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                hintText: 'Nome do Técnico',
+                filled: true,
+                fillColor: Colors.black26,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+              ),
+            ),
             const SizedBox(height: 20),
             SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: _start, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF39B8FF), foregroundColor: Colors.black), child: const Text('ATIVAR RASTREAMENTO', style: TextStyle(fontWeight: FontWeight.bold)))),
           ] else ...[
             Text(_controller.text.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('ID IXC: ${_idController.text}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 10),
             const Text('SISTEMA OPERACIONAL', style: TextStyle(color: Color(0xFF34D399), fontSize: 11)),
             const SizedBox(height: 30),
             OutlinedButton(onPressed: _stop, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white10)), child: const Text('PARAR SERVIÇO', style: TextStyle(color: Colors.white30))),
