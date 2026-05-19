@@ -105,14 +105,45 @@ async function getSubjectName(id) {
 
 function parseIXCDate(dateStr) {
   if (!dateStr || dateStr.includes('0000-00-00') || dateStr === '') return null;
-  const brParts = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  
+  const cleanStr = dateStr.trim();
+  
+  // 1. Tenta formato brasileiro: DD/MM/YYYY HH:mm:ss
+  const brParts = cleanStr.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}):(\d{2}))?/);
   if (brParts) {
-    const timeParts = dateStr.match(/(\d{2}):(\d{2}):(\d{2})/) || [0, 0, 0, 0];
-    return new Date(brParts[3], brParts[2] - 1, brParts[1], timeParts[1], timeParts[2], timeParts[3]);
+    const day = brParts[1];
+    const month = brParts[2];
+    const year = brParts[3];
+    const hour = brParts[4] || '00';
+    const minute = brParts[5] || '00';
+    const second = brParts[6] || '00';
+    return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}-03:00`);
   }
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? null : d;
+  
+  // 2. Tenta formato ISO/DB: YYYY-MM-DD HH:mm:ss ou YYYY-MM-DDTHH:mm:ss
+  const isoParts = cleanStr.match(/^(\d{4})-(\d{2})-(\d{2})(?:[\sT](\d{2}):(\d{2}):(\d{2}))?/);
+  if (isoParts) {
+    const year = isoParts[1];
+    const month = isoParts[2];
+    const day = isoParts[3];
+    const hour = isoParts[4] || '00';
+    const minute = isoParts[5] || '00';
+    const second = isoParts[6] || '00';
+    return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}-03:00`);
+  }
+
+  // 3. Fallback
+  const d = new Date(cleanStr);
+  if (!isNaN(d.getTime())) {
+    if (!cleanStr.includes('Z') && !cleanStr.match(/[+-]\d{2}:?\d{2}$/)) {
+      const adjusted = new Date(cleanStr + ' -03:00');
+      if (!isNaN(adjusted.getTime())) return adjusted;
+    }
+    return d;
+  }
+  return null;
 }
+
 
 async function syncIXCTeamCollaborators() {
   logger.info('[IXC] Sincronizando Equipes e Colaboradores...');
