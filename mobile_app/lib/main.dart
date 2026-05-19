@@ -10,6 +10,8 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
 
+import 'dart:ui';
+
 const String kServerUrl = "https://mapa.mundonetbandalarga.com.br";
 
 void main() async {
@@ -19,6 +21,7 @@ void main() async {
 
 @pragma('vm:entry-point')
 void startCallback() {
+  DartPluginRegistrant.ensureInitialized();
   FlutterForegroundTask.setTaskHandler(GpsTaskHandler());
 }
 
@@ -39,9 +42,9 @@ class GpsTaskHandler extends TaskHandler {
     _sendLog('1. Isolate iniciado');
     
     try {
-      final customData = await FlutterForegroundTask.getData<dynamic>(key: 'trackingData');
-      final String teamId = customData?['teamId']?.toString() ?? '';
-      final String teamName = customData?['teamName']?.toString() ?? "Técnico";
+      final prefs = await SharedPreferences.getInstance();
+      final String teamId = prefs.getString('currentTeamId') ?? '';
+      final String teamName = prefs.getString('currentTeamName') ?? 'Técnico';
       
       _sendLog('2. Técnico: $teamName (ID: $teamId)');
       _sendLog('3. Ativando GPS...');
@@ -81,8 +84,8 @@ class GpsTaskHandler extends TaskHandler {
   @override
   void onRepeatEvent(DateTime timestamp, SendPort? sendPort) async {
     try {
-      final customData = await FlutterForegroundTask.getData<dynamic>(key: 'trackingData');
-      final String teamId = customData?['teamId']?.toString() ?? '';
+      final prefs = await SharedPreferences.getInstance();
+      final String teamId = prefs.getString('currentTeamId') ?? '';
       if (teamId.isNotEmpty) {
         _sendCurrentLocation(teamId);
       }
