@@ -125,8 +125,8 @@ class GpsTaskHandler extends TaskHandler {
       if (response.statusCode == 200) {
         _sendLog('Dados: ENVIADOS 🚀');
         FlutterForegroundTask.updateService(
-          notificationTitle: 'Mundonet Tracker • OK',
-          notificationText: 'Sincronizado às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}:${DateTime.now().second.toString().padLeft(2, '0')}',
+          notificationTitle: 'Mundonet Tracker',
+          notificationText: 'Rastreamento de localização ativo',
         );
       } else {
         _sendLog('Erro HTTP: ${response.statusCode} ❌');
@@ -201,10 +201,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
   void _initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'mundonet_tracker_v1',
-        channelName: 'Mundonet Tracking Service',
-        channelImportance: NotificationChannelImportance.HIGH, 
-        priority: NotificationPriority.HIGH,
+        channelId: 'mundonet_tracker_silent_v2',
+        channelName: 'Mundonet Tracking Service (Silencioso)',
+        channelImportance: NotificationChannelImportance.LOW, 
+        priority: NotificationPriority.LOW,
         isSticky: true,
         visibility: NotificationVisibility.VISIBILITY_PUBLIC,
         iconData: const NotificationIconData(
