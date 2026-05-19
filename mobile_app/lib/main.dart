@@ -308,6 +308,22 @@ class _TrackerScreenState extends State<TrackerScreen> {
     );
 
     if (confirm == true) {
+      final prefs = await SharedPreferences.getInstance();
+      final String teamId = prefs.getString('currentTeamId') ?? '';
+      if (teamId.isNotEmpty) {
+        try {
+          final url = Uri.parse('$kServerUrl/traccar').replace(
+            queryParameters: {
+              'id': teamId,
+              'offline': 'true',
+            },
+          );
+          await http.get(url).timeout(const Duration(seconds: 5));
+        } catch (e) {
+          print('Erro ao desativar online: $e');
+        }
+      }
+
       await FlutterForegroundTask.stopService();
       await WakelockPlus.disable();
       _closeReceivePort();

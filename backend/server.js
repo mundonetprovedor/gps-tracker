@@ -348,6 +348,29 @@ const handleTraccarUpdate = async (req, res) => {
         if (!lon) lon = params.get('lon');
     }
 
+    // Se for sinalização de ficar offline voluntariamente
+    if (id && (data.offline === 'true' || data.status === 'offline')) {
+      const deviceId = String(id);
+      logger.info(`[TRACCAR] Marcando dispositivo ${deviceId} como Offline voluntariamente`);
+      res.send('OK');
+      
+      (async () => {
+        try {
+          const team = await Team.findOneAndUpdate(
+            { id: deviceId },
+            { status: 'Offline', lastSeen: new Date() },
+            { new: true }
+          );
+          if (team) {
+            io.emit('update_teams', { [team.id]: team.toObject() });
+          }
+        } catch (innerError) {
+          logger.error('[TRACCAR-OFFLINE] Erro ao marcar offline: %s', innerError.message);
+        }
+      })();
+      return;
+    }
+
     // 3. Validação final
     if (!id || !lat || !lon) {
       logger.warn('[TRACCAR] 400 - Parâmetros ausentes. ID: %s, Lat: %s, Lon: %s. Recebido: %j', id, lat, lon, data);
