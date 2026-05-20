@@ -180,15 +180,15 @@
         .map-controls { 
             position: absolute; right: 490px; top: 100px; display: flex; flex-direction: column; 
             z-index: 10; background: var(--panel-bg); backdrop-filter: blur(12px);
-            border: 1px solid var(--border); border-radius: 22px; overflow: hidden;
+            border: 1px solid var(--border); border-radius: 30px;
             box-shadow: var(--panel-shadow);
+            padding: 6px; gap: 4px;
         }
         .map-btn {
-            width: 44px; height: 44px; background: transparent; border: none; border-bottom: 1px solid var(--map-btn-border);
-            display: flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; background: transparent; border: none;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: 0.2s; color: var(--text-main);
         }
-        .map-btn:last-child { border-bottom: none; }
         .map-btn:hover, .map-btn.active { background: var(--primary); color: white; }
 
         .search-bar-floating {
