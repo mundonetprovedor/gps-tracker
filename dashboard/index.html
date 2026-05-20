@@ -100,10 +100,10 @@
         }
         .top-overlay-row > * { pointer-events: auto; }
 
-        .stats-overlay { display: flex; gap: 10px; width: 320px; }
+        .stats-overlay { display: flex; gap: 8px; width: auto; max-width: 800px; flex-wrap: wrap; }
         .stat-widget { 
-            flex: 1; background: var(--panel-bg); backdrop-filter: blur(12px); border: 1px solid var(--border);
-            padding: 16px 12px; border-radius: 16px; display: flex; flex-direction: column; 
+            min-width: 85px; max-width: 120px; flex: 1; background: var(--panel-bg); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            padding: 12px 8px; border-radius: 16px; display: flex; flex-direction: column; 
             align-items: center; gap: 6px; box-shadow: var(--panel-shadow);
             transition: 0.2s;
         }
@@ -566,15 +566,40 @@
             <div class="top-overlay-row">
                 <!-- Top Stats -->
                 <div class="stats-overlay">
-                    <div class="stat-widget">
+                    <div class="stat-widget" title="Equipes Ativas / Total">
                         <i data-lucide="users"></i>
-                        <div class="lab">Equipes Ativas</div>
-                        <div class="val" id="stats-active-teams">0 / 0</div>
+                        <div class="lab">Equipes</div>
+                        <div class="val" id="stats-active-teams">0/0</div>
                     </div>
-                    <div class="stat-widget">
-                        <i data-lucide="clipboard-list"></i>
+                    <div class="stat-widget" title="Total de O.S. de Hoje">
+                        <i data-lucide="clipboard-list" style="color: var(--accent);"></i>
                         <div class="lab">O.S. Hoje</div>
                         <div class="val" id="stats-total-os">0</div>
+                    </div>
+                    <div class="stat-widget" title="O.S. Concluídas">
+                        <i data-lucide="check-circle" style="color: var(--success);"></i>
+                        <div class="lab">Concluídas</div>
+                        <div class="val" id="stats-done-os" style="color: var(--success);">0</div>
+                    </div>
+                    <div class="stat-widget" title="O.S. Em Deslocamento / Execução">
+                        <i data-lucide="activity" style="color: var(--warning);"></i>
+                        <div class="lab">Em Curso</div>
+                        <div class="val" id="stats-progress-os" style="color: var(--warning);">0</div>
+                    </div>
+                    <div class="stat-widget" title="O.S. Pendentes / Agendadas">
+                        <i data-lucide="clock" style="color: var(--text-muted);"></i>
+                        <div class="lab">Pendentes</div>
+                        <div class="val" id="stats-pending-os">0</div>
+                    </div>
+                    <div class="stat-widget" title="Tempo Médio de Atendimento das O.S. Concluídas Hoje">
+                        <i data-lucide="hourglass" style="color: var(--accent);"></i>
+                        <div class="lab" style="font-size: 9px;">T. Médio</div>
+                        <div class="val" id="stats-avg-time">0m</div>
+                    </div>
+                    <div class="stat-widget" title="Taxa de Conclusão de O.S. Hoje">
+                        <i data-lucide="percent" style="color: var(--success);"></i>
+                        <div class="lab" style="font-size: 9px;">Conclusão</div>
+                        <div class="val" id="stats-completion-rate">0%</div>
                     </div>
                 </div>
                 
@@ -1135,7 +1160,12 @@
                 const activities = await (await fetch('/api/activities', { headers })).json();
 
                 document.getElementById('stats-active-teams').innerText = `${stats.active || 0}/${stats.total || 0}`;
-                document.getElementById('stats-total-os').innerText = Array.isArray(allOS) ? allOS.length : 0;
+                document.getElementById('stats-total-os').innerText = stats.osToday || 0;
+                document.getElementById('stats-done-os').innerText = stats.osDone || 0;
+                document.getElementById('stats-progress-os').innerText = stats.osProgress || 0;
+                document.getElementById('stats-pending-os').innerText = stats.osPending || 0;
+                document.getElementById('stats-avg-time').innerText = `${stats.avgTime || 0} min`;
+                document.getElementById('stats-completion-rate').innerText = `${stats.completionRate || 0}%`;
 
                 if (Array.isArray(allOS)) {
                     updateOSMarkers(allOS);

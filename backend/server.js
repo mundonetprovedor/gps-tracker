@@ -109,20 +109,99 @@ app.post('/auth/login', async (req, res) => {
 });
 
 app.get('/api/dashboard/stats', auth, async (req, res) => {
-  const now = new Date();
-  const today = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-  today.setUTCHours(3, 0, 0, 0); 
-  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-  const total = await Team.countDocuments();
-  const active = await Team.countDocuments({ status: 'Online' });
-  const alerts = await Alert.countDocuments({ read: false });
-  const osToday = await ServiceOrder.countDocuments({ 
-    status: { $in: ['AG', 'DS', 'EX'] },
-    scheduledDate: { $gte: today, $lt: tomorrow }
-  });
-  const osDone = await ServiceOrder.countDocuments({ status: 'F', scheduledDate: { $gte: today, $lt: tomorrow } });
+  try {
+    const now = new Date();
+    // Força fuso horário de Brasília (UTC-3)
+    const brNow = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+    const start = new Date(brNow.getUTCFullYear(), brNow.getUTCMonth(), brNow.getUTCDate(), 0, 0, 0);
+    const end = new Date(brNow.getUTCFullYear(), brNow.getUTCMonth(), brNow.getUTCDate(), 23, 59, 59);
 
-  res.json({ active, total: Math.max(total, 1), osToday, osDone, alerts });
+    const totalTeams = await Team.countDocuments();
+    const activeTeams = await Team.countDocuments({ status: 'Online' });
+    const alerts = await Alert.countDocuments({ read: false });
+
+    // Busca O.S. de hoje usando a mesma lógica de filtro do endpoint /api/service-orders
+    const validTeams = await Team.find({}, 'id');
+    const teamIds = validTeams.map(t => t.id);
+
+    const query = {
+      $and: [
+        { teamId: { $in: teamIds } },
+        {
+          $or: [
+            { 
+              status: { $in: ['AG', 'DS', 'EX', 'A', 'AN', 'EN', 'AS'] }, 
+              scheduledDate: { $gte: start, $lte: end } 
+            },
+            { 
+              status: 'F', 
+              finishedAt: { $gte: start } 
+            }
+          ]
+        }
+      ]
+    };
+
+    const orders = await ServiceOrder.find(query);
+
+    let osDone = 0;
+    let osProgress = 0;
+    let osPending = 0;
+
+    orders.forEach(o => {
+      if (o.status === 'F') {
+        osDone++;
+      } else if (['DS', 'EX'].includes(o.status)) {
+        osProgress++;
+      } else {
+        osPending++;
+      }
+    });
+
+    const osToday = orders.length;
+
+    // Tempo médio de atendimento hoje (durationService)
+    // Buscamos ServiceHistory que finalizaram hoje
+    const histories = await ServiceHistory.find({
+      endTime: { $gte: start, $lte: end },
+      durationService: { $exists: true, $ne: null }
+    });
+
+    let avgTime = 0;
+    if (histories.length > 0) {
+      const validHistories = histories.filter(h => (h.durationService || 0) >= 0);
+      if (validHistories.length > 0) {
+        const totalValidServiceTime = validHistories.reduce((sum, h) => sum + h.durationService, 0);
+        avgTime = Math.round(totalValidServiceTime / validHistories.length);
+      }
+    }
+
+    // Se não houver histórico de hoje, pega a média geral recente (últimos 50) para não ficar zerado
+    if (avgTime === 0) {
+      const allHistories = await ServiceHistory.find({ durationService: { $gt: 0 } }).sort({ timestamp: -1 }).limit(50);
+      if (allHistories.length > 0) {
+        const totalServiceTime = allHistories.reduce((sum, h) => sum + h.durationService, 0);
+        avgTime = Math.round(totalServiceTime / allHistories.length);
+      }
+    }
+
+    const completionRate = osToday > 0 ? Math.round((osDone / osToday) * 100) : 0;
+
+    res.json({
+      active: activeTeams,
+      total: Math.max(totalTeams, 1),
+      osToday,
+      osDone,
+      osProgress,
+      osPending,
+      avgTime,
+      completionRate,
+      alerts
+    });
+  } catch (e) {
+    logger.error(`[API] Erro ao carregar estatísticas do painel: ${e.message}`);
+    res.status(500).json({ error: 'Erro interno' });
+  }
 });
 
 app.get('/api/teams', auth, async (req, res) => {
