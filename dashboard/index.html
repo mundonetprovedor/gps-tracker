@@ -94,22 +94,22 @@
 
         .stats-overlay { display: flex; gap: 10px; width: 320px; }
         .stat-widget { 
-            flex: 1; background: var(--glass); backdrop-filter: blur(12px); border: 2px solid var(--border);
-            padding: 12px 8px; border-radius: 16px; display: flex; flex-direction: column; 
-            align-items: center; gap: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            flex: 1; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            padding: 16px 12px; border-radius: 16px; display: flex; flex-direction: column; 
+            align-items: center; gap: 6px; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 10px 30px rgba(0,0,0,0.4);
             transition: 0.2s;
         }
-        .stat-widget:hover { border-color: var(--primary); transform: translateY(-3px); }
+        .stat-widget:hover { border-color: var(--primary-light); transform: translateY(-3px); box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 15px 35px rgba(0,0,0,0.5); }
         .stat-widget i { color: var(--primary); width: 22px; height: 22px; stroke-width: 2.5px; }
-        .stat-widget .val { font-size: 18px; font-weight: 900; color: var(--text-main); line-height: 1; }
-        .stat-widget .lab { font-size: 10px; color: var(--text-main); font-weight: 800; text-transform: uppercase; text-align: center; opacity: 0.8; }
+        .stat-widget .val { font-size: 18px; font-weight: 900; color: var(--text-main); line-height: 1; font-variant-numeric: tabular-nums; }
+        .stat-widget .lab { font-size: 10px; color: var(--text-main); font-weight: 800; text-transform: uppercase; text-align: center; opacity: 0.8; letter-spacing: 0.05em; }
 
         /* Left Sidebar Panel (Teams) */
         .teams-panel {
             width: 320px; max-height: 70vh; height: auto; margin-bottom: 0;
-            background: var(--glass); backdrop-filter: blur(16px); border: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%); backdrop-filter: blur(16px); border: 1px solid var(--border);
             border-radius: 24px; display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 10px 40px rgba(0,0,0,0.4);
             transition: all 0.4s ease;
         }
         .teams-panel.collapsed { max-height: 58px; height: 58px; width: 200px; }
@@ -127,8 +127,19 @@
         .compact-team-row:hover { background: var(--border); border-color: var(--border); }
         .compact-team-row.active { background: var(--primary); border-color: var(--primary-light); color: white; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-        .dot-online { background: var(--success); box-shadow: 0 0 10px var(--success); }
+        .dot-online { background: var(--success); box-shadow: 0 0 10px var(--success); animation: pulse-online 2s infinite; }
+        @keyframes pulse-online {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
         .dot-offline { background: var(--text-muted); }
+
+        /* Custom panel scrollbars */
+        .teams-list-scroll::-webkit-scrollbar, .activity-list::-webkit-scrollbar, .subject-list::-webkit-scrollbar { width: 4px; }
+        .teams-list-scroll::-webkit-scrollbar-track, .activity-list::-webkit-scrollbar-track, .subject-list::-webkit-scrollbar-track { background: transparent; }
+        .teams-list-scroll::-webkit-scrollbar-thumb, .activity-list::-webkit-scrollbar-thumb, .subject-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        .teams-list-scroll::-webkit-scrollbar-thumb:hover, .activity-list::-webkit-scrollbar-thumb:hover, .subject-list::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 
         .status-filters { display: flex; gap: 8px; margin-top: 12px; }
         .filter-chip { 
@@ -142,9 +153,9 @@
         /* Right Activity Panel */
         .activity-panel {
             position: absolute; right: 24px; bottom: 24px; width: 450px; max-height: 600px;
-            background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%); backdrop-filter: blur(12px); border: 1px solid var(--border);
             border-radius: 20px; padding: 16px; overflow: hidden; display: flex; flex-direction: column;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 10px 40px rgba(0,0,0,0.4);
             transition: all 0.4s ease;
         }
         .activity-panel.collapsed { max-height: 54px; width: 220px; }
@@ -156,20 +167,36 @@
         .activity-icon { flex-shrink: 0; }
         
         /* Map Controls Overlay */
-        .map-controls { position: absolute; right: 24px; top: 100px; display: flex; flex-direction: column; gap: 10px; }
-        .map-btn {
-            width: 44px; height: 44px; background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 12px; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.2s; color: white;
+        .map-controls { 
+            position: absolute; right: 490px; top: 100px; display: flex; flex-direction: column; 
+            z-index: 10; background: var(--glass); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 22px; overflow: hidden;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 24px rgba(0,0,0,0.3);
         }
-        .map-btn:hover, .map-btn.active { background: var(--primary); border-color: var(--primary-light); }
+        .map-btn {
+            width: 44px; height: 44px; background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; color: var(--text-main);
+        }
+        .map-btn:last-child { border-bottom: none; }
+        .map-btn:hover, .map-btn.active { background: var(--primary); color: white; }
 
         .search-bar-floating {
-            width: 400px; background: var(--glass); backdrop-filter: blur(12px); border: 1px solid var(--border);
+            width: 400px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%); backdrop-filter: blur(12px); border: 1px solid var(--border);
             border-radius: 16px; padding: 0 16px; height: 44px; display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 24px rgba(0,0,0,0.3);
+            transition: 0.3s;
+        }
+        .search-bar-floating:focus-within {
+            border-color: var(--primary-light);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 0 0 3px rgba(56, 189, 248, 0.2), 0 8px 24px rgba(0,0,0,0.3);
         }
         .search-bar-floating input { background: transparent; border: none; color: var(--text-main); flex: 1; outline: none; font-size: 14px; }
+        .search-shortcut {
+            font-size: 10px; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; 
+            color: var(--text-muted); font-weight: 700; border: 1px solid rgba(255,255,255,0.05);
+            pointer-events: none; white-space: nowrap;
+        }
         
         /* Map Customizations */
         .map-search { position: absolute; top: 20px; left: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px; }
@@ -546,6 +573,7 @@
                 <div class="search-bar-floating">
                     <i data-lucide="search" size="18" style="color: var(--text-muted)"></i>
                     <input type="text" placeholder="Buscar técnico ou endereço..." id="search-input">
+                    <div class="search-shortcut">Ctrl K</div>
                     <div class="filter-btn" onclick="toggleSubjectFilter()"><i data-lucide="filter" size="18"></i></div>
                 </div>
             </div>
@@ -799,10 +827,19 @@
                 s.play().then(() => {
                     s.pause();
                     s.currentTime = 0;
-                }).catch(e => console.warn('Erro ao desbloquear áudio:', e));
+                }).catch(e => console.log('Áudio mantido bloqueado pelo navegador', e));
             });
-            console.log('Sistema de áudio desbloqueado');
+            document.removeEventListener('click', unlockAudio);
         }
+        document.addEventListener('click', unlockAudio);
+
+        // Atalho Ctrl+K para focar na busca
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('search-input').focus();
+            }
+        });
 
         function testSound() {
             notificationSound.play();
