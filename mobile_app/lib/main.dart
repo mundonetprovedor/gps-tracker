@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 
 import 'dart:ui';
 
@@ -124,10 +125,24 @@ class GpsTaskHandler extends TaskHandler {
       final response = await http.get(url).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         _sendLog('Dados Sincronizados 🚀');
-        FlutterForegroundTask.updateService(
-          notificationTitle: 'Mundonet OS',
-          notificationText: 'Sincronização de O.S. ativa',
-        );
+        
+        final bodyText = response.body;
+        if (bodyText.startsWith('NOTIFICATION|')) {
+          final parts = bodyText.split('|');
+          if (parts.length >= 3) {
+            final title = parts[1];
+            final body = parts[2];
+            _sendLog('🔔 Notificação: $title');
+            
+            HapticFeedback.vibrate();
+            SystemSound.play(SystemSoundType.click);
+            
+            FlutterForegroundTask.updateService(
+              notificationTitle: title,
+              notificationText: body,
+            );
+          }
+        }
       } else {
         _sendLog('Erro de Conexão: ${response.statusCode} ❌');
       }
@@ -203,8 +218,8 @@ class _SyncScreenState extends State<SyncScreen> {
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'mundonet_os_sync',
         channelName: 'Mundonet OS Sincronização',
-        channelImportance: NotificationChannelImportance.LOW, 
-        priority: NotificationPriority.LOW,
+        channelImportance: NotificationChannelImportance.HIGH, 
+        priority: NotificationPriority.HIGH,
         isSticky: true,
         visibility: NotificationVisibility.VISIBILITY_PUBLIC,
         iconData: const NotificationIconData(

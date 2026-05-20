@@ -23,6 +23,7 @@ const Location = require('./src/models/Location');
 const ServiceOrder = require('./src/models/ServiceOrder');
 const ServiceHistory = require('./src/models/ServiceHistory');
 const Alert = require('./src/models/Alert');
+const Notification = require('./src/models/Notification');
 
 const app = express();
 app.use(cors());
@@ -292,6 +293,20 @@ app.get('/api/history/:teamId', auth, async (req, res) => {
   res.json(history);
 });
 
+app.post('/api/notifications', auth, async (req, res) => {
+  try {
+    const { techId, title, body } = req.body;
+    if (!techId || !title || !body) {
+      return res.status(400).json({ error: 'Campos obrigatórios: techId, title, body' });
+    }
+    const notif = await Notification.create({ techId, title, body });
+    logger.info(`[Central Notif] Criada para ${techId}: "${title}"`);
+    res.json(notif);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/optimize-route/:teamId', auth, async (req, res) => {
   const { teamId } = req.params;
   try {
@@ -412,7 +427,29 @@ const handleTraccarUpdate = async (req, res) => {
       logger.info(`[BATTERY DEBUG] Dispositivo: ${deviceId}, Bruto: ${rawBattery}, Calculado: ${battery}%`);
     }
 
-    res.send('OK');
+    // Verifica se há notificações pendentes para este técnico
+    let responseText = 'OK';
+    try {
+      const pending = await Notification.findOne({
+        $or: [
+          { techId: 'all' },
+          { techId: String(deviceId) }
+        ],
+        readBy: { $ne: String(deviceId) }
+      }).sort({ timestamp: -1 });
+
+      if (pending) {
+        await Notification.updateOne(
+          { _id: pending._id },
+          { $addToSet: { readBy: String(deviceId) } }
+        );
+        responseText = `NOTIFICATION|${pending.title}|${pending.body}`;
+      }
+    } catch (err) {
+      logger.error('[TRACCAR-NOTIF] Erro ao buscar notificações: %s', err.message);
+    }
+
+    res.send(responseText);
 
     (async () => {
       try {
