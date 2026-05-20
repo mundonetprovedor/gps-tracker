@@ -24,6 +24,23 @@ let techCache = {};
 
 let lastOSSyncTime = 0;
 let lastTeamSyncTime = 0;
+let isInitialSync = true;
+
+/**
+ * Determina se a transição de status representa um progresso real (unidirecional)
+ */
+function isForwardProgression(oldStatus, newStatus) {
+  const weights = {
+    'A': 0, 'AN': 0, 'EN': 0, 'AS': 0,
+    'AG': 1,
+    'DS': 2,
+    'EX': 3,
+    'F': 4
+  };
+  const oldWeight = weights[oldStatus] !== undefined ? weights[oldStatus] : 0;
+  const newWeight = weights[newStatus] !== undefined ? weights[newStatus] : 0;
+  return newWeight > oldWeight;
+}
 
 // Cache TTLs em milissegundos
 const OS_CACHE_TTL = 90000; // 1.5 minutos
@@ -281,8 +298,8 @@ async function syncIXCServiceOrders(io) {
 
         const oldOS = await ServiceOrder.findOne({ ixcId: os.id });
         
-        // Detecta mudança de status para Alertas e Histórico
-        if (oldOS && oldOS.status !== os.status && ['DS', 'EX', 'F'].includes(os.status)) {
+        // Detecta mudança de status para Alertas e Histórico (apenas progressões válidas de status)
+        if (oldOS && oldOS.status !== os.status && isForwardProgression(oldOS.status, os.status) && ['DS', 'EX', 'F'].includes(os.status)) {
             const techName = await getTechnicianName(tecnicoId);
             let msg = '';
 
@@ -337,7 +354,7 @@ async function syncIXCServiceOrders(io) {
                 }
             }
 
-            if (msg) {
+            if (msg && !isInitialSync) {
                 await Alert.create({ type: 'Warning', message: msg, device: techName, timestamp: new Date() });
                 if (io) io.emit('status_notification', { message: msg, type: os.status, tech: techName });
             }
@@ -427,6 +444,7 @@ async function syncIXCServiceOrders(io) {
     
     logger.info('[IXC] Sincronização de O.S. concluída.');
     lastOSSyncTime = Date.now();
+    isInitialSync = false;
     if (io) io.emit('os_synced');
   } catch (error) {
     logger.error('[IXC] Erro na sincronização: %s', error.message);
