@@ -2,6 +2,7 @@ const Team = require('../models/Team');
 const ServiceOrder = require('../models/ServiceOrder');
 const ServiceHistory = require('../models/ServiceHistory');
 const Alert = require('../models/Alert');
+const Notification = require('../models/Notification');
 const logger = require('../config/logger');
 
 const IXC_URL = process.env.IXC_URL;
@@ -354,9 +355,26 @@ async function syncIXCServiceOrders(io) {
                 }
             }
 
-            if (msg && !isInitialSync) {
+            // Emite notificação e alerta ONLY for transitions from active to finalized states ('F')
+            const activeStates = ['AG', 'DS', 'EX'];
+            const isToFinalized = activeStates.includes(oldOS.status) && os.status === 'F';
+
+            if (msg && !isInitialSync && isToFinalized) {
                 await Alert.create({ type: 'Warning', message: msg, device: techName, timestamp: new Date() });
                 if (io) io.emit('status_notification', { message: msg, type: os.status, tech: techName });
+
+                // PUSH NOTIFICATION FOR THE TECHNICIAN'S MOBILE APP:
+                // Strengthen verification: Ensure tecnicoId is valid, non-empty, and not 'all'
+                if (tecnicoId && tecnicoId !== 'all' && String(tecnicoId).trim() !== '') {
+                    await Notification.create({
+                        techId: String(tecnicoId),
+                        title: 'Ordem de Serviço Finalizada',
+                        body: `Sua O.S. do cliente ${clientName} foi finalizada.`
+                    });
+                    logger.info(`[Push Notif] Criada notificação de finalização para o técnico ${tecnicoId} - O.S. ${os.protocolo}`);
+                } else {
+                    logger.warn(`[Push Notif] Técnico inválido para O.S. ${os.protocolo}: ${tecnicoId}`);
+                }
             }
         }
 

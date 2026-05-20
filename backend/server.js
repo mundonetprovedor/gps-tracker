@@ -387,9 +387,9 @@ const handleTraccarUpdate = async (req, res) => {
     }
 
     // 3. Validação final
-    if (!id || !lat || !lon) {
-      logger.warn('[TRACCAR] 400 - Parâmetros ausentes. ID: %s, Lat: %s, Lon: %s. Recebido: %j', id, lat, lon, data);
-      return res.status(400).send('Missing params');
+    if (!id || String(id) === 'undefined' || String(id) === 'null' || String(id).trim() === '' || !lat || !lon) {
+      logger.warn('[TRACCAR] 400 - Parâmetros ausentes ou ID inválido. ID: %s, Lat: %s, Lon: %s. Recebido: %j', id, lat, lon, data);
+      return res.status(400).send('Missing params or invalid ID');
     }
 
     // Normalização
@@ -430,20 +430,23 @@ const handleTraccarUpdate = async (req, res) => {
     // Verifica se há notificações pendentes para este técnico
     let responseText = 'OK';
     try {
-      const pending = await Notification.findOne({
-        $or: [
-          { techId: 'all' },
-          { techId: String(deviceId) }
-        ],
-        readBy: { $ne: String(deviceId) }
-      }).sort({ timestamp: -1 });
+      const deviceIdStr = String(deviceId).trim();
+      if (deviceIdStr && deviceIdStr !== 'undefined' && deviceIdStr !== 'null') {
+        const pending = await Notification.findOne({
+          $or: [
+            { techId: 'all' },
+            { techId: deviceIdStr }
+          ],
+          readBy: { $ne: deviceIdStr }
+        }).sort({ timestamp: -1 });
 
-      if (pending) {
-        await Notification.updateOne(
-          { _id: pending._id },
-          { $addToSet: { readBy: String(deviceId) } }
-        );
-        responseText = `NOTIFICATION|${pending.title}|${pending.body}`;
+        if (pending) {
+          await Notification.updateOne(
+            { _id: pending._id },
+            { $addToSet: { readBy: deviceIdStr } }
+          );
+          responseText = `NOTIFICATION|${pending.title}|${pending.body}`;
+        }
       }
     } catch (err) {
       logger.error('[TRACCAR-NOTIF] Erro ao buscar notificações: %s', err.message);
