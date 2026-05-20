@@ -216,10 +216,12 @@ class _SyncScreenState extends State<SyncScreen> {
   void _initForegroundTask() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'mundonet_os_sync',
+        channelId: 'mundonet_os_push_sync',
         channelName: 'Mundonet OS Sincronização',
         channelImportance: NotificationChannelImportance.HIGH, 
         priority: NotificationPriority.HIGH,
+        playSound: true,
+        enableVibration: true,
         isSticky: true,
         visibility: NotificationVisibility.VISIBILITY_PUBLIC,
         iconData: const NotificationIconData(
