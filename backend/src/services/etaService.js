@@ -1,6 +1,25 @@
 const logger = require('../config/logger');
 
 /**
+ * Realiza uma requisição HTTP Fetch com tempo limite (timeout)
+ */
+async function fetchWithTimeout(url, options = {}, timeout = 3000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
+/**
  * Calcula o tempo estimado de chegada usando o OSRM (Gratuito)
  * @param {number} startLat 
  * @param {number} startLon 
@@ -13,7 +32,7 @@ async function getRouteETA(startLat, startLon, endLat, endLon) {
     // OSRM usa o formato [longitude,latitude]
     const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=false`;
     
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     const data = await response.json();
 
     if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
@@ -26,7 +45,7 @@ async function getRouteETA(startLat, startLon, endLat, endLon) {
       distance: route.distance  // em metros
     };
   } catch (e) {
-    logger.error(`[ETA Service] Erro ao consultar OSRM: ${e.message}`);
+    logger.error(`[ETA Service] Erro ao consultar OSRM (Timeout/Offline): ${e.message}`);
     return null;
   }
 }
@@ -42,7 +61,7 @@ async function getOptimizedRoute(points) {
         const coords = points.map(p => `${p[1]},${p[0]}`).join(';');
         const url = `https://router.project-osrm.org/trip/v1/driving/${coords}?source=first&overview=false`;
         
-        const response = await fetch(url);
+        const response = await fetchWithTimeout(url);
         const data = await response.json();
 
         if (data.code !== 'Ok') throw new Error('Erro na otimização');
@@ -54,7 +73,7 @@ async function getOptimizedRoute(points) {
 
         return optimizedIndices; 
     } catch (e) {
-        logger.error(`[Optimization Service] Erro: ${e.message}`);
+        logger.error(`[Optimization Service] Erro (Timeout/Offline): ${e.message}`);
         return null;
     }
 }
