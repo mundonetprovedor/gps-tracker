@@ -34,7 +34,6 @@
             --glass: rgba(30, 41, 59, 0.7);
             --popup-bg: #ffffff;
             --popup-text: #1e293b;
-            --logo-filter: brightness(0) invert(1);
             
             --panel-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
             --panel-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 10px 40px rgba(0,0,0,0.4);
@@ -52,7 +51,6 @@
             --glass: rgba(255, 255, 255, 0.8);
             --popup-bg: #ffffff;
             --popup-text: #000000;
-            --logo-filter: none;
             
             --panel-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.98) 100%);
             --panel-shadow: inset 0 1px 1px rgba(255, 255, 255, 1), 0 10px 40px rgba(0,0,0,0.08);
@@ -70,7 +68,7 @@
             margin-bottom: 40px; padding: 0; 
             background: transparent;
         }
-        .sidebar-brand img { height: 48px; width: auto; object-fit: contain; filter: var(--logo-filter); }
+        .sidebar-brand img { height: 48px; width: auto; object-fit: contain; }
         .sidebar-brand b { display: none; }
 
         .nav-section { margin-bottom: 24px; }
@@ -928,12 +926,15 @@
         function updateThemeUI(theme) {
             const icon = document.getElementById('theme-icon');
             const text = document.getElementById('theme-text');
+            const logo = document.querySelector('.sidebar-brand img');
             if (theme === 'light') {
                 icon?.setAttribute('data-lucide', 'moon');
                 if (text) text.innerText = 'Modo Escuro';
+                if (logo) logo.src = 'mundonet_brand.png';
             } else {
                 icon?.setAttribute('data-lucide', 'sun');
                 if (text) text.innerText = 'Modo Claro';
+                if (logo) logo.src = 'mundonet_brand_dark.png';
             }
             lucide.createIcons();
         }
