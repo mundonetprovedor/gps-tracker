@@ -752,6 +752,7 @@
         let osClusterGroup, teamGroup;
         let teams = {};
         let markers = {};
+        const markerAnimations = {}; // { id: { rafId, heading, color, name } }
         let osMarkers = {};
         let routeLines = {}; 
         let selectedTeamId = null;
@@ -1356,6 +1357,12 @@
                 const batteryColor = batteryPercent === null ? 'var(--text-muted)' : (batteryPercent < 20 ? 'var(--danger)' : (batteryPercent < 50 ? 'var(--warning)' : 'var(--success)'));
                 const batteryText = batteryPercent !== null ? `${batteryPercent}%` : '--%';
                 
+                // Exibe a velocidade em tempo real se o técnico estiver online e se movendo (estilo Uber)
+                const speed = (team.status === 'Online' && team.lastLocation && team.lastLocation.speed !== undefined) ? Math.round(team.lastLocation.speed) : 0;
+                const speedHtml = speed > 2 
+                    ? `<span style="opacity:0.3">•</span><span style="color:var(--accent); display:flex; align-items:center; gap:3px;"><i data-lucide="gauge" style="width:10px; height:10px;"></i>${speed} km/h</span>`
+                    : '';
+                
                 container.innerHTML = `
                     <div class="compact-team-row" onclick="selectAndToggleTeam('${id}')">
                         <div class="status-dot ${team.status === 'Online' ? 'dot-online' : 'dot-offline'}"></div>
@@ -1368,6 +1375,7 @@
                                 <span>${team.status}</span>
                                 <span style="opacity:0.3">•</span>
                                 <span style="color:${batteryColor}; display:flex; align-items:center; gap:3px;"><i data-lucide="battery" style="width:10px; height:10px;"></i>${batteryText}</span>
+                                ${speedHtml}
                             </div>
                         </div>
                         <i data-lucide="chevron-down" class="toggle-icon" style="width:14px; opacity:0.4; transition: 0.3s;"></i>
@@ -1608,9 +1616,13 @@
             const markerBgColor = usingFallback ? 'var(--warning)' : color;
             const heading = usingFallback ? 0 : (team.lastLocation.heading || 0);
 
+            // Determina a velocidade e atualiza o rótulo do marcador de forma dinâmica
+            const speed = (!usingFallback && team.lastLocation && team.lastLocation.speed !== undefined) ? Math.round(team.lastLocation.speed) : 0;
+            const labelText = speed > 2 ? `${team.name} • ${speed} km/h` : team.name;
+
             const iconHtml = `
                 <div class="team-marker-container">
-                    <div class="team-marker-label">${team.name}</div>
+                    <div class="team-marker-label">${labelText}</div>
                     <div class="team-marker-icon-box" style="background-color: ${markerBgColor}; transform: rotate(${heading}deg)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-car"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
                     </div>
@@ -1624,18 +1636,120 @@
                 iconAnchor: [15, 42]
             });
 
+            const speedText = speed > 2 ? `<br>Velocidade: ${speed} km/h` : '';
             const popupContent = usingFallback
                 ? `<b>${team.name}</b><br><span style="color:var(--warning); font-weight:800;">⚠️ GPS Inativo - Estimado na OS ${activeOS.number}</span><br>Cliente: ${activeOS.client}`
-                : `<b>${team.name}</b><br>Status: ${team.status}<br>Bat: ${team.battery || '--'}%`;
+                : `<b>${team.name}</b><br>Status: ${team.status}<br>Bat: ${team.battery || '--'}%${speedText}`;
 
             if (!markers[id]) {
                 const marker = L.marker([lat, lng], { icon });
                 marker.bindPopup(popupContent);
                 teamGroup.addLayer(marker);
                 markers[id] = marker;
+                markerAnimations[id] = { heading: heading, color: markerBgColor, name: team.name };
             } else {
-                markers[id].setLatLng([lat, lng]).setIcon(icon).setPopupContent(popupContent);
+                // Só reconstrói o ícone se cor ou nome mudou (evita reset desnecessário)
+                const prev = markerAnimations[id] || {};
+                if (prev.color !== markerBgColor || prev.name !== team.name) {
+                    markers[id].setIcon(icon);
+                    if (!markerAnimations[id]) markerAnimations[id] = {};
+                    markerAnimations[id].color = markerBgColor;
+                    markerAnimations[id].name = team.name;
+                } else {
+                    // Atualiza o texto do label diretamente no DOM sem resetar o ícone para evitar cintilação (flicker)
+                    const el = markers[id].getElement();
+                    if (el) {
+                        const labelEl = el.querySelector('.team-marker-label');
+                        if (labelEl) labelEl.textContent = labelText;
+                    }
+                }
+                markers[id].setPopupContent(popupContent);
+
+                // Mede o tempo decorrido desde a última atualização para calcular a duração ideal da animação (estilo Uber)
+                const now = performance.now();
+                let duration = 5000; // 5 segundos padrão (bate com o envio de 5s do app)
+                if (prev.lastUpdateRecv) {
+                    const elapsed = now - prev.lastUpdateRecv;
+                    // Limita entre 1s e 15s para amortecer instabilidades na rede de telefonia móvel
+                    if (elapsed >= 1000 && elapsed <= 15000) {
+                        duration = elapsed;
+                    }
+                }
+                if (!markerAnimations[id]) markerAnimations[id] = {};
+                markerAnimations[id].lastUpdateRecv = now;
+
+                // Anima suavemente para a nova posição
+                animateMarkerTo(id, lat, lng, heading, duration);
             }
+        }
+
+        /**
+         * Anima um marcador suavemente da posição atual até a nova posição.
+         * Usa interpolação linear (velocidade constante) para evitar o efeito de "anda e para" estilo Uber.
+         * @param {string} id - ID do técnico
+         * @param {number} toLat - Latitude destino
+         * @param {number} toLng - Longitude destino
+         * @param {number} toHeading - Ângulo destino (0-360)
+         * @param {number} duration - Duração em ms
+         */
+        function animateMarkerTo(id, toLat, toLng, toHeading, duration) {
+            const marker = markers[id];
+            if (!marker) return;
+
+            // Cancela animação anterior deste marcador
+            if (markerAnimations[id]?.rafId) {
+                cancelAnimationFrame(markerAnimations[id].rafId);
+            }
+
+            const fromLatLng = marker.getLatLng();
+            const fromLat = fromLatLng.lat;
+            const fromLng = fromLatLng.lng;
+            const fromHeading = markerAnimations[id]?.heading ?? toHeading;
+            const startTime = performance.now();
+
+            // Distância mínima para animar (evita tremor em posições idênticas)
+            const dist = Math.abs(fromLat - toLat) + Math.abs(fromLng - toLng);
+            if (dist < 0.0000001 && Math.abs(toHeading - fromHeading) < 1) return;
+
+            function tick(now) {
+                const elapsed = now - startTime;
+                const raw = Math.min(elapsed / duration, 1);
+                
+                // Usamos interpolação linear (t = raw) para manter o carro em movimento contínuo e constante,
+                // eliminando a desaceleração (ease-out) que causava o "anda e para".
+                const t = raw;
+
+                // Interpola posição
+                const lat = fromLat + (toLat - fromLat) * t;
+                const lng = fromLng + (toLng - fromLng) * t;
+                marker.setLatLng([lat, lng]);
+
+                // Interpola heading pelo caminho mais curto
+                let delta = toHeading - fromHeading;
+                if (delta > 180) delta -= 360;
+                if (delta < -180) delta += 360;
+                const currentHeading = fromHeading + delta * t;
+
+                // Aplica rotação direto no DOM (sem recriar o ícone)
+                const el = marker.getElement();
+                if (el) {
+                    const box = el.querySelector('.team-marker-icon-box');
+                    if (box) box.style.transform = `rotate(${currentHeading}deg)`;
+                }
+
+                if (!markerAnimations[id]) markerAnimations[id] = {};
+                markerAnimations[id].heading = currentHeading;
+
+                if (raw < 1) {
+                    markerAnimations[id].rafId = requestAnimationFrame(tick);
+                } else {
+                    markerAnimations[id].heading = toHeading;
+                    delete markerAnimations[id].rafId;
+                }
+            }
+
+            if (!markerAnimations[id]) markerAnimations[id] = {};
+            markerAnimations[id].rafId = requestAnimationFrame(tick);
         }
 
         function updateMarkers() { Object.keys(teams).forEach(id => updateMarker(id, teams[id])); }
