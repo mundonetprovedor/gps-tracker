@@ -1762,6 +1762,7 @@
                     const lat = fLat + (tLat - fLat) * t;
                     const lng = fLng + (tLng - fLng) * t;
                     marker.setLatLng([lat, lng]);
+                    updateAttachedRouteLines(id, lat, lng);
 
                     let delta = tHeading - fHeading;
                     if (delta > 180) delta -= 360;
@@ -1839,6 +1840,7 @@
                     const lat = segment.p1[0] + (segment.p2[0] - segment.p1[0]) * segT;
                     const lng = segment.p1[1] + (segment.p2[1] - segment.p1[1]) * segT;
                     marker.setLatLng([lat, lng]);
+                    updateAttachedRouteLines(id, lat, lng);
 
                     // ROTAÇÃO DINÂMICA baseada no vetor do segmento atual da rua!
                     const dy = segment.p2[0] - segment.p1[0]; // delta lat (eixo Y)
@@ -1884,6 +1886,33 @@
                 }
                 markerAnimations[id].rafId = requestAnimationFrame(tick);
             }
+        }
+
+        /**
+         * Atualiza dinamicamente as polilinhas de deslocamento (route-line) ativas deste técnico
+         * para que o início da linha acompanhe o veículo em tempo real durante a animação suave.
+         * @param {string} techId - ID ou nome do técnico
+         * @param {number} currentLat - Latitude atual animada do marcador
+         * @param {number} currentLng - Longitude atual animada do marcador
+         */
+        function updateAttachedRouteLines(techId, currentLat, currentLng) {
+            if (typeof allOS === 'undefined' || typeof routeLines === 'undefined' || !allOS || !routeLines) return;
+
+            allOS.forEach(os => {
+                // Apenas se a OS estiver em status de deslocamento ("DS")
+                if (os.status !== 'DS') return;
+                if (!os.teamId) return;
+
+                // Localiza o técnico correspondente à OS
+                const osTeam = teams[os.teamId] || Object.values(teams).find(t => t.name === os.teamId || t.id === os.teamId);
+                if (osTeam && (String(osTeam.id) === String(techId) || osTeam.name === techId)) {
+                    const line = routeLines[os.ixcId];
+                    if (line) {
+                        // Atualiza as coordenadas da linha: o início segue o carro animado e o fim aponta para o destino da OS
+                        line.setLatLngs([[currentLat, currentLng], [os.lat, os.lng]]);
+                    }
+                }
+            });
         }
 
         function updateMarkers() { Object.keys(teams).forEach(id => updateMarker(id, teams[id])); }
