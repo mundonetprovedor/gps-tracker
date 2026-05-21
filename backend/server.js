@@ -43,13 +43,6 @@ const MONGO_URL = process.env.MONGO_URL || 'mongodb://mongo:27017/mundonet_gps';
 mongoose.connect(MONGO_URL, { serverSelectionTimeoutMS: 5000 })
   .then(async () => {
     logger.info('✅ Conectado ao MongoDB');
-    
-    // Limpeza de segurança (Roda uma vez no boot para corrigir o bug das datas falsas)
-    const result = await ServiceOrder.updateMany({ status: 'F' }, { $set: { finishedAt: null } });
-    if (result.modifiedCount > 0) {
-      logger.info(`✅ [DB] Limpeza concluída: ${result.modifiedCount} O.S. resetadas.`);
-    }
-
     seedAdmin();
   })
   .catch(err => logger.error('❌ Erro MongoDB: %s', err.message));
@@ -133,10 +126,10 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
               status: { $in: ['AG', 'DS', 'EX', 'A', 'AN', 'EN', 'AS'] }, 
               scheduledDate: { $gte: start, $lte: end } 
             },
-            { 
-              status: 'F', 
-              finishedAt: { $gte: start } 
-            }
+            // O.S. finalizadas hoje: prioriza finishedAt, mas cai no scheduledDate se finishedAt não estiver definido
+            { status: 'F', finishedAt: { $gte: start } },
+            { status: 'F', finishedAt: null, scheduledDate: { $gte: start, $lte: end } },
+            { status: 'F', finishedAt: { $exists: false }, scheduledDate: { $gte: start, $lte: end } }
           ]
         }
       ]

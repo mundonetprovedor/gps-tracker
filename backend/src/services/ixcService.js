@@ -439,7 +439,7 @@ async function syncIXCServiceOrders(io) {
           status: { $in: ['AG', 'DS', 'EX', 'A', 'EN', 'AS'] },
           scheduledDate: { $gte: startCleanup }
         },
-        { status: 'F', lastSeen: new Date() }
+        { status: 'F', lastSeen: new Date(), finishedAt: new Date() }
     );
     
     logger.info('[IXC] Sincronização de O.S. concluída.');
