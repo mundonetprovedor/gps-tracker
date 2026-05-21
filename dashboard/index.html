@@ -1685,7 +1685,8 @@
 
         /**
          * Anima um marcador suavemente da posição atual até a nova posição.
-         * Usa interpolação linear (velocidade constante) para evitar o efeito de "anda e para" estilo Uber.
+         * Usa a API pública do OSRM (Snap-to-Roads) para fazer o veículo seguir a geometria
+         * real das ruas e esquinas de forma suave (estilo Uber).
          * @param {string} id - ID do técnico
          * @param {number} toLat - Latitude destino
          * @param {number} toLng - Longitude destino
@@ -1696,60 +1697,193 @@
             const marker = markers[id];
             if (!marker) return;
 
-            // Cancela animação anterior deste marcador
-            if (markerAnimations[id]?.rafId) {
-                cancelAnimationFrame(markerAnimations[id].rafId);
-            }
-
             const fromLatLng = marker.getLatLng();
             const fromLat = fromLatLng.lat;
             const fromLng = fromLatLng.lng;
             const fromHeading = markerAnimations[id]?.heading ?? toHeading;
-            const startTime = performance.now();
 
-            // Distância mínima para animar (evita tremor em posições idênticas)
-            const dist = Math.abs(fromLat - toLat) + Math.abs(fromLng - toLng);
+            // Distância em graus
+            const dist = Math.sqrt(Math.pow(toLat - fromLat, 2) + Math.pow(toLng - fromLng, 2));
             if (dist < 0.0000001 && Math.abs(toHeading - fromHeading) < 1) return;
 
-            function tick(now) {
-                const elapsed = now - startTime;
-                const raw = Math.min(elapsed / duration, 1);
-                
-                // Usamos interpolação linear (t = raw) para manter o carro em movimento contínuo e constante,
-                // eliminando a desaceleração (ease-out) que causava o "anda e para".
-                const t = raw;
+            // Cancela animação anterior deste marcador e incrementa o sequenciador de concorrência
+            if (!markerAnimations[id]) markerAnimations[id] = {};
+            markerAnimations[id].animSeq = (markerAnimations[id].animSeq || 0) + 1;
+            const currentSeq = markerAnimations[id].animSeq;
 
-                // Interpola posição
-                const lat = fromLat + (toLat - fromLat) * t;
-                const lng = fromLng + (toLng - fromLng) * t;
-                marker.setLatLng([lat, lng]);
-
-                // Interpola heading pelo caminho mais curto
-                let delta = toHeading - fromHeading;
-                if (delta > 180) delta -= 360;
-                if (delta < -180) delta += 360;
-                const currentHeading = fromHeading + delta * t;
-
-                // Aplica rotação direto no DOM (sem recriar o ícone)
-                const el = marker.getElement();
-                if (el) {
-                    const box = el.querySelector('.team-marker-icon-box');
-                    if (box) box.style.transform = `rotate(${currentHeading}deg)`;
-                }
-
-                if (!markerAnimations[id]) markerAnimations[id] = {};
-                markerAnimations[id].heading = currentHeading;
-
-                if (raw < 1) {
-                    markerAnimations[id].rafId = requestAnimationFrame(tick);
-                } else {
-                    markerAnimations[id].heading = toHeading;
-                    delete markerAnimations[id].rafId;
-                }
+            if (markerAnimations[id].rafId) {
+                cancelAnimationFrame(markerAnimations[id].rafId);
+                delete markerAnimations[id].rafId;
             }
 
-            if (!markerAnimations[id]) markerAnimations[id] = {};
-            markerAnimations[id].rafId = requestAnimationFrame(tick);
+            // Se a distância for muito pequena (ex: < 10 metros, ~0.0001 grau), faz apenas interpolação direta
+            if (dist < 0.0001) {
+                runDirectAnimation(fromLat, fromLng, toLat, toLng, fromHeading, toHeading, duration, currentSeq);
+                return;
+            }
+
+            // Busca a rota real na API pública do OSRM (Driving)
+            const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) throw new Error("Erro na resposta do OSRM");
+                    return res.json();
+                })
+                .then(data => {
+                    // Evita race condition se uma nova atualização chegou no intervalo da requisição
+                    if (markerAnimations[id].animSeq !== currentSeq) return;
+
+                    const coordinates = data.routes?.[0]?.geometry?.coordinates;
+                    if (coordinates && coordinates.length >= 2) {
+                        // OSRM retorna array de [longitude, latitude] -> convertemos para [latitude, longitude]
+                        const path = coordinates.map(coord => [coord[1], coord[0]]);
+                        runPathAnimation(path, fromHeading, toHeading, duration, currentSeq);
+                    } else {
+                        // Fallback seguro em linha reta
+                        runDirectAnimation(fromLat, fromLng, toLat, toLng, fromHeading, toHeading, duration, currentSeq);
+                    }
+                })
+                .catch(err => {
+                    console.warn(`[Snap-to-Roads] OSRM indisponível (usando fallback de linha reta): ${err.message}`);
+                    if (markerAnimations[id].animSeq !== currentSeq) return;
+                    runDirectAnimation(fromLat, fromLng, toLat, toLng, fromHeading, toHeading, duration, currentSeq);
+                });
+
+            // Função auxiliar de animação em linha reta (fallback)
+            function runDirectAnimation(fLat, fLng, tLat, tLng, fHeading, tHeading, dur, seq) {
+                const startTime = performance.now();
+                function tick(now) {
+                    if (markerAnimations[id].animSeq !== seq) return;
+
+                    const elapsed = now - startTime;
+                    const t = Math.min(elapsed / dur, 1);
+
+                    const lat = fLat + (tLat - fLat) * t;
+                    const lng = fLng + (tLng - fLng) * t;
+                    marker.setLatLng([lat, lng]);
+
+                    let delta = tHeading - fHeading;
+                    if (delta > 180) delta -= 360;
+                    if (delta < -180) delta += 360;
+                    const currentHeading = fHeading + delta * t;
+
+                    // Rotaciona o ícone
+                    const el = marker.getElement();
+                    if (el) {
+                        const box = el.querySelector('.team-marker-icon-box');
+                        if (box) box.style.transform = `rotate(${currentHeading}deg)`;
+                    }
+
+                    markerAnimations[id].heading = currentHeading;
+
+                    if (t < 1) {
+                        markerAnimations[id].rafId = requestAnimationFrame(tick);
+                    } else {
+                        markerAnimations[id].heading = tHeading;
+                        delete markerAnimations[id].rafId;
+                    }
+                }
+                markerAnimations[id].rafId = requestAnimationFrame(tick);
+            }
+
+            // Função auxiliar de animação seguindo o caminho poligonal (Snap-to-Roads)
+            function runPathAnimation(path, fHeading, tHeading, dur, seq) {
+                const segments = [];
+                let totalDist = 0;
+
+                // Calcula as distâncias acumuladas do caminho para interpolar de forma linear e constante
+                for (let i = 0; i < path.length - 1; i++) {
+                    const p1 = path[i];
+                    const p2 = path[i + 1];
+                    const d = Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
+                    segments.push({ p1, p2, startDist: totalDist, d });
+                    totalDist += d;
+                }
+
+                if (totalDist === 0) {
+                    runDirectAnimation(path[0][0], path[0][1], path[path.length - 1][0], path[path.length - 1][1], fHeading, tHeading, dur, seq);
+                    return;
+                }
+
+                const startTime = performance.now();
+
+                function tick(now) {
+                    if (markerAnimations[id].animSeq !== seq) return;
+
+                    const elapsed = now - startTime;
+                    const t = Math.min(elapsed / dur, 1);
+
+                    const currentDist = t * totalDist;
+
+                    // Localiza o segmento atual
+                    let segment = segments[0];
+                    for (let i = 0; i < segments.length; i++) {
+                        const seg = segments[i];
+                        if (currentDist >= seg.startDist && currentDist <= seg.startDist + seg.d) {
+                            segment = seg;
+                            break;
+                        }
+                        if (i === segments.length - 1) {
+                            segment = seg;
+                        }
+                    }
+
+                    // Interpola a posição dentro do segmento
+                    let segT = 0;
+                    if (segment.d > 0) {
+                        segT = (currentDist - segment.startDist) / segment.d;
+                        segT = Math.min(Math.max(segT, 0), 1);
+                    }
+
+                    const lat = segment.p1[0] + (segment.p2[0] - segment.p1[0]) * segT;
+                    const lng = segment.p1[1] + (segment.p2[1] - segment.p1[1]) * segT;
+                    marker.setLatLng([lat, lng]);
+
+                    // ROTAÇÃO DINÂMICA baseada no vetor do segmento atual da rua!
+                    const dy = segment.p2[0] - segment.p1[0]; // delta lat (eixo Y)
+                    const dx = segment.p2[1] - segment.p1[1]; // delta lng (eixo X)
+
+                    let targetHeading = Math.atan2(dx, dy) * (180 / Math.PI);
+                    if (targetHeading < 0) targetHeading += 360;
+
+                    // Nos últimos frames, aponta para o heading real final do GPS para manter precisão
+                    if (t >= 0.95) {
+                        targetHeading = tHeading;
+                    }
+
+                    // Interpolação super suave para a rotação
+                    const prevHeading = markerAnimations[id].heading ?? fHeading;
+                    let delta = targetHeading - prevHeading;
+                    if (delta > 180) delta -= 360;
+                    if (delta < -180) delta += 360;
+
+                    // Aplica uma rotação atenuada (20% por frame) para suavizar a entrada e saída de curvas
+                    const currentHeading = prevHeading + delta * 0.20;
+
+                    const el = marker.getElement();
+                    if (el) {
+                        const box = el.querySelector('.team-marker-icon-box');
+                        if (box) box.style.transform = `rotate(${currentHeading}deg)`;
+                    }
+
+                    markerAnimations[id].heading = currentHeading;
+
+                    if (t < 1) {
+                        markerAnimations[id].rafId = requestAnimationFrame(tick);
+                    } else {
+                        // Garante a rotação final exata
+                        const finalEl = marker.getElement();
+                        if (finalEl) {
+                            const box = finalEl.querySelector('.team-marker-icon-box');
+                            if (box) box.style.transform = `rotate(${tHeading}deg)`;
+                        }
+                        markerAnimations[id].heading = tHeading;
+                        delete markerAnimations[id].rafId;
+                    }
+                }
+                markerAnimations[id].rafId = requestAnimationFrame(tick);
+            }
         }
 
         function updateMarkers() { Object.keys(teams).forEach(id => updateMarker(id, teams[id])); }
