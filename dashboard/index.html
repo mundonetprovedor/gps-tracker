@@ -703,10 +703,11 @@
 
             <!-- Map Controls -->
             <div class="map-controls">
-                <div class="map-btn" onclick="setMapLayer('standard')"><i data-lucide="map"></i></div>
-                <div class="map-btn" onclick="setMapLayer('satellite')"><i data-lucide="layers"></i></div>
-                <div class="map-btn" onclick="centerMap()"><i data-lucide="crosshair"></i></div>
+                <div class="map-btn" onclick="setMapLayer('standard')" title="Mapa Padrão"><i data-lucide="map"></i></div>
+                <div class="map-btn" onclick="setMapLayer('satellite')" title="Mapa Satélite"><i data-lucide="layers"></i></div>
+                <div class="map-btn" onclick="centerMap()" title="Centralizar"><i data-lucide="crosshair"></i></div>
                 <div class="map-btn" id="clustering-toggle" onclick="toggleClustering()" title="Desativar Agrupamento de O.S."><i data-lucide="boxes"></i></div>
+                <div class="map-btn" id="traffic-toggle" onclick="toggleTraffic()" title="Ativar/Desativar Trânsito"><i data-lucide="car"></i></div>
             </div>
 
             <!-- Playback Control Panel -->
