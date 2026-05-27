@@ -797,11 +797,11 @@
             if (isTrafficEnabled) {
                 btn.classList.add('active');
                 if (!trafficLayer) {
-                    // Camada de trânsito do Google (lyrs=h,traffic para apenas o tráfego sobreposto)
-                    trafficLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=h,traffic&x={x}&y={y}&z={z}', {
+                    // Camada de trânsito do Google com apistyle para ocultar nomes de ruas (labels) e evitar poluição visual
+                    trafficLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=h,traffic&x={x}&y={y}&z={z}&apistyle=s.e%3Al%7Cp.v%3Aoff', {
                         maxZoom: 20,
                         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                        opacity: 0.8
+                        opacity: 0.9
                     });
                 }
                 trafficLayer.addTo(map);
