@@ -764,6 +764,8 @@
         let selectedShifts = [];    // Lista de turnos selecionados
         let selectedTeams = [];     // Lista de IDs de técnicos selecionados
         let allOS = []; // Cache de todas as OS carregadas
+        let alertedFinishedTeams = new Set(); // Controle para não disparar o alarme várias vezes
+        let hasInitialRenderFinished = false; // Evita disparar alarmes no carregamento inicial do painel
         let isClusteringEnabled = true;
 
         // Playback State
@@ -1180,6 +1182,9 @@
                 renderActivitiesPanel(activities);
                 renderTeamsPanel();
                 updateMarkers();
+                
+                // Marca que o carregamento inicial terminou, permitindo que novos alarmes toquem
+                setTimeout(() => { hasInitialRenderFinished = true; }, 1000);
             } catch (e) { 
                 console.error('Data Load Error:', e);
             }
@@ -1351,6 +1356,16 @@
                 const finishedCount = teamOS.filter(os => os.status === 'F').length;
                 const totalCount = teamOS.length;
                 const progressText = totalCount > 0 ? `${totalCount} O.S` : 'Sem O.S';
+
+                // Lógica do Alarme de Conclusão de Todas as O.S.
+                if (totalCount > 0 && finishedCount === totalCount) {
+                    if (hasInitialRenderFinished && !alertedFinishedTeams.has(id)) {
+                        showToast(`🏆 <b>${team.name}</b> finalizou todas as ${totalCount} O.S. agendadas para hoje!`, 'F');
+                    }
+                    alertedFinishedTeams.add(id);
+                } else {
+                    alertedFinishedTeams.delete(id);
+                }
 
                 const container = document.createElement('div');
                 container.className = `team-group-container ${selectedTeamId === id ? 'active' : ''}`;
@@ -1673,8 +1688,11 @@
                 if (prev.lastUpdateRecv) {
                     const elapsed = now - prev.lastUpdateRecv;
                     // Limita entre 1s e 15s para amortecer instabilidades na rede de telefonia móvel
-                    if (elapsed >= 1000 && elapsed <= 15000) {
+                    if (elapsed >= 2000 && elapsed <= 15000) {
                         duration = elapsed;
+                    } else if (elapsed < 2000) {
+                        // Se atualizações chegam em rajada (burst), usa um tempo mais curto para evitar que o carro "voe" por muito tempo
+                        duration = 1000; 
                     }
                 }
                 if (!markerAnimations[id]) markerAnimations[id] = {};
@@ -1716,6 +1734,12 @@
             if (markerAnimations[id].rafId) {
                 cancelAnimationFrame(markerAnimations[id].rafId);
                 delete markerAnimations[id].rafId;
+            }
+
+            // Se a distância for muito grande (ex: > 500m, aprox 0.005 graus), pula direto para não "voar" super rápido
+            if (dist > 0.005) {
+                runDirectAnimation(fromLat, fromLng, toLat, toLng, fromHeading, toHeading, 0, currentSeq);
+                return;
             }
 
             // Se a distância for muito pequena (ex: < 10 metros, ~0.0001 grau), faz apenas interpolação direta
