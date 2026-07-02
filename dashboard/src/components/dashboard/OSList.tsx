@@ -64,7 +64,7 @@ export function OSList() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             placeholder="Buscar O.S...."
-            className="pl-8 h-8 text-xs"
+            className="pl-8 h-8 text-xs bg-secondary/50 border-secondary"
             value={search}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
           />
@@ -77,8 +77,8 @@ export function OSList() {
               onClick={() => setActiveFilter(activeFilter === f.key ? null : f.key)}
               className={`text-[10px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap transition-all ${
                 activeFilter === f.key
-                  ? 'text-white shadow-sm'
-                  : 'text-muted-foreground bg-muted/50 hover:bg-muted'
+                  ? 'text-white shadow-sm shadow-black/20'
+                  : 'text-muted-foreground bg-secondary/50 hover:bg-secondary'
               }`}
               style={activeFilter === f.key ? { backgroundColor: f.color } : {}}
             >
@@ -135,8 +135,8 @@ function OSListItem({
       onClick={onClick}
       className={`group flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 mb-1.5 border ${
         isSelected
-          ? 'bg-primary/10 border-primary/30 shadow-sm'
-          : 'bg-transparent border-transparent hover:bg-muted/30 hover:border-border'
+          ? 'bg-primary/15 border-primary/40 shadow-sm shadow-primary/5'
+          : 'bg-transparent border-transparent hover:bg-secondary/40 hover:border-border'
       }`}
     >
       <div

@@ -101,7 +101,7 @@ export function TopBar() {
           <Input
             id="global-search"
             placeholder="Buscar técnico, cliente ou O.S...."
-            className="pl-9 pr-16 h-9 text-sm bg-muted/50 border-muted"
+            className="pl-9 pr-16 h-9 text-sm bg-secondary/50 border-secondary"
             value={searchQuery}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
           />

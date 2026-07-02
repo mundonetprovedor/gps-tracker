@@ -59,8 +59,8 @@ export function Sidebar() {
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 activeTab === item.id
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                  : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
+                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
               }`}
             >
               <Icon className="w-[18px] h-[18px]" />
@@ -71,7 +71,7 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-border">
-        <div className="bg-muted/30 rounded-2xl p-4 border border-border">
+        <div className="bg-sidebar-accent/50 rounded-2xl p-4 border border-sidebar-border">
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-muted-foreground">Online</span>

@@ -92,21 +92,21 @@ export function TechnicianCard() {
         <Separator />
 
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-muted/30 rounded-xl p-2">
+          <div className="bg-secondary/50 rounded-xl p-2">
             <p className="text-[9px] font-bold text-muted-foreground uppercase">O.S.</p>
             <p className="text-sm font-extrabold text-primary">{teamOS.length}</p>
           </div>
-          <div className="bg-muted/30 rounded-xl p-2">
+          <div className="bg-secondary/50 rounded-xl p-2">
             <p className="text-[9px] font-bold text-muted-foreground uppercase">Km Hoje</p>
             <p className="text-sm font-extrabold text-foreground">--</p>
           </div>
-          <div className="bg-muted/30 rounded-xl p-2">
+          <div className="bg-secondary/50 rounded-xl p-2">
             <p className="text-[9px] font-bold text-muted-foreground uppercase">Parado</p>
             <p className="text-sm font-extrabold text-status-warning">--</p>
           </div>
         </div>
 
-        <div className="bg-muted/20 rounded-xl p-3 space-y-1.5">
+        <div className="bg-secondary/30 rounded-xl p-3 space-y-1.5">
           <InfoItem icon={Clock} label="Última Atualização" value={team.lastSeen ? new Date(team.lastSeen).toLocaleTimeString('pt-BR') : '--'} />
           <InfoItem icon={Navigation} label="Tempo Dirigindo" value="--" />
         </div>

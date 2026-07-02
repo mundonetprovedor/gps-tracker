@@ -101,7 +101,7 @@ export function OSDetails() {
 
         <div className="grid grid-cols-2 gap-3">
           {os.phone && (
-            <div className="bg-muted/30 rounded-xl p-3">
+            <div className="bg-secondary/40 rounded-xl p-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 <Phone className="w-3 h-3" /> Telefone
               </div>
@@ -109,7 +109,7 @@ export function OSDetails() {
             </div>
           )}
           {os.whatsapp && (
-            <div className="bg-muted/30 rounded-xl p-3">
+            <div className="bg-secondary/40 rounded-xl p-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 <MessageCircle className="w-3 h-3" style={{ color: '#25D366' }} /> WhatsApp
               </div>
@@ -130,7 +130,7 @@ export function OSDetails() {
 
         <div className="grid grid-cols-2 gap-3">
           {tech && (
-            <div className="bg-muted/30 rounded-xl p-3">
+            <div className="bg-secondary/40 rounded-xl p-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 <User className="w-3 h-3" /> Técnico
               </div>
@@ -138,7 +138,7 @@ export function OSDetails() {
             </div>
           )}
           {os.technology && (
-            <div className="bg-muted/30 rounded-xl p-3">
+            <div className="bg-secondary/40 rounded-xl p-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 <Wifi className="w-3 h-3" /> Tecnologia
               </div>
@@ -146,7 +146,7 @@ export function OSDetails() {
             </div>
           )}
           {os.equipment && (
-            <div className="bg-muted/30 rounded-xl p-3">
+            <div className="bg-secondary/40 rounded-xl p-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 <Monitor className="w-3 h-3" /> Equipamento
               </div>
@@ -154,7 +154,7 @@ export function OSDetails() {
             </div>
           )}
           {dateStr && (
-            <div className="bg-muted/30 rounded-xl p-3">
+            <div className="bg-secondary/40 rounded-xl p-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 <Calendar className="w-3 h-3" /> Horário
               </div>
@@ -170,7 +170,7 @@ export function OSDetails() {
             </div>
           )}
           {os.distance !== undefined && (
-            <div className="bg-muted/30 rounded-xl p-3">
+            <div className="bg-secondary/40 rounded-xl p-3">
               <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
                 <MapPin className="w-3 h-3" /> Distância
               </div>

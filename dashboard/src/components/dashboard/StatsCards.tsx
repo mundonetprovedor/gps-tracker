@@ -33,9 +33,11 @@ function StatCard({ icon: Icon, label, value, color, trend, trendValue }: StatCa
     >
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
-        style={{ backgroundColor: `${color}20` }}
+        style={{ backgroundColor: `${color}18` }}
       >
-        <Icon className="w-5 h-5" style={{ color }} />
+        <div className="w-5 h-5 flex items-center justify-center" style={{ color }}>
+          <Icon className="w-5 h-5" />
+        </div>
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide truncate">
