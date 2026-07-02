@@ -68,15 +68,16 @@ const auth = (req, res, next) => {
 };
 
 // ── ROUTES ──
-// Tenta carregar o dashboard de vários caminhos possíveis em containers
-const dashboardPath = path.join(__dirname, '../dashboard');
-const localDashboardPath = path.join(__dirname, 'dashboard');
-
-if (require('fs').existsSync(dashboardPath)) {
-    app.use(express.static(dashboardPath));
-} else {
-    app.use(express.static(localDashboardPath));
-}
+// Tenta carregar o dashboard de vários caminhos possíveis
+const fs = require('fs');
+const possiblePaths = [
+    path.join(__dirname, '../dashboard/dist'),   // desenvolvimento (React build)
+    path.join(__dirname, '../dashboard'),        // desenvolvimento (HTML puro antigo)
+    path.join(__dirname, 'dashboard'),           // produção (Docker)
+];
+const dashboardPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+console.log(`[Dashboard] Servindo de: ${dashboardPath}`);
+app.use(express.static(dashboardPath));
 
 app.get('/health', (req, res) => res.send('OK'));
 
@@ -655,6 +656,14 @@ const io = new Server(server, { cors: { origin: "*" } });
 
 io.on('connection', (socket) => {
   logger.info('[Socket] Novo cliente conectado');
+});
+
+// SPA fallback: qualquer rota não-API serve o index.html do dashboard
+app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/auth/') || req.path.startsWith('/socket.io/')) {
+        return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(path.join(dashboardPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
