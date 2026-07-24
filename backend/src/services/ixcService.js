@@ -225,12 +225,13 @@ async function syncIXCServiceOrders(io) {
     const brDate = new Date(now.getTime() - (3 * 60 * 60 * 1000));
     const todayISO = brDate.toISOString().split('T')[0]; // AAAA-MM-DD
     
-    // Filtro por data de abertura ou agendamento de hoje
+    // Filtra exclusivamente por O.S. agendadas para o dia de hoje (data_agenda)
     const grid_param = JSON.stringify([
-      { TB: 'su_oss_chamado.data_abertura', OP: '>=', P: `${todayISO} 00:00:00` }
+      { TB: 'su_oss_chamado.data_agenda', OP: '>=', P: `${todayISO} 00:00:00` },
+      { TB: 'su_oss_chamado.data_agenda', OP: '<=', P: `${todayISO} 23:59:59` }
     ]);
 
-    logger.info(`[IXC] Buscando O.S. do dia: ${todayISO}`);
+    logger.info(`[IXC] Buscando O.S. agendadas exclusivamente para hoje: ${todayISO}`);
 
     const response = await fetch(`${IXC_URL}/su_oss_chamado`, {
       method: 'POST',
@@ -413,17 +414,12 @@ async function syncIXCServiceOrders(io) {
       }));
     }
 
-    // ── LIMPEZA DE O.S. ANTIGAS ──
-    const startCleanup = new Date(brDate.getUTCFullYear(), brDate.getUTCMonth(), brDate.getUTCDate(), 0, 0, 0);
+    // ── LIMPEZA DE O.S. ANTIGAS OU DE OUTROS DIAS ──
+    const deletedCount = await ServiceOrder.deleteMany({
+      ixcId: { $nin: Array.from(ixcIdsPresent) }
+    });
     
-    await ServiceOrder.updateMany(
-        { 
-          ixcId: { $nin: Array.from(ixcIdsPresent) },
-          status: { $in: ['AG', 'DS', 'EX', 'A', 'EN', 'AS'] },
-          scheduledDate: { $gte: startCleanup }
-        },
-        { status: 'F', lastSeen: new Date(), finishedAt: new Date() }
-    );
+    logger.info(`[IXC] Sincronização concluída: ${ixcIdsPresent.size} O.S. agendadas para hoje mantidas. (${deletedCount.deletedCount} de outros dias removidas)`);
     
     logger.info('[IXC] Sincronização de O.S. concluída.');
     lastOSSyncTime = Date.now();

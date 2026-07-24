@@ -206,8 +206,8 @@ app.get('/api/teams', auth, async (req, res) => {
 
 app.get('/api/service-orders', auth, async (req, res) => {
   try {
-    const orders = await ServiceOrder.find().sort({ lastSeen: -1 }).limit(300);
-    logger.info(`[API] Retornando ${orders.length} O.S. reais sincronizadas do IXC`);
+    const orders = await ServiceOrder.find().sort({ scheduledDate: 1 });
+    logger.info(`[API] Retornando ${orders.length} O.S. agendadas exclusivamente para hoje`);
     res.json(orders);
   } catch (error) {
     logger.error('[API] Erro ao buscar O.S.: %s', error.message);
