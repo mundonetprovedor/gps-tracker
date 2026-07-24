@@ -43,8 +43,8 @@ export function TopBar() {
 
   const handleLogin = useCallback(async () => {
     try {
-      await login(password)
-      localStorage.setItem('m_token', password)
+      const res = await login(password)
+      localStorage.setItem('m_token', res.token || password)
       setAuthenticated(true)
       setLoginError(false)
       setPassword('')

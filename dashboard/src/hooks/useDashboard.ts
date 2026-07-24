@@ -19,20 +19,21 @@ export function useDashboard() {
           fetchStats(),
           fetchServiceOrders(),
         ])
-        if (teams && Array.isArray(teams) && teams.length > 0) {
+
+        if (teams && Array.isArray(teams)) {
           const teamsMap: Record<string, typeof teams[0]> = {}
           teams.forEach((t) => {
             teamsMap[t.id] = t
           })
-          setTeams(teamsMap)
-        } else {
-          setTeams(MOCK_TEAMS)
+          setTeams(teamsMap.length ? teamsMap : (Object.keys(teamsMap).length > 0 ? teamsMap : MOCK_TEAMS))
         }
 
-        setStats(stats && stats.total ? stats : MOCK_STATS)
-        setServiceOrders(orders && orders.length > 0 ? orders : MOCK_ORDERS)
-      } catch {
-        // Fallback to ISP mock data when API endpoint is offline or 401
+        if (stats) setStats(stats)
+        if (orders && Array.isArray(orders)) {
+          setServiceOrders(orders.length > 0 ? orders : MOCK_ORDERS)
+        }
+      } catch (err) {
+        console.warn('Servidor backend ou IXC indisponível, usando dados de simulação:', err)
         setTeams(MOCK_TEAMS)
         setStats(MOCK_STATS)
         setServiceOrders(MOCK_ORDERS)
