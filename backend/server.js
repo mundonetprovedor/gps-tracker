@@ -206,8 +206,18 @@ app.get('/api/teams', auth, async (req, res) => {
 
 app.get('/api/service-orders', auth, async (req, res) => {
   try {
-    const orders = await ServiceOrder.find().sort({ scheduledDate: 1 });
-    logger.info(`[API] Retornando ${orders.length} O.S. agendadas exclusivamente para hoje`);
+    const { date } = req.query;
+    let query = {};
+    if (date) {
+      const parts = String(date).split('-').map(Number);
+      if (parts.length === 3) {
+        const start = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 0, 0, 0));
+        const end = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 23, 59, 59));
+        query = { scheduledDate: { $gte: start, $lte: end } };
+      }
+    }
+    const orders = await ServiceOrder.find(query).sort({ scheduledDate: 1 });
+    logger.info(`[API] Retornando ${orders.length} O.S. agendadas (Filtro data: ${date || 'Todas'})`);
     res.json(orders);
   } catch (error) {
     logger.error('[API] Erro ao buscar O.S.: %s', error.message);

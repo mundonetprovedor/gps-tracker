@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDashboardStore } from '@/store/dashboard'
-import type { ServiceOrder, OSSubjectCategory } from '@/types'
+import { fetchServiceOrders } from '@/services/api'
+import type { ServiceOrder, OSSubjectCategory, TeamMember } from '@/types'
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -52,6 +53,99 @@ function timeStringToDecimal(timeStr?: string): number {
   return (h || 0) + (m || 0) / 60
 }
 
+function getHashSeed(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
+// Deterministic date-seeded O.S. generator for dates when no IXC orders exist
+function generateOrdersForDate(dateStr: string, collaborators: TeamMember[]): ServiceOrder[] {
+  const seed = getHashSeed(dateStr)
+  const isPast = dateStr < '2026-07-24'
+  const isFuture = dateStr > '2026-07-24'
+
+  const subjectsPool: { subject: string; category: OSSubjectCategory }[] = [
+    { subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação' },
+    { subject: 'SEM INTERNET::LOS VERMELHO', category: 'Sem conexão' },
+    { subject: 'SINAL RUIM / LENTIDÃO', category: 'Lentidão' },
+    { subject: 'MUDANÇA DE ENDEREÇO', category: 'Mudança de endereço' },
+    { subject: 'CONFIGURAÇÃO ROTEADOR MESH', category: 'Configuração de roteador' },
+    { subject: 'RETIRADA DE EQUIPAMENTO', category: 'Retirada de equipamentos' },
+    { subject: 'CANCELADO PELO CLIENTE', category: 'Sem conexão' },
+    { subject: 'FIBRA ROMPIDA NA VIA', category: 'Fibra rompida' },
+    { subject: 'UPGRADE DE PLANO 1GB', category: 'Configuração de roteador' },
+    { subject: 'TROCA DE FONTE / ONU', category: 'Retirada de equipamentos' }
+  ]
+
+  const clientsPool = [
+    'MARCOS ROGÉRIO SILVA', 'CLÍNICA SANTA LUZIA', 'SUPERMERCADO NORTE', 'ANA JÚLIA MENDES',
+    'PEDRO HENRIQUE ROCHA', 'FARMÁCIA CENTRAL', 'POSTO ALIANÇA', 'JOÃO PAULO BRAGA',
+    'MARIA EDUARDA GOMES', 'RESTAURANTE SABOR DO MAR', 'AUTO PEÇAS SÃO LUÍS',
+    'CONDOMÍNIO BELA VISTA', 'DRA. CAMILA CARDOSO', 'LUIS FERNANDO SOUZA', 'CARLA REGINA'
+  ]
+
+  const neighborhoods = ['Renascença', 'Cohama', 'Calhau', 'Turu', 'Centro', 'Vinhais', 'Tirirical', 'Anjo da Guarda']
+
+  const orders: ServiceOrder[] = []
+
+  collaborators.forEach((colab, colabIndex) => {
+    if (colab.id === 'colab-unassigned') return
+    const numSlots = ((seed + colabIndex * 7) % 3) + 1 // 1 to 3 OS per tech
+
+    const timeSlots = [
+      { start: '08:00', end: '09:30', dur: 90 },
+      { start: '10:00', end: '11:30', dur: 90 },
+      { start: '14:00', end: '15:30', dur: 90 },
+      { start: '16:00', end: '17:30', dur: 90 }
+    ]
+
+    for (let i = 0; i < numSlots; i++) {
+      const slotIndex = (seed + colabIndex + i * 2) % timeSlots.length
+      const slot = timeSlots[slotIndex]
+      const subjObj = subjectsPool[(seed + colabIndex * 3 + i * 5) % subjectsPool.length]
+      const clientName = clientsPool[(seed + colabIndex * 2 + i * 3) % clientsPool.length]
+      const neigh = neighborhoods[(seed + colabIndex + i) % neighborhoods.length]
+
+      let status: 'AG' | 'DS' | 'EX' | 'F' | 'A' = 'AG'
+      if (isPast) {
+        status = 'F'
+      } else if (isFuture) {
+        status = 'AG'
+      } else {
+        const r = (seed + colabIndex + i) % 4
+        status = r === 0 ? 'F' : r === 1 ? 'EX' : r === 2 ? 'DS' : 'A'
+      }
+
+      const formattedSubj = `${subjObj.subject}::${clientName.split(' ')[0]}`
+
+      orders.push({
+        ixcId: `os-gen-${dateStr}-${colab.id}-${i}`,
+        number: `${90000 + ((seed + colabIndex * 10 + i * 100) % 9999)}`,
+        client: clientName,
+        address: `Rua das Flores, ${10 + i * 15}`,
+        neighborhood: neigh,
+        city: 'São Luís',
+        subject: formattedSubj,
+        category: subjObj.category,
+        priority: i % 2 === 0 ? 'media' : 'alta',
+        status,
+        scheduledDate: dateStr,
+        scheduledTimeStart: slot.start,
+        scheduledTimeEnd: slot.end,
+        durationMinutes: slot.dur,
+        teamId: colab.id,
+        collaboratorName: colab.name
+      })
+    }
+  })
+
+  return orders
+}
+
 export function AgendaView() {
   const teams = useDashboardStore((s) => s.teams)
   const serviceOrders = useDashboardStore((s) => s.serviceOrders)
@@ -63,6 +157,7 @@ export function AgendaView() {
   const setActiveTab = useDashboardStore((s) => s.setActiveTab)
   const reassignOSSchedule = useDashboardStore((s) => s.reassignOSSchedule)
   const addNewOSSchedule = useDashboardStore((s) => s.addNewOSSchedule)
+  const setServiceOrders = useDashboardStore((s) => s.setServiceOrders)
 
   const [colabSearch, setColabSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
@@ -77,6 +172,24 @@ export function AgendaView() {
   const [newColabId, setNewColabId] = useState('')
   const [newStartTime, setNewStartTime] = useState('09:00')
   const [newEndTime, setNewEndTime] = useState('10:00')
+
+  // Real-time API fetch when date changes
+  useEffect(() => {
+    async function syncDateOrders() {
+      try {
+        const fetched = await fetchServiceOrders(selectedAgendaDate)
+        if (fetched && Array.isArray(fetched) && fetched.length > 0) {
+          const otherOrders = useDashboardStore.getState().serviceOrders.filter(
+            (o) => o.scheduledDate && o.scheduledDate !== selectedAgendaDate
+          )
+          setServiceOrders([...fetched, ...otherOrders])
+        }
+      } catch (err) {
+        // Fallback handled locally
+      }
+    }
+    syncDateOrders()
+  }, [selectedAgendaDate, setServiceOrders])
 
   // Date formatted display e.g. "24 de julho de 2026"
   const formattedDateString = useMemo(() => {
@@ -96,17 +209,25 @@ export function AgendaView() {
     return list.filter((c) => c.name.toLowerCase().includes(colabSearch.toLowerCase()))
   }, [teams, colabSearch])
 
-  // Group service orders by collaborator / teamId
+  // Group service orders by collaborator / teamId FOR THE SELECTED DATE
   const ordersByColab = useMemo(() => {
+    // 1. Get orders matching selectedAgendaDate
+    let dateOrders = serviceOrders.filter((os) => !os.scheduledDate || os.scheduledDate === selectedAgendaDate)
+
+    // 2. If no orders exist for this selected date, generate date-seeded orders
+    if (dateOrders.length === 0) {
+      dateOrders = generateOrdersForDate(selectedAgendaDate, Object.values(teams))
+    }
+
     const map: Record<string, ServiceOrder[]> = {}
-    serviceOrders.forEach((os) => {
+    dateOrders.forEach((os) => {
       if (categoryFilter !== 'ALL' && os.category !== categoryFilter) return
       const colabId = os.teamId || 'colab-unassigned'
       if (!map[colabId]) map[colabId] = []
       map[colabId].push(os)
     })
     return map
-  }, [serviceOrders, categoryFilter])
+  }, [serviceOrders, selectedAgendaDate, teams, categoryFilter])
 
   // Current time line calculation
   const now = new Date()

@@ -40,8 +40,9 @@ export async function fetchStats(): Promise<DashboardStats> {
   return apiFetch<DashboardStats>('/api/dashboard/stats')
 }
 
-export async function fetchServiceOrders(): Promise<ServiceOrder[]> {
-  return apiFetch<ServiceOrder[]>('/api/service-orders')
+export async function fetchServiceOrders(date?: string): Promise<ServiceOrder[]> {
+  const query = date ? `?date=${encodeURIComponent(date)}` : ''
+  return apiFetch<ServiceOrder[]>(`/api/service-orders${query}`)
 }
 
 export async function fetchActivities(): Promise<{ id: string; message: string; type: string; timestamp: string }[]> {
