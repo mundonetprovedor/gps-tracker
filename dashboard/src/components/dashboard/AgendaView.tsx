@@ -599,19 +599,38 @@ const EXACT_AGENDA_COLLABORATORS = [
                             )
 
                             const style = getCategoryStyle(os.category, os.subject, os.status)
+                            const isExecuting = os.status === 'EX'
 
                             return (
                               <motion.div
                                 key={os.ixcId}
                                 initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
+                                animate={
+                                  isExecuting
+                                    ? {
+                                        scale: [1, 1.015, 1],
+                                        boxShadow: [
+                                          '0 0 4px rgba(249,115,22,0.4)',
+                                          '0 0 16px rgba(249,115,22,0.85)',
+                                          '0 0 4px rgba(249,115,22,0.4)',
+                                        ],
+                                      }
+                                    : { opacity: 1, scale: 1 }
+                                }
+                                transition={
+                                  isExecuting
+                                    ? { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }
+                                    : { duration: 0.2 }
+                                }
                                 onClick={() => {
                                   setSelectedOS(os)
                                   setSelectedOSId(os.ixcId)
                                 }}
                                 onMouseEnter={() => setHoveredOS(os)}
                                 onMouseLeave={() => setHoveredOS(null)}
-                                className={`absolute top-1.5 bottom-1.5 z-15 rounded-lg border ${style.bg} ${style.border} ${style.text} shadow-sm hover:shadow-md hover:z-20 cursor-pointer flex items-center px-1.5 transition-all overflow-hidden group/card`}
+                                className={`absolute top-1.5 bottom-1.5 z-15 rounded-lg border ${style.bg} ${style.border} ${style.text} ${
+                                  isExecuting ? 'ring-2 ring-orange-500/90 z-25' : 'shadow-sm hover:shadow-md'
+                                } hover:z-30 cursor-pointer flex items-center px-1.5 transition-all overflow-hidden group/card`}
                                 style={{
                                   left: `${leftPercent}%`,
                                   width: `${widthPercent}%`,
@@ -619,12 +638,14 @@ const EXACT_AGENDA_COLLABORATORS = [
                               >
                                 {/* Left Color Accent Bar */}
                                 <div
-                                  className={`w-1 h-full rounded-full ${style.bar} flex-shrink-0 mr-1.5`}
+                                  className={`w-1 h-full rounded-full ${style.bar} ${
+                                    isExecuting ? 'animate-pulse bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,1)]' : ''
+                                  } flex-shrink-0 mr-1.5`}
                                 />
 
                                 {/* Event Text (Category / Client Name formatted like IXC) */}
                                 <div className="min-w-0 flex-1 overflow-hidden leading-tight">
-                                  <p className="text-[10px] font-extrabold tracking-tight truncate uppercase">
+                                  <p className="text-[10px] font-extrabold tracking-tight truncate uppercase flex items-center gap-1">
                                     {os.subject || os.category}
                                   </p>
                                   {os.client && (
@@ -635,9 +656,14 @@ const EXACT_AGENDA_COLLABORATORS = [
                                 </div>
 
                                 {/* Status Icon Badge */}
-                                <span className="ml-1 opacity-80 group-hover/card:opacity-100 flex-shrink-0 text-[10px]">
+                                <span className="ml-1 flex-shrink-0 text-[10px]">
                                   {os.status === 'F' && '✓'}
-                                  {os.status === 'EX' && '⚡'}
+                                  {isExecuting && (
+                                    <span className="relative flex h-3 w-3 items-center justify-center">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                      <span className="relative text-[11px]">⚡</span>
+                                    </span>
+                                  )}
                                   {os.status === 'DS' && '🚗'}
                                 </span>
                               </motion.div>
@@ -684,18 +710,39 @@ const EXACT_AGENDA_COLLABORATORS = [
                       ) : (
                         colabOrders.map((os) => {
                           const style = getCategoryStyle(os.category, os.subject, os.status)
+                          const isExecuting = os.status === 'EX'
                           return (
-                            <div
+                            <motion.div
                               key={os.ixcId}
+                              animate={
+                                isExecuting
+                                  ? {
+                                      scale: [1, 1.02, 1],
+                                      boxShadow: [
+                                        '0 0 4px rgba(249,115,22,0.3)',
+                                        '0 0 14px rgba(249,115,22,0.7)',
+                                        '0 0 4px rgba(249,115,22,0.3)',
+                                      ],
+                                    }
+                                  : { scale: 1 }
+                              }
+                              transition={
+                                isExecuting
+                                  ? { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }
+                                  : { duration: 0.2 }
+                              }
                               onClick={() => {
                                 setSelectedOS(os)
                                 setSelectedOSId(os.ixcId)
                               }}
-                              className={`p-2.5 rounded-xl border ${style.bg} ${style.border} cursor-pointer hover:shadow-md transition-all flex flex-col gap-1`}
+                              className={`p-2.5 rounded-xl border ${style.bg} ${style.border} ${
+                                isExecuting ? 'ring-2 ring-orange-500/80' : ''
+                              } cursor-pointer hover:shadow-md transition-all flex flex-col gap-1`}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-background/60">
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-background/60 flex items-center gap-1">
                                   {os.scheduledTimeStart} - {os.scheduledTimeEnd}
+                                  {isExecuting && <span className="animate-pulse text-orange-500 font-extrabold text-[10px]">⚡ EXECUÇÃO</span>}
                                 </span>
                                 <span className={`text-[10px] font-extrabold ${style.text}`}>
                                   #{os.number}
@@ -707,7 +754,7 @@ const EXACT_AGENDA_COLLABORATORS = [
                               <p className="text-[11px] text-muted-foreground truncate">
                                 {os.client} - {os.neighborhood}
                               </p>
-                            </div>
+                            </motion.div>
                           )
                         })
                       )}
