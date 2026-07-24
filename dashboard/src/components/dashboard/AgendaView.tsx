@@ -259,14 +259,33 @@ const EXACT_AGENDA_COLLABORATORS = [
     }
 
     const map: Record<string, ServiceOrder[]> = {}
+    collaboratorsList.forEach((c) => {
+      map[c.id] = []
+    })
+
     dateOrders.forEach((os) => {
       if (categoryFilter !== 'ALL' && os.category !== categoryFilter) return
-      const colabId = os.teamId || 'colab-unassigned'
-      if (!map[colabId]) map[colabId] = []
-      map[colabId].push(os)
+
+      // Find matching collaborator in the 20 exact collaborators list
+      const matched = collaboratorsList.find((c) => {
+        if (os.teamId && (os.teamId === c.id || os.teamId === c.name)) return true
+        if (os.collaboratorName) {
+          const osName = os.collaboratorName.toLowerCase().trim()
+          const cName = c.name.toLowerCase().trim()
+          if (osName === cName || osName.includes(cName) || cName.includes(osName)) return true
+          const osParts = osName.split(' ')
+          const cParts = cName.split(' ')
+          if (osParts[0] === cParts[0] && osParts.length > 1 && cParts.length > 1 && osParts[osParts.length - 1] === cParts[cParts.length - 1]) return true
+        }
+        return false
+      })
+
+      const targetId = matched ? matched.id : (os.teamId || collaboratorsList[0]?.id || 'colab-1')
+      if (!map[targetId]) map[targetId] = []
+      map[targetId].push(os)
     })
     return map
-  }, [serviceOrders, selectedAgendaDate, teams, categoryFilter])
+  }, [serviceOrders, selectedAgendaDate, collaboratorsList, categoryFilter])
 
   // Current time line calculation
   const now = new Date()

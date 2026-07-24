@@ -393,6 +393,39 @@ async function syncIXCServiceOrders(io) {
             return rawAddr;
         };
 
+        const inferCategoryFromSubject = (subj) => {
+          if (!subj) return 'Instalação';
+          const s = subj.toUpperCase();
+          if (s.includes('ROMP') || s.includes('FIBRA') || s.includes('CABO')) return 'Fibra rompida';
+          if (s.includes('SEM INTERNET') || s.includes('SEM CONEX') || s.includes('PARADO') || s.includes('LOS') || s.includes('SEM SINAL')) return 'Sem conexão';
+          if (s.includes('LENT') || s.includes('OSCIL') || s.includes('LENTO') || s.includes('SINAL FRACO')) return 'Lentidão';
+          if (s.includes('MUDAN') || s.includes('ENDEREÇO') || s.includes('TRANSFER')) return 'Mudança de endereço';
+          if (s.includes('CONFIG') || s.includes('ROTEADOR') || s.includes('WIFI') || s.includes('MESH') || s.includes('SENHA')) return 'Configuração de roteador';
+          if (s.includes('RETIR') || s.includes('CANCEL') || s.includes('RECOLH')) return 'Retirada de equipamentos';
+          return 'Instalação';
+        };
+
+        const parsedAgendaDate = parseIXCDate(os.data_agenda || os.data_inicio || os.data_fechamento);
+        let timeStart = '08:30';
+        let timeEnd = '10:00';
+        let scheduledDateStr = todayISO;
+
+        if (parsedAgendaDate) {
+          scheduledDateStr = parsedAgendaDate.toISOString().split('T')[0];
+          const h = String(parsedAgendaDate.getHours()).padStart(2, '0');
+          const m = String(parsedAgendaDate.getMinutes()).padStart(2, '0');
+          if (h !== '00' || m !== '00') {
+            timeStart = `${h}:${m}`;
+            const endHourDec = parsedAgendaDate.getHours() + (parsedAgendaDate.getMinutes() + 90) / 60;
+            const endH = String(Math.floor(endHourDec) % 24).padStart(2, '0');
+            const endM = String(Math.round((endHourDec % 1) * 60) % 60).padStart(2, '0');
+            timeEnd = `${endH}:${endM}`;
+          }
+        }
+
+        const category = inferCategoryFromSubject(subjectName);
+        const techName = await getTechnicianName(tecnicoId);
+
         await ServiceOrder.findOneAndUpdate(
           { ixcId: os.id },
           {
@@ -405,8 +438,13 @@ async function syncIXCServiceOrders(io) {
             priority: os.prioridade,
             description: os.mensagem,
             subject: subjectName,
+            category: category,
             teamId: tecnicoId ? String(tecnicoId) : null,
-            scheduledDate: parseIXCDate(os.data_agenda),
+            collaboratorName: techName,
+            scheduledDate: scheduledDateStr,
+            scheduledTimeStart: timeStart,
+            scheduledTimeEnd: timeEnd,
+            durationMinutes: 90,
             lastSeen: new Date()
           },
           { upsert: true }
