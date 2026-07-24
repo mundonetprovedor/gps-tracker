@@ -112,18 +112,18 @@ function generateOrdersForDate(dateStr: string, collaborators: TeamMember[]): Se
 
   collaborators.forEach((colab, colabIndex) => {
     if (colab.id === 'colab-unassigned') return
-    const numSlots = ((seed + colabIndex * 7) % 3) + 1 // 1 to 3 OS per tech
 
-    const timeSlots = [
-      { start: '08:00', end: '09:30', dur: 90 },
-      { start: '10:00', end: '11:30', dur: 90 },
-      { start: '14:00', end: '15:30', dur: 90 },
-      { start: '16:00', end: '17:30', dur: 90 }
+    // Every tech has morning slot + 15:00 afternoon slot + optional 16:30 slot
+    const slots = [
+      (seed + colabIndex) % 2 === 0 ? { start: '08:00', end: '09:30', dur: 90 } : { start: '10:00', end: '11:30', dur: 90 },
+      { start: '15:00', end: '16:15', dur: 75 } // Always include 15:00 slot!
     ]
 
-    for (let i = 0; i < numSlots; i++) {
-      const slotIndex = (seed + colabIndex + i * 2) % timeSlots.length
-      const slot = timeSlots[slotIndex]
+    if ((seed + colabIndex) % 2 === 1) {
+      slots.push({ start: '16:30', end: '17:45', dur: 75 })
+    }
+
+    slots.forEach((slot, i) => {
       const subjObj = subjectsPool[(seed + colabIndex * 3 + i * 5) % subjectsPool.length]
       const clientName = clientsPool[(seed + colabIndex * 2 + i * 3) % clientsPool.length]
       const neigh = neighborhoods[(seed + colabIndex + i) % neighborhoods.length]
@@ -134,8 +134,14 @@ function generateOrdersForDate(dateStr: string, collaborators: TeamMember[]): Se
       } else if (isFuture) {
         status = 'AG'
       } else {
-        const r = (seed + colabIndex + i) % 4
-        status = r === 0 ? 'F' : r === 1 ? 'EX' : r === 2 ? 'DS' : 'A'
+        if (slot.start === '15:00') {
+          const r = (seed + colabIndex) % 3
+          status = r === 0 ? 'EX' : r === 1 ? 'DS' : 'A'
+        } else if (slot.start < '12:00') {
+          status = 'F'
+        } else {
+          status = 'A'
+        }
       }
 
       const formattedSubj = `${subjObj.subject}::${clientName.split(' ')[0]}`
@@ -158,7 +164,7 @@ function generateOrdersForDate(dateStr: string, collaborators: TeamMember[]): Se
         teamId: colab.id,
         collaboratorName: colab.name
       })
-    }
+    })
   })
 
   return orders
