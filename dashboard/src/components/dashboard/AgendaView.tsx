@@ -34,10 +34,28 @@ const CATEGORY_STYLE_MAP: Record<string, { bg: string; text: string; border: str
   'CANCELADO': { bg: 'bg-slate-400/20 dark:bg-slate-800/40', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-400/40', bar: 'bg-slate-400' },
 }
 
-function getCategoryStyle(category: string, subject: string) {
-  if (subject && subject.toUpperCase().includes('CANCEL')) {
-    return CATEGORY_STYLE_MAP['CANCELADO']
+function getCategoryStyle(category: string, subject: string, status?: string) {
+  const isCancelled = subject && subject.toUpperCase().includes('CANCEL')
+  const isFinalized = status === 'F'
+
+  if (isCancelled) {
+    return {
+      bg: 'bg-slate-400/20 dark:bg-slate-800/30 opacity-70',
+      text: 'text-slate-500 dark:text-slate-400 line-through',
+      border: 'border-slate-400/40',
+      bar: 'bg-slate-400',
+    }
   }
+
+  if (isFinalized) {
+    return {
+      bg: 'bg-slate-500/15 dark:bg-slate-900/30 opacity-75',
+      text: 'text-slate-600 dark:text-slate-400 font-medium',
+      border: 'border-slate-400/30',
+      bar: 'bg-slate-400',
+    }
+  }
+
   return CATEGORY_STYLE_MAP[category] || {
     bg: 'bg-indigo-500/15 dark:bg-indigo-950/40',
     text: 'text-indigo-700 dark:text-indigo-300',
@@ -580,7 +598,7 @@ const EXACT_AGENDA_COLLABORATORS = [
                               ((endDec - startDec) / TOTAL_HOURS) * 100
                             )
 
-                            const style = getCategoryStyle(os.category, os.subject)
+                            const style = getCategoryStyle(os.category, os.subject, os.status)
 
                             return (
                               <motion.div
@@ -665,7 +683,7 @@ const EXACT_AGENDA_COLLABORATORS = [
                         </p>
                       ) : (
                         colabOrders.map((os) => {
-                          const style = getCategoryStyle(os.category, os.subject)
+                          const style = getCategoryStyle(os.category, os.subject, os.status)
                           return (
                             <div
                               key={os.ixcId}
