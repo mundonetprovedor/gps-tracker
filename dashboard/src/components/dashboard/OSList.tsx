@@ -1,86 +1,101 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ChevronRight, MapPin, Clock, Wifi } from 'lucide-react'
+import { Search, ChevronRight, MapPin, Clock, Wifi, ShieldAlert, Signal } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useDashboardStore } from '@/store/dashboard'
-import { STATUS_MAP, type ServiceOrder } from '@/types'
+import {
+  STATUS_MAP,
+  OS_CATEGORY_CONFIG,
+  type ServiceOrder,
+  type OSSubjectCategory,
+} from '@/types'
 
-const statusFilters = [
-  { key: 'urgent', label: 'Urgentes', color: '#ef4444' },
-  { key: 'progress', label: 'Em Andamento', color: '#f97316' },
-  { key: 'done', label: 'Concluídas', color: '#10b981' },
-  { key: 'pending', label: 'Pendentes', color: '#6b7280' },
+const categoryFilters: { key: string; label: string; color: string }[] = [
+  { key: 'Sem conexão', label: '🔴 Sem Conexão', color: '#EF4444' },
+  { key: 'Fibra rompida', label: '🟠 Fibra Rompida', color: '#F97316' },
+  { key: 'Lentidão', label: '🟡 Lentidão', color: '#EAB308' },
+  { key: 'Instalação', label: '🟢 Instalação', color: '#10B981' },
+  { key: 'Mudança de endereço', label: '🔵 Mudança', color: '#3B82F6' },
 ]
 
 export function OSList() {
   const orders = useDashboardStore((s) => s.serviceOrders)
   const selectedOSId = useDashboardStore((s) => s.selectedOSId)
   const setSelectedOSId = useDashboardStore((s) => s.setSelectedOSId)
-  const [search, setSearch] = useState('')
-  const [activeFilter, setActiveFilter] = useState<string | null>(null)
+  const setSelectedTeamId = useDashboardStore((s) => s.setSelectedTeamId)
+  const searchQuery = useDashboardStore((s) => s.searchQuery)
+  const [localSearch, setLocalSearch] = useState('')
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     let list = orders
 
-    if (activeFilter === 'urgent') {
-      list = list.filter((os) => os.priority === 'alta' || os.status === 'DS')
-    } else if (activeFilter === 'progress') {
-      list = list.filter((os) => os.status === 'EX' || os.status === 'DS')
-    } else if (activeFilter === 'done') {
-      list = list.filter((os) => os.status === 'F')
-    } else if (activeFilter === 'pending') {
-      list = list.filter((os) => os.status === 'A' || os.status === 'AG')
+    if (activeCategory) {
+      list = list.filter((os) => os.category === activeCategory)
     }
 
-    if (search) {
-      const q = search.toLowerCase()
+    const query = (localSearch || searchQuery).toLowerCase().trim()
+    if (query) {
       list = list.filter(
         (os) =>
-          os.number.toLowerCase().includes(q) ||
-          os.client.toLowerCase().includes(q) ||
-          os.address?.toLowerCase().includes(q)
+          os.number.toLowerCase().includes(query) ||
+          os.client.toLowerCase().includes(query) ||
+          os.address?.toLowerCase().includes(query) ||
+          os.neighborhood?.toLowerCase().includes(query) ||
+          os.ctoName?.toLowerCase().includes(query) ||
+          os.subject.toLowerCase().includes(query)
       )
     }
 
     return list
-  }, [orders, search, activeFilter])
+  }, [orders, localSearch, searchQuery, activeCategory])
 
   return (
-    <div className="h-full flex flex-col bg-card/60 backdrop-blur-sm border border-border rounded-2xl overflow-hidden shadow-lg">
-      <div className="p-4 border-b border-border space-y-3">
+    <div className="h-full flex flex-col bg-card/70 backdrop-blur-md border border-border rounded-2xl overflow-hidden shadow-xl">
+      <div className="p-3.5 border-b border-border space-y-2.5">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-extrabold flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary" />
+          <h3 className="text-sm font-extrabold flex items-center gap-2 text-foreground">
+            <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
             Ordens de Serviço
           </h3>
-          <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-lg">
-            {filtered.length}
+          <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-lg border border-border">
+            {filtered.length} O.S.
           </span>
         </div>
 
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
-            placeholder="Buscar O.S...."
-            className="pl-8 h-8 text-xs bg-secondary/50 border-secondary"
-            value={search}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+            placeholder="Buscar por O.S., Cliente, CTO ou Bairro..."
+            className="pl-8 h-8 text-xs bg-secondary/50 border-secondary focus:ring-1 focus:ring-primary"
+            value={localSearch}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocalSearch(e.target.value)}
           />
         </div>
 
         <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          {statusFilters.map((f) => (
+          <button
+            onClick={() => setActiveCategory(null)}
+            className={`text-[10px] font-extrabold px-2.5 py-1 rounded-lg whitespace-nowrap transition-all ${
+              activeCategory === null
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground bg-secondary/50 hover:bg-secondary'
+            }`}
+          >
+            Todas
+          </button>
+          {categoryFilters.map((f) => (
             <button
               key={f.key}
-              onClick={() => setActiveFilter(activeFilter === f.key ? null : f.key)}
+              onClick={() => setActiveCategory(activeCategory === f.key ? null : f.key)}
               className={`text-[10px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap transition-all ${
-                activeFilter === f.key
-                  ? 'text-white shadow-sm shadow-black/20'
+                activeCategory === f.key
+                  ? 'text-white shadow-sm shadow-black/30'
                   : 'text-muted-foreground bg-secondary/50 hover:bg-secondary'
               }`}
-              style={activeFilter === f.key ? { backgroundColor: f.color } : {}}
+              style={activeCategory === f.key ? { backgroundColor: f.color } : {}}
             >
               {f.label}
             </button>
@@ -88,7 +103,7 @@ export function OSList() {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-3 py-2">
+      <ScrollArea className="flex-1 px-2 py-2">
         <AnimatePresence>
           {filtered.map((os, i) => (
             <OSListItem
@@ -96,13 +111,17 @@ export function OSList() {
               os={os}
               index={i}
               isSelected={selectedOSId === os.ixcId}
-              onClick={() => setSelectedOSId(os.ixcId)}
+              onClick={() => {
+                setSelectedOSId(os.ixcId)
+                if (os.teamId) setSelectedTeamId(os.teamId)
+              }}
             />
           ))}
         </AnimatePresence>
         {filtered.length === 0 && (
-          <div className="text-center py-8 text-sm text-muted-foreground">
-            Nenhuma O.S. encontrada
+          <div className="text-center py-10 text-xs font-semibold text-muted-foreground flex flex-col items-center gap-2">
+            <ShieldAlert className="w-8 h-8 text-muted-foreground/50" />
+            Nenhuma Ordem de Serviço encontrada
           </div>
         )}
       </ScrollArea>
@@ -121,66 +140,81 @@ function OSListItem({
   isSelected: boolean
   onClick: () => void
 }) {
+  const categoryConfig = OS_CATEGORY_CONFIG[os.category as OSSubjectCategory] || OS_CATEGORY_CONFIG['Sem conexão']
   const statusInfo = STATUS_MAP[os.status as keyof typeof STATUS_MAP] || {
-    label: 'Pendente',
-    color: '#6b7280',
-    icon: 'clock',
+    label: 'Aberto',
+    color: '#3b82f6',
   }
+
+  const isOverdue = os.slaRemainingMinutes !== undefined && os.slaRemainingMinutes <= 30
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.02 }}
       onClick={onClick}
-      className={`group flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 mb-1.5 border ${
+      className={`group flex items-start gap-2.5 p-2.5 rounded-xl cursor-pointer transition-all duration-200 mb-1.5 border ${
         isSelected
-          ? 'bg-primary/15 border-primary/40 shadow-sm shadow-primary/5'
-          : 'bg-transparent border-transparent hover:bg-secondary/40 hover:border-border'
+          ? 'bg-primary/15 border-primary/50 shadow-md shadow-primary/10'
+          : 'bg-card/40 border-border/40 hover:bg-secondary/60 hover:border-border'
       }`}
     >
       <div
-        className="w-1 h-10 rounded-full flex-shrink-0 mt-0.5"
-        style={{ backgroundColor: statusInfo.color }}
+        className="w-1.5 h-12 rounded-full flex-shrink-0 mt-0.5 transition-all group-hover:scale-y-110"
+        style={{ backgroundColor: categoryConfig.color }}
       />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-bold">OS {os.number}</span>
-          <Badge
-            className="text-[9px] px-1.5 py-0 font-bold border-0"
-            style={{ backgroundColor: `${statusInfo.color}20`, color: statusInfo.color }}
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-extrabold text-foreground">O.S. #{os.number}</span>
+            <Badge
+              className="text-[9px] px-1.5 py-0 font-extrabold border-0"
+              style={{ backgroundColor: `${categoryConfig.color}20`, color: categoryConfig.color }}
+            >
+              {os.category}
+            </Badge>
+          </div>
+          <span
+            className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+            style={{ backgroundColor: `${statusInfo.color}15`, color: statusInfo.color }}
           >
             {statusInfo.label}
-          </Badge>
+          </span>
         </div>
+
         <p className="text-xs font-semibold text-foreground truncate mt-0.5">{os.client}</p>
-        <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+
+        <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1 truncate">
-            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <MapPin className="w-3 h-3 flex-shrink-0 text-muted-foreground/70" />
             <span className="truncate">{os.address || 'Sem endereço'}</span>
           </span>
         </div>
-        <div className="flex items-center gap-2 mt-1.5">
-          {os.technology && (
-            <span className="text-[9px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex items-center gap-1">
-              <Wifi className="w-2.5 h-2.5" /> {os.technology}
+
+        <div className="flex items-center justify-between gap-2 mt-1.5 pt-1 border-t border-border/30 text-[10px]">
+          {os.ctoName && (
+            <span className="flex items-center gap-1 font-mono text-muted-foreground">
+              <Wifi className="w-3 h-3 text-primary" /> {os.ctoName}
             </span>
           )}
-          {os.distance !== undefined && (
-            <span className="text-[9px] text-muted-foreground">
-              {os.distance} km
+
+          {os.rxSignal !== undefined && (
+            <span className={`flex items-center gap-1 font-bold ${os.rxSignal < -27 ? 'text-destructive' : 'text-status-success'}`}>
+              <Signal className="w-3 h-3" /> {os.rxSignal} dBm
             </span>
           )}
-          {os.eta && (
-            <span className="text-[9px] flex items-center gap-1 text-muted-foreground">
-              <Clock className="w-2.5 h-2.5" /> {os.eta}
+
+          {os.slaRemainingMinutes !== undefined && (
+            <span className={`font-bold flex items-center gap-0.5 ${isOverdue ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}>
+              <Clock className="w-3 h-3" /> {os.slaRemainingMinutes}m
             </span>
           )}
         </div>
       </div>
       <ChevronRight
-        className={`w-4 h-4 mt-2 flex-shrink-0 transition-all ${
-          isSelected ? 'text-primary' : 'text-muted-foreground opacity-0 group-hover:opacity-100'
+        className={`w-4 h-4 mt-3 flex-shrink-0 transition-all ${
+          isSelected ? 'text-primary translate-x-0.5' : 'text-muted-foreground opacity-0 group-hover:opacity-100'
         }`}
       />
     </motion.div>

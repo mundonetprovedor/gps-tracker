@@ -17,10 +17,10 @@ const alertIcons = {
 }
 
 const alertColors = {
-  warning: 'text-status-warning border-status-warning/30 bg-status-warning/10',
-  danger: 'text-destructive border-destructive/30 bg-destructive/10',
-  info: 'text-primary border-primary/30 bg-primary/10',
-  success: 'text-status-success border-status-success/30 bg-status-success/10',
+  warning: 'border-amber-500/40 bg-amber-500/10 text-amber-500',
+  danger: 'border-destructive/40 bg-destructive/10 text-destructive',
+  info: 'border-primary/40 bg-primary/10 text-primary',
+  success: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500',
 }
 
 export function AlertSystem() {
@@ -28,32 +28,35 @@ export function AlertSystem() {
   const removeAlert = useDashboardStore((s) => s.removeAlert)
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] w-80 space-y-2">
+    <div className="fixed bottom-6 right-6 z-[9999] w-96 space-y-2.5 pointer-events-none">
       <AnimatePresence>
         {alerts.slice(0, 5).map((alert) => {
-          const Icon = alertIcons[alert.type]
+          const Icon = alertIcons[alert.type] || Info
           return (
             <motion.div
               key={alert.id}
               initial={{ opacity: 0, x: 100, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 100, scale: 0.9 }}
-              className={`flex items-start gap-3 p-3 rounded-xl border backdrop-blur-xl bg-card/90 shadow-xl ${alertColors[alert.type]}`}
+              className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-2xl border backdrop-blur-2xl bg-card/95 shadow-2xl ${alertColors[alert.type]}`}
             >
               <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-foreground">{alert.message}</p>
-                <p className="text-[9px] text-muted-foreground mt-0.5 font-semibold">
-                  {alert.timestamp.toLocaleTimeString('pt-BR')}
+                {alert.title && (
+                  <h5 className="text-xs font-extrabold text-foreground mb-0.5">{alert.title}</h5>
+                )}
+                <p className="text-xs font-semibold text-foreground/90 leading-tight">{alert.message}</p>
+                <p className="text-[9px] font-bold text-muted-foreground mt-1">
+                  {new Date(alert.timestamp).toLocaleTimeString('pt-BR')}
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-5 w-5 -mr-1 -mt-1"
+                className="h-6 w-6 -mr-1 -mt-1 hover:bg-black/20 text-muted-foreground"
                 onClick={() => removeAlert(alert.id)}
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </Button>
             </motion.div>
           )
