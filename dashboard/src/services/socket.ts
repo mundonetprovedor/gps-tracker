@@ -20,7 +20,7 @@ export function initSocket(): Socket {
       store.updateTeam(data.teamId, {
         id: data.teamId,
         name: data.name || `Técnico ${data.teamId}`,
-        status: 'Online',
+        status: (data.status as any) || 'Disponível',
         lastLocation: { lat: data.lat, lng: data.lng, speed: data.speed, heading: data.heading },
         lastSeen: data.lastSeen,
       })

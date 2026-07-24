@@ -38,7 +38,7 @@ export function Sidebar() {
   const stats = useDashboardStore((s) => s.stats)
   const [activeTab, setActiveTab] = useState('monitor')
 
-  const onlineCount = Object.values(teams).filter((t) => t.status === 'Online').length
+  const onlineCount = Object.values(teams).filter((t) => t.status !== 'Offline').length
   const totalCount = Object.values(teams).length
 
   return (
