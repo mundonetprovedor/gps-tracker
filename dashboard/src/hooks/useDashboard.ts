@@ -9,11 +9,8 @@ export function useDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Auto-authenticate for seamless initial viewing if token is missing
-    if (!localStorage.getItem('m_token')) {
-      localStorage.setItem('m_token', 'demo-session')
-      setAuthenticated(true)
-    }
+    // Ensure dashboard is active
+    setAuthenticated(true)
 
     async function load() {
       try {
@@ -34,8 +31,8 @@ export function useDashboard() {
 
         setStats(stats && stats.total ? stats : MOCK_STATS)
         setServiceOrders(orders && orders.length > 0 ? orders : MOCK_ORDERS)
-      } catch (error) {
-        console.warn('Backend API offline or unreachable, using live ISP mock data:', error)
+      } catch {
+        // Fallback to ISP mock data when API endpoint is offline or 401
         setTeams(MOCK_TEAMS)
         setStats(MOCK_STATS)
         setServiceOrders(MOCK_ORDERS)

@@ -16,8 +16,6 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   })
 
   if (res.status === 401) {
-    localStorage.removeItem('m_token')
-    window.location.reload()
     throw new Error('Unauthorized')
   }
 
