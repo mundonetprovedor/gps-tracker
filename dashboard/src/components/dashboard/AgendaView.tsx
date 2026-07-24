@@ -202,9 +202,48 @@ export function AgendaView() {
     }
   }, [selectedAgendaDate])
 
-  // Filtered Collaborators
+const EXACT_AGENDA_COLLABORATORS = [
+  'ANTONIO PEDRO SILVA NETO',
+  'CAIO ALMEIDA MENEZES',
+  'ELIAS GONCALVES RIBEIRO',
+  'GABRIEL DE SOUSA BARROS',
+  'IVALDO MAIA MENDES',
+  'JAILSON SANTOS SILVA',
+  'JOAO VITOR MENDES MARTINS(Juninho)',
+  'JONATAS SILVA PASSO',
+  'JULIO CESAR LIMA DOS SANTOS',
+  'LUCAS DE MOURA BRAGA',
+  'MARCELINO SOUSA DOS SANTOS',
+  'MATHEUS MORAES DOS SANTOS',
+  'MOISES COELHO SOARES',
+  'RAFAEL CUNHA DOS SANTOS',
+  'RAMON BRENDON FREITAS COSTA',
+  'ROMARIO COELHO SOUZA',
+  'SILVAN DOS SANTOS MONTEIRO',
+  'WALLACE EVERTON GOMES',
+  'WANDERSON DA SILVA MARINHO',
+  'WLADIMIR AIRES OLIVEIRA'
+]
+
+// Filtered Collaborators - Strictly the 20 requested collaborators in exact order
   const collaboratorsList = useMemo(() => {
-    const list = Object.values(teams)
+    const storeTeams = Object.values(teams)
+
+    const list: TeamMember[] = EXACT_AGENDA_COLLABORATORS.map((name, index) => {
+      const existing = storeTeams.find(
+        (t) => t.name.toLowerCase().trim() === name.toLowerCase().trim()
+      )
+      if (existing) return existing
+      return {
+        id: `colab-${index + 1}`,
+        name,
+        status: 'Disponível',
+        techs: [name.split(' ')[0]],
+        phone: '(98) 98812-1000',
+        vehicle: 'Veículo Frota'
+      }
+    })
+
     if (!colabSearch.trim()) return list
     return list.filter((c) => c.name.toLowerCase().includes(colabSearch.toLowerCase()))
   }, [teams, colabSearch])
@@ -216,7 +255,7 @@ export function AgendaView() {
 
     // 2. If no orders exist for this selected date, generate date-seeded orders
     if (dateOrders.length === 0) {
-      dateOrders = generateOrdersForDate(selectedAgendaDate, Object.values(teams))
+      dateOrders = generateOrdersForDate(selectedAgendaDate, collaboratorsList)
     }
 
     const map: Record<string, ServiceOrder[]> = {}

@@ -21,7 +21,6 @@ export const MOCK_TEAMS: Record<string, TeamMember> = {
   'colab-18': { id: 'colab-18', name: 'WALLACE EVERTON GOMES', status: 'Executando atendimento', techs: ['Wallace Gomes'], phone: '(98) 98812-1018', vehicle: 'Master Furgão', plate: 'HPX-1018' },
   'colab-19': { id: 'colab-19', name: 'WANDERSON DA SILVA MARINHO', status: 'Executando atendimento', techs: ['Wanderson Marinho'], phone: '(98) 98812-1019', vehicle: 'Strada', plate: 'HPX-1019' },
   'colab-20': { id: 'colab-20', name: 'WLADIMIR AIRES OLIVEIRA', status: 'Executando atendimento', techs: ['Wladimir Oliveira'], phone: '(98) 98812-1020', vehicle: 'Saveiro', plate: 'HPX-1020' },
-  'colab-unassigned': { id: 'colab-unassigned', name: 'Sem Colaborador(a) Vinculado', status: 'Offline', techs: ['Nenhum'], phone: '-', vehicle: '-' }
 }
 
 export const MOCK_ORDERS: ServiceOrder[] = [
