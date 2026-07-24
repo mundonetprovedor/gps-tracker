@@ -405,13 +405,22 @@ async function syncIXCServiceOrders(io) {
           return 'Instalação';
         };
 
+        const extractDateStr = (rawDate) => {
+          if (!rawDate) return todayISO;
+          const clean = String(rawDate).trim();
+          const brMatch = clean.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+          if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+          const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+          return todayISO;
+        };
+
+        const scheduledDateStr = extractDateStr(os.data_agenda || os.data_inicio);
         const parsedAgendaDate = parseIXCDate(os.data_agenda || os.data_inicio || os.data_fechamento);
         let timeStart = '08:30';
         let timeEnd = '10:00';
-        let scheduledDateStr = todayISO;
 
         if (parsedAgendaDate) {
-          scheduledDateStr = parsedAgendaDate.toISOString().split('T')[0];
           const h = String(parsedAgendaDate.getHours()).padStart(2, '0');
           const m = String(parsedAgendaDate.getMinutes()).padStart(2, '0');
           if (h !== '00' || m !== '00') {

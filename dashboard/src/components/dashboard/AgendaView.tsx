@@ -274,8 +274,12 @@ const EXACT_AGENDA_COLLABORATORS = [
 
   // Group service orders by collaborator / teamId FOR THE SELECTED DATE
   const ordersByColab = useMemo(() => {
-    // 1. Get orders matching selectedAgendaDate
-    let dateOrders = serviceOrders.filter((os) => !os.scheduledDate || os.scheduledDate === selectedAgendaDate)
+    // 1. Get orders strictly matching selectedAgendaDate
+    let dateOrders = serviceOrders.filter((os) => {
+      if (!os.scheduledDate) return false
+      const osDate = String(os.scheduledDate).split('T')[0].split(' ')[0]
+      return osDate === selectedAgendaDate
+    })
 
     // 2. If no orders exist for this selected date, generate date-seeded orders
     if (dateOrders.length === 0) {
