@@ -73,23 +73,22 @@ function TechMarker({
       eventHandlers={{ click: onClick }}
     >
       <Popup>
-        <div className="min-w-[220px] p-2 space-y-2">
-          <div className="flex items-center justify-between border-b pb-1.5">
-            <span className="font-extrabold text-sm text-foreground">{team.name}</span>
+        <div className="min-w-[240px] p-2 space-y-2 text-slate-100">
+          <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+            <span className="font-extrabold text-sm text-white">{team.name}</span>
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              className="text-[10px] font-extrabold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}
             >
               {statusConfig.label}
             </span>
           </div>
-          <div className="text-xs space-y-1 text-muted-foreground">
-            {team.techs && <div><b>Técnicos:</b> {team.techs.join(', ')}</div>}
-            {team.vehicle && <div><b>Veículo:</b> {team.vehicle} ({team.plate})</div>}
-            {team.phone && <div><b>Telefone:</b> {team.phone}</div>}
-            {team.battery !== undefined && <div><b>Bateria App:</b> {team.battery}% 🔋</div>}
-            {team.currentOSId && <div><b>O.S. Atual:</b> #{team.currentOSId.replace('os-', '')}</div>}
-            {team.activityTimeMinutes !== undefined && <div><b>Tempo na Atividade:</b> {team.activityTimeMinutes} min</div>}
+          <div className="text-xs space-y-1.5 text-slate-200">
+            {team.techs && <div><b className="text-slate-400">Técnicos:</b> <span className="text-white font-semibold">{team.techs.join(', ')}</span></div>}
+            {team.vehicle && <div><b className="text-slate-400">Veículo:</b> <span className="text-white">{team.vehicle} ({team.plate})</span></div>}
+            {team.phone && <div><b className="text-slate-400">Telefone:</b> <span className="text-sky-300 font-bold">{team.phone}</span></div>}
+            {team.battery !== undefined && <div><b className="text-slate-400">Bateria:</b> <span className="text-emerald-400 font-bold">{team.battery}% 🔋</span></div>}
+            {team.currentOSId && <div><b className="text-slate-400">O.S. Atual:</b> <span className="text-sky-300 font-bold">#{team.currentOSId.replace('os-', '')}</span></div>}
           </div>
         </div>
       </Popup>
@@ -138,35 +137,35 @@ function OSMarker({
       eventHandlers={{ click: onClick }}
     >
       <Popup>
-        <div className="min-w-[240px] p-2 space-y-2">
-          <div className="flex items-center justify-between border-b pb-1.5">
-            <span className="font-extrabold text-sm text-foreground">O.S. #{os.number}</span>
+        <div className="min-w-[260px] p-2 space-y-2 text-slate-100">
+          <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+            <span className="font-extrabold text-sm text-white">O.S. #{os.number}</span>
             <span
-              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: `${categoryConfig.color}20`, color: categoryConfig.color, border: `1px solid ${categoryConfig.color}40` }}
+              className="text-[10px] font-extrabold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: `${categoryConfig.color}30`, color: categoryConfig.color, border: `1px solid ${categoryConfig.color}60` }}
             >
               {categoryConfig.badge}
             </span>
           </div>
-          <div className="text-xs space-y-1.5 text-muted-foreground">
-            <div><b className="text-foreground">Cliente:</b> {os.client}</div>
-            <div><b className="text-foreground">Endereço:</b> {os.address}</div>
-            {os.neighborhood && <div><b className="text-foreground">Bairro/Cidade:</b> {os.neighborhood} - {os.city}</div>}
-            <div><b className="text-foreground">Assunto:</b> {os.subject}</div>
+          <div className="text-xs space-y-1.5 text-slate-200">
+            <div><b className="text-slate-400">Cliente:</b> <span className="text-white font-extrabold">{os.client}</span></div>
+            <div><b className="text-slate-400">Endereço:</b> <span className="text-slate-200 font-semibold">{os.address || 'Não informado'}</span></div>
+            {os.neighborhood && <div><b className="text-slate-400">Bairro/Cidade:</b> <span className="text-slate-200">{os.neighborhood} - {os.city || 'São Luís'}</span></div>}
+            <div><b className="text-slate-400">Assunto:</b> <span className="text-sky-300 font-bold">{os.subject}</span></div>
             {os.ctoName && (
-              <div className="bg-muted/70 p-1.5 rounded-lg flex items-center justify-between font-mono text-[11px]">
-                <span>CTO: <b>{os.ctoName}</b></span>
+              <div className="bg-slate-800/90 border border-slate-700 p-2 rounded-lg flex items-center justify-between font-mono text-[11px]">
+                <span className="text-slate-300">CTO: <b className="text-white">{os.ctoName}</b></span>
                 {os.rxSignal !== undefined && (
-                  <span className={`font-bold ${os.rxSignal < -27 ? 'text-destructive' : 'text-status-success'}`}>
-                    Sinal: {os.rxSignal} dBm
+                  <span className={`font-bold ${os.rxSignal < -27 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {os.rxSignal} dBm
                   </span>
                 )}
               </div>
             )}
             {os.slaRemainingMinutes !== undefined && (
-              <div className="flex items-center justify-between text-[11px] font-bold text-foreground">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 pt-1">
                 <span>SLA Restante:</span>
-                <span className={os.slaRemainingMinutes < 60 ? 'text-destructive animate-pulse' : 'text-status-warning'}>
+                <span className={os.slaRemainingMinutes < 60 ? 'text-red-400 animate-pulse font-extrabold' : 'text-amber-400'}>
                   ⏱ {os.slaRemainingMinutes} min
                 </span>
               </div>
