@@ -9,6 +9,7 @@ import { OSDetails } from '@/components/dashboard/OSDetails'
 import { TechnicianCard } from '@/components/dashboard/TechnicianCard'
 import { QuickFilters } from '@/components/dashboard/QuickFilters'
 import { AlertSystem } from '@/components/dashboard/AlertSystem'
+import { AgendaView } from '@/components/dashboard/AgendaView'
 import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 
@@ -16,6 +17,7 @@ export function DashboardLayout() {
   const { loading } = useDashboard()
   const isAuthenticated = useDashboardStore((s) => s.isAuthenticated)
   const selectedTeamId = useDashboardStore((s) => s.selectedTeamId)
+  const activeTab = useDashboardStore((s) => s.activeTab)
 
   if (!isAuthenticated) {
     return <TopBar />
@@ -40,36 +42,42 @@ export function DashboardLayout() {
         <TopBar />
 
         <div className="flex-1 flex flex-col p-4 gap-4 min-h-0 overflow-hidden">
-          <div className="flex-shrink-0">
-            <StatsCards />
-          </div>
+          {activeTab === 'agenda' ? (
+            <AgendaView />
+          ) : (
+            <>
+              <div className="flex-shrink-0">
+                <StatsCards />
+              </div>
 
-          <div className="flex-1 flex gap-4 min-h-0">
-            <div className="w-48 flex-shrink-0 hidden lg:block">
-              <QuickFilters />
-            </div>
+              <div className="flex-1 flex gap-4 min-h-0">
+                <div className="w-48 flex-shrink-0 hidden lg:block">
+                  <QuickFilters />
+                </div>
 
-            <div className="flex-1 flex flex-col min-w-0 relative">
-              <MapView />
+                <div className="flex-1 flex flex-col min-w-0 relative">
+                  <MapView />
 
-              <AnimatePresence>
-                {selectedTeamId && (
-                  <div className="absolute left-4 bottom-4 z-[1000]">
-                    <TechnicianCard />
+                  <AnimatePresence>
+                    {selectedTeamId && (
+                      <div className="absolute left-4 bottom-4 z-[1000]">
+                        <TechnicianCard />
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div className="w-80 flex-shrink-0 hidden xl:flex flex-col gap-4">
+                  <div className="flex-1 min-h-0">
+                    <OSList />
                   </div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="w-80 flex-shrink-0 hidden xl:flex flex-col gap-4">
-              <div className="flex-1 min-h-0">
-                <OSList />
+                  <div className="h-[280px] flex-shrink-0">
+                    <OSDetails />
+                  </div>
+                </div>
               </div>
-              <div className="h-[280px] flex-shrink-0">
-                <OSDetails />
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
 

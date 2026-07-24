@@ -24,6 +24,18 @@ interface DashboardState {
   }
   theme: 'dark' | 'light'
 
+  activeTab: 'monitor' | 'agenda' | 'history' | 'reports' | 'notifications'
+  agendaViewMode: 'diaHora' | 'diaColaborador' | '3dias' | 'semana' | 'mes'
+  selectedAgendaDate: string
+  agendaSearchQuery: string
+
+  setActiveTab: (tab: 'monitor' | 'agenda' | 'history' | 'reports' | 'notifications') => void
+  setAgendaViewMode: (mode: 'diaHora' | 'diaColaborador' | '3dias' | 'semana' | 'mes') => void
+  setSelectedAgendaDate: (date: string) => void
+  setAgendaSearchQuery: (query: string) => void
+  reassignOSSchedule: (osId: string, teamId: string, collaboratorName: string, startTime?: string, endTime?: string) => void
+  addNewOSSchedule: (os: ServiceOrder) => void
+
   setTeams: (teams: Record<string, TeamMember>) => void
   updateTeam: (id: string, data: Partial<TeamMember>) => void
   removeTeam: (id: string) => void
@@ -48,6 +60,10 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   selectedOSId: null,
   isAuthenticated: !!localStorage.getItem('m_token'),
   searchQuery: '',
+  activeTab: 'agenda',
+  agendaViewMode: 'diaHora',
+  selectedAgendaDate: '2026-07-24',
+  agendaSearchQuery: '',
   filters: {
     onlineOnly: false,
     attendingOnly: false,
@@ -61,6 +77,29 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     showGeofences: false,
   },
   theme: (localStorage.getItem('m_theme') as 'dark' | 'light') || 'dark',
+
+  setActiveTab: (activeTab) => set({ activeTab }),
+  setAgendaViewMode: (agendaViewMode) => set({ agendaViewMode }),
+  setSelectedAgendaDate: (selectedAgendaDate) => set({ selectedAgendaDate }),
+  setAgendaSearchQuery: (agendaSearchQuery) => set({ agendaSearchQuery }),
+  reassignOSSchedule: (osId, teamId, collaboratorName, startTime, endTime) =>
+    set((state) => ({
+      serviceOrders: state.serviceOrders.map((os) =>
+        os.ixcId === osId
+          ? {
+              ...os,
+              teamId,
+              collaboratorName,
+              ...(startTime ? { scheduledTimeStart: startTime } : {}),
+              ...(endTime ? { scheduledTimeEnd: endTime } : {}),
+            }
+          : os
+      ),
+    })),
+  addNewOSSchedule: (newOs) =>
+    set((state) => ({
+      serviceOrders: [newOs, ...state.serviceOrders],
+    })),
 
   setTeams: (teams) => set({ teams }),
   updateTeam: (id, data) =>

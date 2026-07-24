@@ -78,7 +78,11 @@ export interface ServiceOrder {
   lng?: number
   teamId?: string
   teamName?: string
+  collaboratorName?: string
   scheduledDate?: string
+  scheduledTimeStart?: string
+  scheduledTimeEnd?: string
+  durationMinutes?: number
   openedAt?: string
   slaMinutes?: number
   slaRemainingMinutes?: number

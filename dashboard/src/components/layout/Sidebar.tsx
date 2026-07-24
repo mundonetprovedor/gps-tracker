@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useDashboardStore } from '@/store/dashboard'
 
@@ -9,7 +8,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: 'monitor', label: 'Monitoramento', icon: requireLucideIcon('LayoutDashboard') },
+  { id: 'agenda', label: 'Agenda / Escala', icon: requireLucideIcon('Calendar') },
+  { id: 'monitor', label: 'Mapa / Monitoramento', icon: requireLucideIcon('LayoutDashboard') },
   { id: 'history', label: 'Histórico de Rotas', icon: requireLucideIcon('History') },
   { id: 'reports', label: 'Relatórios', icon: requireLucideIcon('BarChart3') },
   { id: 'notifications', label: 'Enviar Notificação', icon: requireLucideIcon('Send') },
@@ -17,6 +17,9 @@ const navItems: NavItem[] = [
 
 function requireLucideIcon(name: string): React.ElementType {
   const icons: Record<string, React.ElementType> = {
+    Calendar: ({ className }: { className?: string }) => (
+      <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    ),
     LayoutDashboard: ({ className }: { className?: string }) => (
       <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
     ),
@@ -36,7 +39,8 @@ function requireLucideIcon(name: string): React.ElementType {
 export function Sidebar() {
   const teams = useDashboardStore((s) => s.teams)
   const stats = useDashboardStore((s) => s.stats)
-  const [activeTab, setActiveTab] = useState('monitor')
+  const activeTab = useDashboardStore((s) => s.activeTab)
+  const setActiveTab = useDashboardStore((s) => s.setActiveTab)
 
   const onlineCount = Object.values(teams).filter((t) => t.status !== 'Offline').length
   const totalCount = Object.values(teams).length
@@ -56,7 +60,7 @@ export function Sidebar() {
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => setActiveTab(item.id as any)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 activeTab === item.id
                   ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
