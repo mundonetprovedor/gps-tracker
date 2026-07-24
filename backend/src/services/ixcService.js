@@ -225,13 +225,7 @@ async function syncIXCServiceOrders(io) {
     const brDate = new Date(now.getTime() - (3 * 60 * 60 * 1000));
     const todayISO = brDate.toISOString().split('T')[0]; // AAAA-MM-DD
     
-    // Filtra exclusivamente por O.S. agendadas para o dia de hoje (data_agenda)
-    const grid_param = JSON.stringify([
-      { TB: 'su_oss_chamado.data_agenda', OP: '>=', P: `${todayISO} 00:00:00` },
-      { TB: 'su_oss_chamado.data_agenda', OP: '<=', P: `${todayISO} 23:59:59` }
-    ]);
-
-    logger.info(`[IXC] Buscando O.S. agendadas exclusivamente para hoje: ${todayISO}`);
+    logger.info(`[IXC] Buscando todas as O.S. ativas e agendadas do IXC...`);
 
     const response = await fetch(`${IXC_URL}/su_oss_chamado`, {
       method: 'POST',
@@ -246,8 +240,7 @@ async function syncIXCServiceOrders(io) {
         oper: '>', 
         rp: '1000', 
         sortname: 'su_oss_chamado.id', 
-        sortorder: 'desc',
-        grid_param: grid_param
+        sortorder: 'desc'
       })
     });
     

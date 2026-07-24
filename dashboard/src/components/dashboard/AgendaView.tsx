@@ -272,6 +272,18 @@ const EXACT_AGENDA_COLLABORATORS = [
     return list.filter((c) => c.name.toLowerCase().includes(colabSearch.toLowerCase()))
   }, [teams, colabSearch])
 
+function normalizeStr(str?: string): string {
+  if (!str) return ''
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\([^)]*\)/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
   // Group service orders by collaborator / teamId FOR THE SELECTED DATE
   const ordersByColab = useMemo(() => {
     // 1. Get orders strictly matching selectedAgendaDate
@@ -294,17 +306,16 @@ const EXACT_AGENDA_COLLABORATORS = [
     dateOrders.forEach((os) => {
       if (categoryFilter !== 'ALL' && os.category !== categoryFilter) return
 
-      // Find matching collaborator in the 20 exact collaborators list
+      // Find matching collaborator in the 20 exact collaborators list with normalization
       const matched = collaboratorsList.find((c) => {
         if (os.teamId && (os.teamId === c.id || os.teamId === c.name)) return true
-        if (os.collaboratorName) {
-          const osName = os.collaboratorName.toLowerCase().trim()
-          const cName = c.name.toLowerCase().trim()
-          if (osName === cName || osName.includes(cName) || cName.includes(osName)) return true
-          const osParts = osName.split(' ')
-          const cParts = cName.split(' ')
-          if (osParts[0] === cParts[0] && osParts.length > 1 && cParts.length > 1 && osParts[osParts.length - 1] === cParts[cParts.length - 1]) return true
-        }
+        const osNorm = normalizeStr(os.collaboratorName || os.teamName)
+        const cNorm = normalizeStr(c.name)
+        if (!osNorm || !cNorm) return false
+        if (osNorm === cNorm || osNorm.includes(cNorm) || cNorm.includes(osNorm)) return true
+        const osParts = osNorm.split(' ')
+        const cParts = cNorm.split(' ')
+        if (osParts[0] === cParts[0] && osParts.length > 1 && cParts.length > 1 && osParts[osParts.length - 1] === cParts[cParts.length - 1]) return true
         return false
       })
 
