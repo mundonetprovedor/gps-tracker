@@ -73,9 +73,9 @@ function TechMarker({
       eventHandlers={{ click: onClick }}
     >
       <Popup>
-        <div className="min-w-[240px] p-2 space-y-2 text-slate-100">
+        <div style={{ color: '#ffffff' }} className="min-w-[240px] p-2 space-y-2">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-            <span className="font-extrabold text-sm text-white">{team.name}</span>
+            <span style={{ color: '#ffffff' }} className="font-extrabold text-sm">{team.name}</span>
             <span
               className="text-[10px] font-extrabold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}
@@ -83,12 +83,12 @@ function TechMarker({
               {statusConfig.label}
             </span>
           </div>
-          <div className="text-xs space-y-1.5 text-slate-200">
-            {team.techs && <div><b className="text-slate-400">Técnicos:</b> <span className="text-white font-semibold">{team.techs.join(', ')}</span></div>}
-            {team.vehicle && <div><b className="text-slate-400">Veículo:</b> <span className="text-white">{team.vehicle} ({team.plate})</span></div>}
-            {team.phone && <div><b className="text-slate-400">Telefone:</b> <span className="text-sky-300 font-bold">{team.phone}</span></div>}
-            {team.battery !== undefined && <div><b className="text-slate-400">Bateria:</b> <span className="text-emerald-400 font-bold">{team.battery}% 🔋</span></div>}
-            {team.currentOSId && <div><b className="text-slate-400">O.S. Atual:</b> <span className="text-sky-300 font-bold">#{team.currentOSId.replace('os-', '')}</span></div>}
+          <div className="text-xs space-y-1.5" style={{ color: '#e2e8f0' }}>
+            {team.techs && <div><b style={{ color: '#94a3b8' }}>Técnicos:</b> <span style={{ color: '#ffffff' }} className="font-semibold">{team.techs.join(', ')}</span></div>}
+            {team.vehicle && <div><b style={{ color: '#94a3b8' }}>Veículo:</b> <span style={{ color: '#ffffff' }}>{team.vehicle} ({team.plate})</span></div>}
+            {team.phone && <div><b style={{ color: '#94a3b8' }}>Telefone:</b> <span style={{ color: '#38bdf8' }} className="font-bold">{team.phone}</span></div>}
+            {team.battery !== undefined && <div><b style={{ color: '#94a3b8' }}>Bateria:</b> <span style={{ color: '#34d399' }} className="font-bold">{team.battery}% 🔋</span></div>}
+            {team.currentOSId && <div><b style={{ color: '#94a3b8' }}>O.S. Atual:</b> <span style={{ color: '#38bdf8' }} className="font-bold">#{team.currentOSId.replace('os-', '')}</span></div>}
           </div>
         </div>
       </Popup>
@@ -137,9 +137,9 @@ function OSMarker({
       eventHandlers={{ click: onClick }}
     >
       <Popup>
-        <div className="min-w-[260px] p-2 space-y-2 text-slate-100">
+        <div style={{ color: '#ffffff' }} className="min-w-[260px] p-2 space-y-2">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-            <span className="font-extrabold text-sm text-white">O.S. #{os.number}</span>
+            <span style={{ color: '#ffffff' }} className="font-extrabold text-sm">O.S. #{os.number}</span>
             <span
               className="text-[10px] font-extrabold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: `${categoryConfig.color}30`, color: categoryConfig.color, border: `1px solid ${categoryConfig.color}60` }}
@@ -147,14 +147,14 @@ function OSMarker({
               {categoryConfig.badge}
             </span>
           </div>
-          <div className="text-xs space-y-1.5 text-slate-200">
-            <div><b className="text-slate-400">Cliente:</b> <span className="text-white font-extrabold">{os.client}</span></div>
-            <div><b className="text-slate-400">Endereço:</b> <span className="text-slate-200 font-semibold">{os.address || 'Não informado'}</span></div>
-            {os.neighborhood && <div><b className="text-slate-400">Bairro/Cidade:</b> <span className="text-slate-200">{os.neighborhood} - {os.city || 'São Luís'}</span></div>}
-            <div><b className="text-slate-400">Assunto:</b> <span className="text-sky-300 font-bold">{os.subject}</span></div>
+          <div className="text-xs space-y-1.5" style={{ color: '#e2e8f0' }}>
+            <div><b style={{ color: '#94a3b8' }}>Cliente:</b> <span style={{ color: '#ffffff' }} className="font-extrabold">{os.client}</span></div>
+            <div><b style={{ color: '#94a3b8' }}>Endereço:</b> <span style={{ color: '#f1f5f9' }} className="font-semibold">{os.address || 'Não informado'}</span></div>
+            {os.neighborhood && <div><b style={{ color: '#94a3b8' }}>Bairro/Cidade:</b> <span style={{ color: '#e2e8f0' }}>{os.neighborhood} - {os.city || 'São Luís'}</span></div>}
+            <div><b style={{ color: '#94a3b8' }}>Assunto:</b> <span style={{ color: '#38bdf8' }} className="font-bold">{os.subject}</span></div>
             {os.ctoName && (
               <div className="bg-slate-800/90 border border-slate-700 p-2 rounded-lg flex items-center justify-between font-mono text-[11px]">
-                <span className="text-slate-300">CTO: <b className="text-white">{os.ctoName}</b></span>
+                <span style={{ color: '#cbd5e1' }}>CTO: <b style={{ color: '#ffffff' }}>{os.ctoName}</b></span>
                 {os.rxSignal !== undefined && (
                   <span className={`font-bold ${os.rxSignal < -27 ? 'text-red-400' : 'text-emerald-400'}`}>
                     {os.rxSignal} dBm
@@ -163,7 +163,7 @@ function OSMarker({
               </div>
             )}
             {os.slaRemainingMinutes !== undefined && (
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 pt-1">
+              <div className="flex items-center justify-between text-[11px] font-bold pt-1" style={{ color: '#cbd5e1' }}>
                 <span>SLA Restante:</span>
                 <span className={os.slaRemainingMinutes < 60 ? 'text-red-400 animate-pulse font-extrabold' : 'text-amber-400'}>
                   ⏱ {os.slaRemainingMinutes} min
