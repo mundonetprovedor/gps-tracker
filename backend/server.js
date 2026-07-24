@@ -204,48 +204,8 @@ app.get('/api/teams', auth, async (req, res) => {
 
 app.get('/api/service-orders', auth, async (req, res) => {
   try {
-    const now = new Date();
-    // Força o fuso de Brasília (UTC-3) para calcular o início e fim do dia
-    const brNow = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-    const start = new Date(brNow.getUTCFullYear(), brNow.getUTCMonth(), brNow.getUTCDate(), 0, 0, 0);
-    const end = new Date(brNow.getUTCFullYear(), brNow.getUTCMonth(), brNow.getUTCDate(), 23, 59, 59);
-    
-    // Busca todos os IDs de equipes válidas para filtrar O.S. sem técnico
-    const validTeams = await Team.find({}, 'id');
-    const teamIds = validTeams.map(t => t.id);
-
-    const query = {
-      $and: [
-        { teamId: { $in: teamIds } }, // Somente O.S. atribuídas a técnicos da nossa lista
-        {
-          $or: [
-            { 
-              status: { $in: ['AG', 'DS', 'EX'] }, 
-              scheduledDate: { $gte: start, $lte: end } 
-            },
-            { 
-              status: 'F', 
-              finishedAt: { $gte: start } 
-            }
-          ]
-        }
-      ]
-    };
-
-    const orders = await ServiceOrder.find(query);
-    
-    // Diagnóstico detalhado para bater com os 63 do IXC
-    const stats = {
-      total: orders.length,
-      status: {},
-      tecnicos: {}
-    };
-    orders.forEach(o => {
-      stats.status[o.status] = (stats.status[o.status] || 0) + 1;
-      stats.tecnicos[o.teamId] = (stats.tecnicos[o.teamId] || 0) + 1;
-    });
-    logger.info(`[STATS] Distribuição das O.S. de hoje:`, JSON.stringify(stats));
-
+    const orders = await ServiceOrder.find().sort({ lastSeen: -1 }).limit(300);
+    logger.info(`[API] Retornando ${orders.length} O.S. reais sincronizadas do IXC`);
     res.json(orders);
   } catch (error) {
     logger.error('[API] Erro ao buscar O.S.: %s', error.message);

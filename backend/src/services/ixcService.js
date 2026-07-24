@@ -188,42 +188,28 @@ async function syncIXCTeamCollaborators() {
       body: JSON.stringify({ qtype: 'funcionarios.ativo', query: 'S', oper: '=', rp: '1000' })
     });
     const employeesData = await employeesResponse.json();
-    const nameMap = {};
-    const activeEmployeeIds = new Set();
-    
-    if (employeesData.registros) {
-      employeesData.registros.forEach(f => { 
-        nameMap[f.id] = f.funcionario; 
-        activeEmployeeIds.add(String(f.id));
-      });
-    }
 
-    const response = await fetch(`${IXC_URL}/funcionarios_equipes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'ixcsoft': 'listar',
-        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
-      },
-      body: JSON.stringify({ qtype: 'funcionarios_equipes.id', query: '0', oper: '>', rp: '1000' })
-    });
-
-    const data = await response.json();
-    if (data && data.registros) {
-      for (const f of data.registros) {
-        if (activeEmployeeIds.has(String(f.id_funcionario))) {
-          const nomeReal = nameMap[f.id_funcionario];
-          await Team.findOneAndUpdate(
-            { id: String(f.id_funcionario) },
-            { name: nomeReal, teamId: String(f.id) },
-            { upsert: true }
-          );
-        }
+    if (employeesData && employeesData.registros) {
+      for (const f of employeesData.registros) {
+        await Team.findOneAndUpdate(
+          { id: String(f.id) },
+          {
+            id: String(f.id),
+            name: f.funcionario || f.nome,
+            phone: f.fone_celular || f.fone || '',
+            vehicle: f.cnh_categoria ? `Veículo ${f.cnh_categoria}` : 'Viatura de Campo',
+            neighborhood: f.bairro || 'São Luís',
+            city: f.cidade || 'São Luís',
+            status: f.ativo === 'S' ? 'Disponível' : 'Offline'
+          },
+          { upsert: true }
+        );
       }
       lastTeamSyncTime = Date.now();
+      logger.info(`[IXC] ${employeesData.registros.length} colaboradores/técnicos sincronizados.`);
     }
   } catch (error) {
-    logger.error('[IXC] Erro no cruzamento de dados: %s', error.message);
+    logger.error('[IXC] Erro na sincronização de colaboradores: %s', error.message);
   }
 }
 
@@ -235,19 +221,16 @@ async function syncIXCServiceOrders(io) {
   }
   await syncIXCTeamCollaborators();
   try {
-    // 1. Busca as O.S. ativas do IXC    // Força o fuso horário de Brasília (UTC-3) para o filtro do IXC
     const now = new Date();
     const brDate = new Date(now.getTime() - (3 * 60 * 60 * 1000));
     const todayISO = brDate.toISOString().split('T')[0]; // AAAA-MM-DD
-    const todayBR = `${String(brDate.getUTCDate()).padStart(2, '0')}/${String(brDate.getUTCMonth() + 1).padStart(2, '0')}/${brDate.getUTCFullYear()}`;
     
-    // Tenta filtrar por data_agenda usando formato ISO que é mais comum em APIs
+    // Filtro por data de abertura ou agendamento de hoje
     const grid_param = JSON.stringify([
-      { TB: 'su_oss_chamado.data_agenda', OP: '>=', P: `${todayISO} 00:00:00` },
-      { TB: 'su_oss_chamado.data_agenda', OP: '<=', P: `${todayISO} 23:59:59` }
+      { TB: 'su_oss_chamado.data_abertura', OP: '>=', P: `${todayISO} 00:00:00` }
     ]);
 
-    logger.info(`[IXC] Iniciando busca com filtro: ${todayISO} (BR: ${todayBR})`);
+    logger.info(`[IXC] Buscando O.S. do dia: ${todayISO}`);
 
     const response = await fetch(`${IXC_URL}/su_oss_chamado`, {
       method: 'POST',

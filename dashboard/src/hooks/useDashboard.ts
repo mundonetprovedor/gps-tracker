@@ -25,12 +25,12 @@ export function useDashboard() {
           teams.forEach((t) => {
             teamsMap[t.id] = t
           })
-          setTeams(teamsMap.length ? teamsMap : (Object.keys(teamsMap).length > 0 ? teamsMap : MOCK_TEAMS))
+          setTeams(Object.keys(teamsMap).length > 0 ? teamsMap : MOCK_TEAMS)
         }
 
         if (stats) setStats(stats)
         if (orders && Array.isArray(orders)) {
-          setServiceOrders(orders.length > 0 ? orders : MOCK_ORDERS)
+          setServiceOrders(orders)
         }
       } catch (err) {
         console.warn('Servidor backend ou IXC indisponível, usando dados de simulação:', err)
