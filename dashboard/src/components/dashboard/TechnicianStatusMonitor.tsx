@@ -120,7 +120,7 @@ export function TechnicianStatusMonitor() {
         totalTodayOS: colabOrders.length,
         completedTodayOS: colabOrders.filter((o) => o.status === 'F').length
       }
-    })
+    }).filter((item) => item.totalTodayOS > 0)
   }, [teams, serviceOrders, selectedAgendaDate])
 
   // Filtered List
