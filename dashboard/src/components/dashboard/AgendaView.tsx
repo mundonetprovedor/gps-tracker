@@ -596,15 +596,7 @@ function normalizeStr(str?: string): string {
                             ))}
                           </div>
 
-                          {/* Red "Current Time" Vertical Indicator Line */}
-                          {currentTimePercent > 0 && currentTimePercent < 100 && (
-                            <div
-                              className="absolute top-0 bottom-0 z-20 w-0.5 bg-red-600 pointer-events-none shadow-[0_0_8px_rgba(220,38,38,0.9)]"
-                              style={{ left: `${currentTimePercent}%` }}
-                            >
-                              <div className="w-2 h-2 rounded-full bg-red-600 -ml-[3px] -mt-0.5 shadow" />
-                            </div>
-                          )}
+
 
                           {/* OS Scheduled Event Cards positioned precisely */}
                           {colabOrders.map((os) => {
