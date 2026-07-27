@@ -145,49 +145,49 @@ export function TechnicianStatusMonitor() {
   }, [colabStatusList])
 
   return (
-    <div className="h-full flex flex-col bg-slate-100 text-slate-900 overflow-hidden rounded-2xl border border-slate-200 shadow-xl">
-      {/* TOP HEADER: MONITOR TITLE & KPIs (COMPACT) */}
-      <header className="bg-white border-b border-slate-200 px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2 flex-shrink-0">
+    <div className="h-full flex flex-col bg-slate-900 text-slate-900 overflow-hidden rounded-2xl border border-slate-800 shadow-2xl">
+      {/* TOP HEADER: MONITOR TITLE & KPIs (HIGH CONTRAST DARK TV THEME) */}
+      <header className="bg-slate-950 border-b border-slate-800 px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-slate-900 text-white rounded-lg shadow-sm">
-            <Activity className="w-4 h-4" />
+          <div className="p-1.5 bg-emerald-500 text-slate-950 rounded-lg shadow-md shadow-emerald-500/20">
+            <Activity className="w-4 h-4 font-black" />
           </div>
           <div>
-            <h1 className="text-sm font-black tracking-tight text-slate-900 leading-none">
-              Monitoramento de Status das O.S. por Técnico
+            <h1 className="text-sm font-black tracking-tight text-white leading-none">
+              MONITORAMENTO DE STATUS DAS O.S. POR TÉCNICO
             </h1>
-            <p className="text-[10px] font-bold text-slate-500 mt-0.5">
-              Painel em tempo real das atividades em campo (20 Técnicos)
+            <p className="text-[10px] font-extrabold text-slate-400 mt-0.5 uppercase tracking-wider">
+              Painel de Alta Visibilidade (20 Técnicos em Campo)
             </p>
           </div>
         </div>
 
-        {/* KPI COUNTERS (COMPACT) */}
-        <div className="flex items-center gap-1.5">
-          <div className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-center min-w-[65px]">
-            <span className="block text-[9px] font-black uppercase text-slate-500">Total</span>
-            <span className="text-xs font-black text-slate-900">{kpis.total}</span>
+        {/* KPI COUNTERS (ULTRA VIBRANT HIGH CONTRAST) */}
+        <div className="flex items-center gap-2">
+          <div className="bg-slate-800 border-2 border-slate-700 px-3 py-1 rounded-xl text-center min-w-[70px]">
+            <span className="block text-[9px] font-black uppercase text-slate-400">Total</span>
+            <span className="text-sm font-black text-white">{kpis.total}</span>
           </div>
 
-          <div className="bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg text-center min-w-[90px]">
-            <span className="block text-[9px] font-black uppercase text-emerald-700">🟢 Em Atendimento</span>
-            <span className="text-xs font-black text-emerald-700">{kpis.execution}</span>
+          <div className="bg-emerald-600 text-white border-2 border-emerald-400 px-3 py-1 rounded-xl text-center min-w-[105px] shadow-lg shadow-emerald-600/30">
+            <span className="block text-[9px] font-black uppercase text-emerald-100">🟢 ATENDIMENTO</span>
+            <span className="text-sm font-black text-white">{kpis.execution}</span>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg text-center min-w-[90px]">
-            <span className="block text-[9px] font-black uppercase text-amber-700">🟡 Deslocamento</span>
-            <span className="text-xs font-black text-amber-700">{kpis.transit}</span>
+          <div className="bg-amber-500 text-white border-2 border-amber-300 px-3 py-1 rounded-xl text-center min-w-[105px] shadow-lg shadow-amber-500/30">
+            <span className="block text-[9px] font-black uppercase text-amber-100">🟡 DESLOCAMENTO</span>
+            <span className="text-sm font-black text-white">{kpis.transit}</span>
           </div>
 
-          <div className="bg-slate-200/80 border border-slate-300 px-2.5 py-1 rounded-lg text-center min-w-[75px]">
-            <span className="block text-[9px] font-black uppercase text-slate-700">⚪ Sem O.S.</span>
-            <span className="text-xs font-black text-slate-800">{kpis.idle}</span>
+          <div className="bg-slate-700 text-white border-2 border-slate-500 px-3 py-1 rounded-xl text-center min-w-[85px] shadow-md">
+            <span className="block text-[9px] font-black uppercase text-slate-300">⚪ SEM O.S.</span>
+            <span className="text-sm font-black text-white">{kpis.idle}</span>
           </div>
         </div>
       </header>
 
-      {/* FILTER & SEARCH BAR (COMPACT) */}
-      <div className="bg-white px-4 py-1.5 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 flex-shrink-0">
+      {/* FILTER & SEARCH BAR */}
+      <div className="bg-slate-950 px-4 py-1.5 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 flex-shrink-0">
         {/* Search */}
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
@@ -196,18 +196,18 @@ export function TechnicianStatusMonitor() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar técnico ou O.S...."
-            className="w-full pl-8 pr-2.5 py-1 bg-slate-100 border border-slate-300 rounded-lg text-[11px] font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 transition-all"
+            className="w-full pl-8 pr-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[11px] font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
           />
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-300 text-[11px] font-bold">
+        <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px] font-bold">
           <button
             onClick={() => setStatusFilter('ALL')}
-            className={`px-2.5 py-0.5 rounded transition-all ${
+            className={`px-3 py-0.5 rounded transition-all ${
               statusFilter === 'ALL'
-                ? 'bg-slate-900 text-white font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                ? 'bg-slate-700 text-white font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
             Todos ({kpis.total})
@@ -215,10 +215,10 @@ export function TechnicianStatusMonitor() {
 
           <button
             onClick={() => setStatusFilter('EXECUTION')}
-            className={`px-2.5 py-0.5 rounded transition-all ${
+            className={`px-3 py-0.5 rounded transition-all ${
               statusFilter === 'EXECUTION'
                 ? 'bg-emerald-600 text-white font-black'
-                : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
+                : 'text-emerald-400 hover:bg-emerald-950'
             }`}
           >
             🟢 Em Atendimento ({kpis.execution})
@@ -226,10 +226,10 @@ export function TechnicianStatusMonitor() {
 
           <button
             onClick={() => setStatusFilter('TRANSIT')}
-            className={`px-2.5 py-0.5 rounded transition-all ${
+            className={`px-3 py-0.5 rounded transition-all ${
               statusFilter === 'TRANSIT'
-                ? 'bg-amber-600 text-white font-black'
-                : 'text-slate-600 hover:text-amber-700 hover:bg-amber-50'
+                ? 'bg-amber-500 text-white font-black'
+                : 'text-amber-400 hover:bg-amber-950'
             }`}
           >
             🟡 Deslocamento ({kpis.transit})
@@ -237,10 +237,10 @@ export function TechnicianStatusMonitor() {
 
           <button
             onClick={() => setStatusFilter('IDLE')}
-            className={`px-2.5 py-0.5 rounded transition-all ${
+            className={`px-3 py-0.5 rounded transition-all ${
               statusFilter === 'IDLE'
-                ? 'bg-slate-700 text-white font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                ? 'bg-slate-600 text-white font-black'
+                : 'text-slate-400 hover:bg-slate-800'
             }`}
           >
             ⚪ Sem O.S. ({kpis.idle})
@@ -248,8 +248,8 @@ export function TechnicianStatusMonitor() {
         </div>
       </div>
 
-      {/* TECHNICIAN MONITORING CARDS GRID (5 COLS x 4 ROWS FOR 100% SINGLE SCREEN FIT) */}
-      <div className="flex-1 overflow-hidden p-2.5 bg-slate-100">
+      {/* TECHNICIAN MONITORING CARDS GRID (BOLD VIBRANT COLORS FOR FAR-DISTANCE VISIBILITY) */}
+      <div className="flex-1 overflow-hidden p-2.5 bg-slate-950">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 h-full">
           {filteredList.map((colab) => {
             const isExec = colab.status === 'EXECUTION'
@@ -261,63 +261,64 @@ export function TechnicianStatusMonitor() {
                 key={colab.id}
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`bg-white border-2 rounded-xl p-2.5 shadow-sm flex flex-col justify-between overflow-hidden transition-all ${
+                className={`border-3 rounded-xl p-2 flex flex-col justify-between overflow-hidden shadow-lg transition-all ${
                   isExec
-                    ? 'border-emerald-500 bg-emerald-50/20'
+                    ? 'bg-emerald-950/80 border-emerald-500 shadow-emerald-500/30'
                     : isTransit
-                    ? 'border-amber-500 bg-amber-50/20'
-                    : 'border-slate-200'
+                    ? 'bg-amber-950/80 border-amber-500 shadow-amber-500/30'
+                    : 'bg-slate-900 border-slate-700'
                 }`}
               >
                 {/* Tech Header Info */}
                 <div>
+                  {/* CARD TOP BANNER WITH STATUS */}
                   <div className="flex items-center justify-between gap-1 mb-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <div
-                        className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] text-white flex-shrink-0 ${
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] text-white flex-shrink-0 shadow ${
                           isExec
-                            ? 'bg-emerald-600'
+                            ? 'bg-emerald-500 text-slate-950'
                             : isTransit
-                            ? 'bg-amber-600'
-                            : 'bg-slate-400'
+                            ? 'bg-amber-400 text-slate-950'
+                            : 'bg-slate-700 text-white'
                         }`}
                       >
-                        <User className="w-3.5 h-3.5" />
+                        <User className="w-3.5 h-3.5 font-bold" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-[11px] font-black uppercase text-slate-900 truncate leading-none">
+                        <h3 className="text-[11px] font-black uppercase text-white truncate leading-none tracking-tight">
                           {colab.name}
                         </h3>
-                        <p className="text-[9px] font-bold text-slate-500 flex items-center gap-0.5 truncate leading-tight mt-0.5">
+                        <p className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5 truncate leading-tight mt-0.5">
                           <Car className="w-2.5 h-2.5 flex-shrink-0" />
                           {colab.vehicle}
                         </p>
                       </div>
                     </div>
 
-                    {/* STATUS BADGE */}
+                    {/* ULTRA HIGH CONTRAST STATUS BADGES */}
                     <div className="flex-shrink-0">
                       {isExec && (
-                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded text-[9px] font-black uppercase tracking-tight flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
-                          Atendimento
+                        <span className="px-2 py-0.5 bg-emerald-500 text-slate-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                          ATENDIMENTO
                         </span>
                       )}
                       {isTransit && (
-                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded text-[9px] font-black uppercase tracking-tight flex items-center gap-1">
-                          <Navigation className="w-2.5 h-2.5 text-amber-600" />
-                          Deslocamento
+                        <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md">
+                          <Navigation className="w-2.5 h-2.5 text-slate-950" />
+                          DESLOCAMENTO
                         </span>
                       )}
                       {isIdle && (
-                        <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 border border-slate-300 rounded text-[9px] font-black uppercase tracking-tight">
-                          Sem O.S.
+                        <span className="px-1.5 py-0.5 bg-slate-700 text-slate-300 font-bold rounded text-[9px] uppercase tracking-wider">
+                          SEM O.S.
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <hr className="my-1 border-slate-100" />
+                  <hr className={`my-1 ${isExec ? 'border-emerald-800' : isTransit ? 'border-amber-800' : 'border-slate-800'}`} />
 
                   {/* ACTIVE O.S. CONTENT AREA */}
                   {colab.activeOS ? (
@@ -325,34 +326,34 @@ export function TechnicianStatusMonitor() {
                       onClick={() => setSelectedOS(colab.activeOS)}
                       className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
                         isExec
-                          ? 'bg-emerald-50/80 border-emerald-200 hover:bg-emerald-100'
+                          ? 'bg-emerald-900/90 border-emerald-400 text-emerald-50 hover:bg-emerald-800'
                           : isTransit
-                          ? 'bg-amber-50/80 border-amber-200 hover:bg-amber-100'
-                          : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                          ? 'bg-amber-900/90 border-amber-400 text-amber-50 hover:bg-amber-800'
+                          : 'bg-slate-800 border-slate-700 text-slate-200'
                       }`}
                     >
                       {/* OS Number & Category */}
                       <div className="flex items-center justify-between gap-1">
-                        <span className="text-[9px] font-black uppercase text-slate-700 truncate">
-                          #{colab.activeOS.number}
+                        <span className="text-[9px] font-black uppercase text-white truncate">
+                          O.S. #{colab.activeOS.number}
                         </span>
-                        <span className="text-[8px] font-black px-1 py-0.2 rounded bg-white border border-slate-200 text-slate-800 truncate">
+                        <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-black/40 border border-white/20 text-white truncate">
                           {colab.activeOS.category}
                         </span>
                       </div>
 
                       {/* Client Name */}
-                      <p className="text-[10px] font-black text-slate-900 truncate mt-0.5">
+                      <p className="text-[10px] font-black text-white truncate mt-0.5 leading-snug">
                         {colab.activeOS.client}
                       </p>
 
                       {/* Subject */}
-                      <p className="text-[9px] font-bold text-slate-600 truncate">
+                      <p className="text-[9px] font-bold text-slate-200 truncate">
                         {colab.activeOS.subject}
                       </p>
 
                       {/* Address */}
-                      <div className="flex items-center gap-0.5 text-[8px] text-slate-500 font-semibold truncate mt-0.5">
+                      <div className="flex items-center gap-0.5 text-[8px] text-slate-300 font-medium truncate mt-0.5">
                         <MapPin className="w-2.5 h-2.5 text-slate-400 flex-shrink-0" />
                         <span className="truncate">
                           {colab.activeOS.neighborhood || colab.activeOS.city || colab.activeOS.address}
@@ -361,9 +362,9 @@ export function TechnicianStatusMonitor() {
 
                       {/* Scheduled Time */}
                       {colab.activeOS.scheduledTimeStart && (
-                        <div className="mt-1 flex items-center justify-between text-[8px] font-extrabold text-slate-700 bg-white/90 px-1.5 py-0.5 rounded border border-slate-200">
+                        <div className="mt-1 flex items-center justify-between text-[8px] font-black text-white bg-black/50 px-1.5 py-0.5 rounded border border-white/10">
                           <span className="flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5 text-slate-500" />
+                            <Clock className="w-2.5 h-2.5 text-slate-300" />
                             Horário:
                           </span>
                           <span>
@@ -373,17 +374,17 @@ export function TechnicianStatusMonitor() {
                       )}
                     </div>
                   ) : (
-                    <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center flex flex-col items-center justify-center min-h-[60px]">
-                      <CheckCircle2 className="w-4 h-4 text-slate-300" />
-                      <p className="text-[10px] font-black text-slate-500 leading-tight mt-0.5">Técnico Livre</p>
-                      <p className="text-[8px] text-slate-400 font-semibold">Sem O.S. ativa</p>
+                    <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-center flex flex-col items-center justify-center min-h-[60px]">
+                      <CheckCircle2 className="w-4 h-4 text-slate-500" />
+                      <p className="text-[10px] font-black text-slate-300 leading-tight mt-0.5">TÉCNICO LIVRE</p>
+                      <p className="text-[8px] text-slate-500 font-bold">Nenhuma O.S. ativa</p>
                     </div>
                   )}
                 </div>
 
                 {/* Footer Count */}
-                <div className="mt-1 pt-1 border-t border-slate-100 flex items-center justify-between text-[8px] font-bold text-slate-500">
-                  <span>O.S. Hoje: <strong className="text-slate-900">{colab.totalTodayOS}</strong></span>
+                <div className="mt-1 pt-1 border-t border-slate-800 flex items-center justify-between text-[8px] font-bold text-slate-400">
+                  <span>O.S. Hoje: <strong className="text-white">{colab.totalTodayOS}</strong></span>
                   <span className="text-slate-400 truncate max-w-[90px] text-right">{colab.phone}</span>
                 </div>
               </motion.div>
