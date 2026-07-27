@@ -103,6 +103,36 @@ async function getClientName(id) {
   }
 }
 
+const loginStatusCache = {};
+
+async function getClientLoginStatus(clientId) {
+  if (!clientId) return 'online';
+  if (loginStatusCache[clientId] !== undefined) return loginStatusCache[clientId];
+  try {
+    const response = await fetch(`${IXC_URL}/radusuarios`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ixcsoft': 'listar',
+        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+      },
+      body: JSON.stringify({ qtype: 'radusuarios.id_cliente', query: String(clientId), oper: '=', rp: '1' })
+    });
+    const data = await response.json();
+    if (data && data.registros && data.registros.length > 0) {
+      const reg = data.registros[0];
+      const isOnline = reg.online === 'S' || reg.online === 'online' || reg.status === 'online';
+      const status = isOnline ? 'online' : 'offline';
+      loginStatusCache[clientId] = status;
+      return status;
+    }
+    loginStatusCache[clientId] = 'online';
+    return 'online';
+  } catch (e) {
+    return 'online';
+  }
+}
+
 async function getSubjectName(id) {
   if (!id) return 'Não informado';
   if (subjectCache[id] && subjectCache[id] !== 'Não informado') return subjectCache[id];
@@ -457,6 +487,8 @@ async function syncIXCServiceOrders(io) {
           }
         }
 
+        const clientLoginStatus = await getClientLoginStatus(os.id_cliente);
+
         await ServiceOrder.findOneAndUpdate(
           { ixcId: os.id },
           {
@@ -476,7 +508,7 @@ async function syncIXCServiceOrders(io) {
             scheduledTimeStart: timeStart,
             scheduledTimeEnd: timeEnd,
             durationMinutes: duration,
-            loginStatus: os.status === 'F' ? 'online' : (os.online === 'S' || os.status_conexao === 'online' ? 'online' : 'offline'),
+            loginStatus: os.status === 'F' ? 'online' : (os.online === 'S' || os.status_conexao === 'online' ? 'online' : clientLoginStatus),
             lastSeen: new Date()
           },
           { upsert: true }
