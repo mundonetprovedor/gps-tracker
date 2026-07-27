@@ -61,7 +61,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   selectedOSId: null,
   isAuthenticated: !!localStorage.getItem('m_token'),
   searchQuery: '',
-  activeTab: 'agenda',
+  activeTab: 'monitor',
   agendaViewMode: 'diaHora',
   selectedAgendaDate: getTodayDateString(),
   agendaSearchQuery: '',

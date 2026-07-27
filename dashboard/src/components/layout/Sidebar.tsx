@@ -8,11 +8,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { id: 'monitor', label: 'Status dos Técnicos', icon: requireLucideIcon('LayoutDashboard') },
   { id: 'agenda', label: 'Agenda / Escala', icon: requireLucideIcon('Calendar') },
-  { id: 'monitor', label: 'Mapa / Monitoramento', icon: requireLucideIcon('LayoutDashboard') },
-  { id: 'history', label: 'Histórico de Rotas', icon: requireLucideIcon('History') },
-  { id: 'reports', label: 'Relatórios', icon: requireLucideIcon('BarChart3') },
-  { id: 'notifications', label: 'Enviar Notificação', icon: requireLucideIcon('Send') },
 ]
 
 function requireLucideIcon(name: string): React.ElementType {
