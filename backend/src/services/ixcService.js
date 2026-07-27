@@ -252,6 +252,11 @@ async function syncIXCServiceOrders(io) {
         return;
     }
 
+    if (isInitialSync) {
+      logger.info('[IXC] Primeira sincronização: limpando O.S. antigas para atualização com horários exatos...');
+      await ServiceOrder.deleteMany({});
+    }
+
     const ixcIdsPresent = new Set();
 
     // Processamento em lotes paralelos
