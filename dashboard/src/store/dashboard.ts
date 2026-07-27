@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { TeamMember, ServiceOrder, DashboardStats, Alert } from '@/types'
+import { getTodayDateString } from '@/lib/utils'
 
 interface DashboardState {
   teams: Record<string, TeamMember>
@@ -62,7 +63,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   searchQuery: '',
   activeTab: 'agenda',
   agendaViewMode: 'diaHora',
-  selectedAgendaDate: '2026-07-24',
+  selectedAgendaDate: getTodayDateString(),
   agendaSearchQuery: '',
   filters: {
     onlineOnly: false,

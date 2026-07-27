@@ -209,14 +209,15 @@ app.get('/api/service-orders', auth, async (req, res) => {
     const { date } = req.query;
     let query = {};
     if (date) {
-      const parts = String(date).split('-').map(Number);
-      if (parts.length === 3) {
-        const start = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 0, 0, 0));
-        const end = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 23, 59, 59));
-        query = { scheduledDate: { $gte: start, $lte: end } };
-      }
+      const cleanDate = String(date).trim();
+      query = {
+        $or: [
+          { scheduledDate: cleanDate },
+          { scheduledDate: { $regex: `^${cleanDate}` } }
+        ]
+      };
     }
-    const orders = await ServiceOrder.find(query).sort({ scheduledDate: 1 });
+    const orders = await ServiceOrder.find(query).sort({ scheduledTimeStart: 1, scheduledDate: 1 });
     logger.info(`[API] Retornando ${orders.length} O.S. agendadas (Filtro data: ${date || 'Todas'})`);
     res.json(orders);
   } catch (error) {

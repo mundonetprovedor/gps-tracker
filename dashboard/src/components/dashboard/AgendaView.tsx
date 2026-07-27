@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDashboardStore } from '@/store/dashboard'
+import { getTodayDateString, formatDateString } from '@/lib/utils'
 import { fetchServiceOrders } from '@/services/api'
 import type { ServiceOrder, OSSubjectCategory, TeamMember } from '@/types'
 import {
@@ -83,8 +84,9 @@ function getHashSeed(str: string): number {
 // Deterministic date-seeded O.S. generator for dates when no IXC orders exist
 function generateOrdersForDate(dateStr: string, collaborators: TeamMember[]): ServiceOrder[] {
   const seed = getHashSeed(dateStr)
-  const isPast = dateStr < '2026-07-24'
-  const isFuture = dateStr > '2026-07-24'
+  const today = getTodayDateString()
+  const isPast = dateStr < today
+  const isFuture = dateStr > today
 
   const subjectsPool: { subject: string; category: OSSubjectCategory }[] = [
     { subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação' },
@@ -375,7 +377,7 @@ function normalizeStr(str?: string): string {
           </button>
 
           <button
-            onClick={() => setSelectedAgendaDate('2026-07-24')}
+            onClick={() => setSelectedAgendaDate(getTodayDateString())}
             className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black transition-all shadow-sm active:scale-95"
           >
             Hoje
@@ -387,7 +389,7 @@ function normalizeStr(str?: string): string {
               onClick={() => {
                 const [y, m, d] = selectedAgendaDate.split('-').map(Number)
                 const prev = new Date(y, m - 1, d - 1)
-                setSelectedAgendaDate(prev.toISOString().split('T')[0])
+                setSelectedAgendaDate(formatDateString(prev))
               }}
               className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition"
               title="Dia anterior"
@@ -406,7 +408,7 @@ function normalizeStr(str?: string): string {
               onClick={() => {
                 const [y, m, d] = selectedAgendaDate.split('-').map(Number)
                 const next = new Date(y, m - 1, d + 1)
-                setSelectedAgendaDate(next.toISOString().split('T')[0])
+                setSelectedAgendaDate(formatDateString(next))
               }}
               className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition"
               title="Próximo dia"

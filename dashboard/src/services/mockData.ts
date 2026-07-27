@@ -1,4 +1,7 @@
 import type { TeamMember, ServiceOrder, DashboardStats, Alert, IncidentCluster } from '@/types'
+import { getTodayDateString } from '@/lib/utils'
+
+const TODAY = getTodayDateString()
 
 export const MOCK_TEAMS: Record<string, TeamMember> = {
   'colab-1': { id: 'colab-1', name: 'ANTONIO PEDRO SILVA NETO', status: 'Disponível', techs: ['Antonio Pedro'], phone: '(98) 98812-1001', vehicle: 'Uno 1.0', plate: 'HPX-1001' },
@@ -28,284 +31,284 @@ export const MOCK_ORDERS: ServiceOrder[] = [
   {
     ixcId: 'os-201', number: '98501', client: 'CANCELADO', address: 'Rua Central, 12', neighborhood: 'Renascença', city: 'São Luís',
     subject: 'CANCELADO', category: 'Sem conexão', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '08:00', scheduledTimeEnd: '08:45', durationMinutes: 45
+    scheduledDate: TODAY, scheduledTimeStart: '08:00', scheduledTimeEnd: '08:45', durationMinutes: 45
   },
   {
     ixcId: 'os-202', number: '98502', client: 'CANCELADO', address: 'Rua das Flores, 44', neighborhood: 'Renascença', city: 'São Luís',
     subject: 'CANCELADO', category: 'Lentidão', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '10:15', scheduledTimeEnd: '10:45', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '10:15', scheduledTimeEnd: '10:45', durationMinutes: 30
   },
   {
     ixcId: 'os-203', number: '98503', client: 'CANCELADO', address: 'Av. Holandeses, 500', neighborhood: 'Calhau', city: 'São Luís',
     subject: 'CANCELADO', category: 'Configuração de roteador', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '11:00', scheduledTimeEnd: '11:30', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '11:00', scheduledTimeEnd: '11:30', durationMinutes: 30
   },
   {
     ixcId: 'os-204', number: '98504', client: 'CANCELADO', address: 'Rua Sol, 120', neighborhood: 'Centro', city: 'São Luís',
     subject: 'CANCELADO', category: 'Sem conexão', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '14:30', scheduledTimeEnd: '15:15', durationMinutes: 45
+    scheduledDate: TODAY, scheduledTimeStart: '14:30', scheduledTimeEnd: '15:15', durationMinutes: 45
   },
   {
     ixcId: 'os-205', number: '98505', client: 'CANCELADO', address: 'Rua Paz, 88', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'CANCELADO', category: 'Fibra rompida', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:15', scheduledTimeEnd: '15:45', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '15:15', scheduledTimeEnd: '15:45', durationMinutes: 30
   },
   {
     ixcId: 'os-206', number: '98506', client: 'CANCELADO', address: 'Av. Colares Moreira, 300', neighborhood: 'Renascença', city: 'São Luís',
     subject: 'CANCELADO', category: 'Lentidão', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:45', scheduledTimeEnd: '16:15', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '15:45', scheduledTimeEnd: '16:15', durationMinutes: 30
   },
   {
     ixcId: 'os-207', number: '98507', client: 'CANCELADO', address: 'Rua Palma, 5', neighborhood: 'Centro', city: 'São Luís',
     subject: 'CANCELADO', category: 'Mudança de endereço', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '16:15', scheduledTimeEnd: '16:45', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '16:15', scheduledTimeEnd: '16:45', durationMinutes: 30
   },
   {
     ixcId: 'os-208', number: '98508', client: 'CANCELADO', address: 'Av. Daniel, 1020', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'CANCELADO', category: 'Configuração de roteador', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '17:00', scheduledTimeEnd: '17:30', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '17:00', scheduledTimeEnd: '17:30', durationMinutes: 30
   },
   {
     ixcId: 'os-209', number: '98509', client: 'CANCELADO', address: 'Rua Estrela, 40', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'CANCELADO', category: 'Sem conexão', priority: 'baixa', status: 'F', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '17:30', scheduledTimeEnd: '18:00', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '17:30', scheduledTimeEnd: '18:00', durationMinutes: 30
   },
   {
     ixcId: 'os-210', number: '98510', client: 'CARLOS JOSE', address: 'Rua do Mar, 21', neighborhood: 'Turu', city: 'São Luís',
     subject: 'SEM INTERNET', category: 'Sem conexão', priority: 'alta', status: 'A', teamId: 'colab-1', collaboratorName: 'ANTONIO PEDRO SILVA NETO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '18:00', scheduledTimeEnd: '18:30', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '14:00', scheduledTimeEnd: '14:30', durationMinutes: 30
   },
 
   // CAIO ALMEIDA MENEZES
   {
     ixcId: 'os-211', number: '98511', client: 'MARCOS', address: 'Rua 1, Qda 4', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'NOVA INSTALAÇÃO', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-2', collaboratorName: 'CAIO ALMEIDA MENEZES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '08:00', scheduledTimeEnd: '08:30', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '08:00', scheduledTimeEnd: '08:30', durationMinutes: 30
   },
   {
     ixcId: 'os-212', number: '98512', client: 'ANA', address: 'Rua 2, Qda 5', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'NOVA INSTALAÇÃO', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-2', collaboratorName: 'CAIO ALMEIDA MENEZES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '08:30', scheduledTimeEnd: '09:00', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '08:30', scheduledTimeEnd: '09:00', durationMinutes: 30
   },
   {
     ixcId: 'os-213', number: '98513', client: 'BRUNO', address: 'Rua 3, Qda 6', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'NOVA INSTALAÇÃO', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-2', collaboratorName: 'CAIO ALMEIDA MENEZES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:00', scheduledTimeEnd: '09:30', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '09:00', scheduledTimeEnd: '09:30', durationMinutes: 30
   },
   {
     ixcId: 'os-214', number: '98514', client: 'CARLA', address: 'Rua 4, Qda 7', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'NOVA INSTALAÇÃO', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-2', collaboratorName: 'CAIO ALMEIDA MENEZES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:30', scheduledTimeEnd: '10:00', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '09:30', scheduledTimeEnd: '10:00', durationMinutes: 30
   },
   {
     ixcId: 'os-215', number: '98515', client: 'DANIEL', address: 'Rua 5, Qda 8', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'NOVA INSTALAÇÃO', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-2', collaboratorName: 'CAIO ALMEIDA MENEZES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '10:00', scheduledTimeEnd: '10:30', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '10:00', scheduledTimeEnd: '10:30', durationMinutes: 30
   },
   {
     ixcId: 'os-216', number: '98516', client: 'EDUARDO', address: 'Rua 6, Qda 9', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'NOVA INSTALAÇÃO', category: 'Instalação', priority: 'media', status: 'EX', teamId: 'colab-2', collaboratorName: 'CAIO ALMEIDA MENEZES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '10:30', scheduledTimeEnd: '11:00', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '10:30', scheduledTimeEnd: '11:00', durationMinutes: 30
   },
 
   // IVALDO MAIA MENDES
   {
     ixcId: 'os-217', number: '98517', client: 'JOANA SILVA', address: 'Av. Guajajaras, 88', neighborhood: 'Tirirical', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-5', collaboratorName: 'IVALDO MAIA MENDES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:30', scheduledTimeEnd: '10:30', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '09:30', scheduledTimeEnd: '10:30', durationMinutes: 60
   },
   {
     ixcId: 'os-218', number: '98518', client: 'RODRIGO ALVES', address: 'Rua da Paz, 102', neighborhood: 'Tirirical', city: 'São Luís',
     subject: 'SEM INTERNET', category: 'Sem conexão', priority: 'alta', status: 'F', teamId: 'colab-5', collaboratorName: 'IVALDO MAIA MENDES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '10:45', scheduledTimeEnd: '11:30', durationMinutes: 45
+    scheduledDate: TODAY, scheduledTimeStart: '10:45', scheduledTimeEnd: '11:30', durationMinutes: 45
   },
   {
     ixcId: 'os-219', number: '98519', client: 'LUCIA SANTOS', address: 'Av. Holandeses, 99', neighborhood: 'Calhau', city: 'São Luís',
     subject: 'MUDANÇA DE ENDEREÇO', category: 'Mudança de endereço', priority: 'media', status: 'EX', teamId: 'colab-5', collaboratorName: 'IVALDO MAIA MENDES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '17:00', scheduledTimeEnd: '18:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '17:00', scheduledTimeEnd: '18:00', durationMinutes: 60
   },
 
   // JAILSON SANTOS SILVA
   {
     ixcId: 'os-220', number: '98520', client: 'FRANCISCO LIMA', address: 'Rua do Sol, 400', neighborhood: 'Centro', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-6', collaboratorName: 'JAILSON SANTOS SILVA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '08:30', scheduledTimeEnd: '10:00', durationMinutes: 90
+    scheduledDate: TODAY, scheduledTimeStart: '08:30', scheduledTimeEnd: '10:00', durationMinutes: 90
   },
   {
     ixcId: 'os-221', number: '98521', client: 'THAYNA CORREA', address: 'Rua das Hortênsias, 12', neighborhood: 'Calhau', city: 'São Luís',
     subject: 'SEM INTERNET::THAYNA', category: 'Sem conexão', priority: 'critica', status: 'F', teamId: 'colab-6', collaboratorName: 'JAILSON SANTOS SILVA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '10:15', scheduledTimeEnd: '11:45', durationMinutes: 90
+    scheduledDate: TODAY, scheduledTimeStart: '10:15', scheduledTimeEnd: '11:45', durationMinutes: 90
   },
   {
     ixcId: 'os-222', number: '98522', client: 'VALERIA SOUZA', address: 'Av. Colares Moreira, 89', neighborhood: 'Renascença', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'EX', teamId: 'colab-6', collaboratorName: 'JAILSON SANTOS SILVA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:15', durationMinutes: 75
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:15', durationMinutes: 75
   },
   {
     ixcId: 'os-223', number: '98523', client: 'REGINA MENDES', address: 'Av. Daniel de La Touche, 55', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'A', teamId: 'colab-6', collaboratorName: 'JAILSON SANTOS SILVA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '16:15', scheduledTimeEnd: '17:30', durationMinutes: 75
+    scheduledDate: TODAY, scheduledTimeStart: '16:15', scheduledTimeEnd: '17:30', durationMinutes: 75
   },
 
   // JONATAS SILVA PASSO
   {
     ixcId: 'os-224', number: '98524', client: 'PEDRO CELSO', address: 'Rua das Palmas, 88', neighborhood: 'Turu', city: 'São Luís',
     subject: 'SEM INTERNET::PEDRO CELSO', category: 'Sem conexão', priority: 'critica', status: 'F', teamId: 'colab-8', collaboratorName: 'JONATAS SILVA PASSO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '08:00', scheduledTimeEnd: '09:30', durationMinutes: 90
+    scheduledDate: TODAY, scheduledTimeStart: '08:00', scheduledTimeEnd: '09:30', durationMinutes: 90
   },
   {
     ixcId: 'os-225', number: '98525', client: 'RAIMUNDA COSTA', address: 'Rua da Areia, 15', neighborhood: 'Anjo da Guarda', city: 'São Luís',
     subject: 'Sinal Ruim::RAIMUNDA C', category: 'Lentidão', priority: 'media', status: 'F', teamId: 'colab-8', collaboratorName: 'JONATAS SILVA PASSO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '10:30', scheduledTimeEnd: '11:45', durationMinutes: 75
+    scheduledDate: TODAY, scheduledTimeStart: '10:30', scheduledTimeEnd: '11:45', durationMinutes: 75
   },
   {
     ixcId: 'os-226', number: '98526', client: 'MATEUS MORAES', address: 'Av. dos Holandeses, 400', neighborhood: 'Calhau', city: 'São Luís',
     subject: 'UPGRADE / TROCA DE PLANO', category: 'Configuração de roteador', priority: 'baixa', status: 'EX', teamId: 'colab-8', collaboratorName: 'JONATAS SILVA PASSO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:30', durationMinutes: 90
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:30', durationMinutes: 90
   },
 
   // MARCELINO SOUSA DOS SANTOS
   {
     ixcId: 'os-227', number: '98527', client: 'CLAUDIA ROCHA', address: 'Rua 8, Qda 12', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-11', collaboratorName: 'MARCELINO SOUSA DOS SANTOS',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '07:30', scheduledTimeEnd: '09:00', durationMinutes: 90
+    scheduledDate: TODAY, scheduledTimeStart: '07:30', scheduledTimeEnd: '09:00', durationMinutes: 90
   },
   {
     ixcId: 'os-228', number: '98528', client: 'EDILEUZA NASCIMENTO', address: 'Av. Colares Moreira, 1500', neighborhood: 'Renascença', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA::EDILEUZA NASC', category: 'Instalação', priority: 'alta', status: 'F', teamId: 'colab-11', collaboratorName: 'MARCELINO SOUSA DOS SANTOS',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:00', scheduledTimeEnd: '11:15', durationMinutes: 135
+    scheduledDate: TODAY, scheduledTimeStart: '09:00', scheduledTimeEnd: '11:15', durationMinutes: 135
   },
   {
     ixcId: 'os-229', number: '98529', client: 'PAULO SILVA', address: 'Rua das Flores, 19', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'EX', teamId: 'colab-11', collaboratorName: 'MARCELINO SOUSA DOS SANTOS',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:15', durationMinutes: 75
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:15', durationMinutes: 75
   },
   {
     ixcId: 'os-230', number: '98530', client: 'LETICIA GOMES', address: 'Rua do Passeio, 80', neighborhood: 'Centro', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'A', teamId: 'colab-11', collaboratorName: 'MARCELINO SOUSA DOS SANTOS',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '16:15', scheduledTimeEnd: '17:30', durationMinutes: 75
+    scheduledDate: TODAY, scheduledTimeStart: '16:15', scheduledTimeEnd: '17:30', durationMinutes: 75
   },
 
   // MATHEUS MORAES DOS SANTOS
   {
     ixcId: 'os-231', number: '98531', client: 'LUCAS FERREIRA', address: 'Rua Central, 90', neighborhood: 'Turu', city: 'São Luís',
     subject: 'CANCELADO', category: 'Sem conexão', priority: 'baixa', status: 'F', teamId: 'colab-12', collaboratorName: 'MATHEUS MORAES DOS SANTOS',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:15', scheduledTimeEnd: '09:45', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '09:15', scheduledTimeEnd: '09:45', durationMinutes: 30
   },
   {
     ixcId: 'os-232', number: '98532', client: 'GILBERTO', address: 'Rua Sol, 33', neighborhood: 'Centro', city: 'São Luís',
     subject: 'CANCELADO', category: 'Sem conexão', priority: 'baixa', status: 'F', teamId: 'colab-12', collaboratorName: 'MATHEUS MORAES DOS SANTOS',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '11:00', scheduledTimeEnd: '11:30', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '11:00', scheduledTimeEnd: '11:30', durationMinutes: 30
   },
   {
     ixcId: 'os-233', number: '98533', client: 'RENATO MENEZES', address: 'Rua das Flores, 88', neighborhood: 'Vinhais', city: 'São Luís',
     subject: 'Sinal Ruim::RENATO', category: 'Lentidão', priority: 'media', status: 'EX', teamId: 'colab-12', collaboratorName: 'MATHEUS MORAES DOS SANTOS',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
   },
   {
     ixcId: 'os-234', number: '98534', client: 'BEATRIZ COSTA', address: 'Av. Holandeses, 12', neighborhood: 'Calhau', city: 'São Luís',
     subject: 'SEM INTERNET', category: 'Sem conexão', priority: 'alta', status: 'A', teamId: 'colab-12', collaboratorName: 'MATHEUS MORAES DOS SANTOS',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '16:15', scheduledTimeEnd: '17:00', durationMinutes: 45
+    scheduledDate: TODAY, scheduledTimeStart: '16:15', scheduledTimeEnd: '17:00', durationMinutes: 45
   },
 
   // MOISES COELHO SOARES
   {
     ixcId: 'os-235', number: '98535', client: 'DENISE', address: 'Rua 5, Qda 2', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'CANCELADO', category: 'Sem conexão', priority: 'baixa', status: 'F', teamId: 'colab-13', collaboratorName: 'MOISES COELHO SOARES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:00', scheduledTimeEnd: '09:30', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '09:00', scheduledTimeEnd: '09:30', durationMinutes: 30
   },
   {
     ixcId: 'os-236', number: '98536', client: 'FLAVIA', address: 'Rua 6, Qda 3', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'CANCELADO', category: 'Sem conexão', priority: 'baixa', status: 'F', teamId: 'colab-13', collaboratorName: 'MOISES COELHO SOARES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:30', scheduledTimeEnd: '10:00', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '09:30', scheduledTimeEnd: '10:00', durationMinutes: 30
   },
   {
     ixcId: 'os-237', number: '98537', client: 'AURELIO GOMES', address: 'Rua 7, Qda 4', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'Sinal Ruim::AURELIO', category: 'Lentidão', priority: 'media', status: 'F', teamId: 'colab-13', collaboratorName: 'MOISES COELHO SOARES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '10:30', scheduledTimeEnd: '11:45', durationMinutes: 75
+    scheduledDate: TODAY, scheduledTimeStart: '10:30', scheduledTimeEnd: '11:45', durationMinutes: 75
   },
   {
     ixcId: 'os-238', number: '98538', client: 'CLEBER SILVA', address: 'Rua 8, Qda 5', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'MUDANÇA DE ENDEREÇO', category: 'Mudança de endereço', priority: 'media', status: 'EX', teamId: 'colab-13', collaboratorName: 'MOISES COELHO SOARES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
   },
   {
     ixcId: 'os-239', number: '98539', client: 'DIEGO', address: 'Rua 9, Qda 6', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'CANCELADO', category: 'Sem conexão', priority: 'baixa', status: 'A', teamId: 'colab-13', collaboratorName: 'MOISES COELHO SOARES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '16:15', scheduledTimeEnd: '16:45', durationMinutes: 30
+    scheduledDate: TODAY, scheduledTimeStart: '16:15', scheduledTimeEnd: '16:45', durationMinutes: 30
   },
 
   // ROMARIO COELHO SOUZA
   {
     ixcId: 'os-240', number: '98540', client: 'OTICA LUZ', address: 'Av. Guajajaras, 500', neighborhood: 'Tirirical', city: 'São Luís',
     subject: 'ACOMPANHAMENTO TECNICO', category: 'Configuração de roteador', priority: 'media', status: 'F', teamId: 'colab-16', collaboratorName: 'ROMARIO COELHO SOUZA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:30', scheduledTimeEnd: '10:30', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '09:30', scheduledTimeEnd: '10:30', durationMinutes: 60
   },
   {
     ixcId: 'os-241', number: '98541', client: 'ALINE RAMOS', address: 'Rua das Palma, 44', neighborhood: 'Renascença', city: 'São Luís',
     subject: 'SEM INTERNET', category: 'Sem conexão', priority: 'alta', status: 'F', teamId: 'colab-16', collaboratorName: 'ROMARIO COELHO SOUZA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '11:00', scheduledTimeEnd: '11:45', durationMinutes: 45
+    scheduledDate: TODAY, scheduledTimeStart: '11:00', scheduledTimeEnd: '11:45', durationMinutes: 45
   },
   {
     ixcId: 'os-242', number: '98542', client: 'GERALDO ROCHA', address: 'Av. Holandeses, 120', neighborhood: 'Calhau', city: 'São Luís',
     subject: 'SEM INTERNET', category: 'Sem conexão', priority: 'critica', status: 'EX', teamId: 'colab-16', collaboratorName: 'ROMARIO COELHO SOUZA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
   },
   {
     ixcId: 'os-243', number: '98543', client: 'FARMACIA POPULAR', address: 'Av. Colares Moreira, 700', neighborhood: 'Renascença', city: 'São Luís',
     subject: 'ACOMPANHAMENTO', category: 'Configuração de roteador', priority: 'media', status: 'A', teamId: 'colab-16', collaboratorName: 'ROMARIO COELHO SOUZA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '16:30', scheduledTimeEnd: '17:30', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '16:30', scheduledTimeEnd: '17:30', durationMinutes: 60
   },
 
   // WALLACE EVERTON GOMES
   {
     ixcId: 'os-244', number: '98544', client: 'MANUTENÇÃO MANHÃ', address: 'Rede Troncal Centro', neighborhood: 'Centro', city: 'São Luís',
     subject: 'BLOQUEIO TÉCNICO MANHÃ', category: 'Fibra rompida', priority: 'alta', status: 'F', teamId: 'colab-18', collaboratorName: 'WALLACE EVERTON GOMES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '06:00', scheduledTimeEnd: '12:30', durationMinutes: 390
+    scheduledDate: TODAY, scheduledTimeStart: '06:00', scheduledTimeEnd: '12:30', durationMinutes: 390
   },
   {
     ixcId: 'os-245', number: '98545', client: 'LOJA CENTRO', address: 'Rua Grande, 450', neighborhood: 'Centro', city: 'São Luís',
     subject: 'SEM INTERNET', category: 'Sem conexão', priority: 'critica', status: 'EX', teamId: 'colab-18', collaboratorName: 'WALLACE EVERTON GOMES',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
   },
 
   // WANDERSON DA SILVA MARINHO
   {
     ixcId: 'os-246', number: '98546', client: 'ROBERTA SILVA', address: 'Rua 1, Qda 10', neighborhood: 'Turu', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-19', collaboratorName: 'WANDERSON DA SILVA MARINHO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '08:30', scheduledTimeEnd: '09:45', durationMinutes: 75
+    scheduledDate: TODAY, scheduledTimeStart: '08:30', scheduledTimeEnd: '09:45', durationMinutes: 75
   },
   {
     ixcId: 'os-247', number: '98547', client: 'MARCIO ALMEIDA', address: 'Rua 2, Qda 11', neighborhood: 'Turu', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'F', teamId: 'colab-19', collaboratorName: 'WANDERSON DA SILVA MARINHO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:45', scheduledTimeEnd: '11:15', durationMinutes: 90
+    scheduledDate: TODAY, scheduledTimeStart: '09:45', scheduledTimeEnd: '11:15', durationMinutes: 90
   },
   {
     ixcId: 'os-248', number: '98548', client: 'CLARISSE NETO', address: 'Rua 3, Qda 12', neighborhood: 'Turu', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'EX', teamId: 'colab-19', collaboratorName: 'WANDERSON DA SILVA MARINHO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
   },
   {
     ixcId: 'os-249', number: '98549', client: 'DENIS ROCHA', address: 'Rua 4, Qda 13', neighborhood: 'Turu', city: 'São Luís',
     subject: 'INSTALAÇÃO VIA FIBRA', category: 'Instalação', priority: 'media', status: 'A', teamId: 'colab-19', collaboratorName: 'WANDERSON DA SILVA MARINHO',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '16:00', scheduledTimeEnd: '17:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '16:00', scheduledTimeEnd: '17:00', durationMinutes: 60
   },
 
   // WLADIMIR AIRES OLIVEIRA
   {
     ixcId: 'os-250', number: '98550', client: 'SANDRA GOMES', address: 'Av. Colares Moreira, 110', neighborhood: 'Renascença', city: 'São Luís',
     subject: 'ONT COM DEFEITO', category: 'Retirada de equipamentos', priority: 'media', status: 'F', teamId: 'colab-20', collaboratorName: 'WLADIMIR AIRES OLIVEIRA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '09:00', scheduledTimeEnd: '10:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '09:00', scheduledTimeEnd: '10:00', durationMinutes: 60
   },
   {
     ixcId: 'os-251', number: '98551', client: 'POSTO BR', address: 'Av. Daniel de La Touche, 900', neighborhood: 'Cohama', city: 'São Luís',
     subject: 'ACOMPANHAMENTO', category: 'Configuração de roteador', priority: 'media', status: 'EX', teamId: 'colab-20', collaboratorName: 'WLADIMIR AIRES OLIVEIRA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '15:00', scheduledTimeEnd: '16:00', durationMinutes: 60
   },
   {
     ixcId: 'os-252', number: '98552', client: 'COLEGIO SANTA ROSA', address: 'Rua do Sol, 55', neighborhood: 'Centro', city: 'São Luís',
     subject: 'ACOMPANHAMENTO', category: 'Configuração de roteador', priority: 'media', status: 'A', teamId: 'colab-20', collaboratorName: 'WLADIMIR AIRES OLIVEIRA',
-    scheduledDate: '2026-07-24', scheduledTimeStart: '16:00', scheduledTimeEnd: '17:00', durationMinutes: 60
+    scheduledDate: TODAY, scheduledTimeStart: '16:00', scheduledTimeEnd: '17:00', durationMinutes: 60
   }
 ]
 

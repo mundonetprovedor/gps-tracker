@@ -408,21 +408,32 @@ async function syncIXCServiceOrders(io) {
           return todayISO;
         };
 
+        const extractTimeInfo = (rawDate) => {
+          if (!rawDate) return null;
+          const clean = String(rawDate).trim();
+          if (clean.includes('0000-00-00')) return null;
+          const match = clean.match(/(?:^|\s|T)(\d{2}):(\d{2})/);
+          if (match) {
+            const h = parseInt(match[1], 10);
+            const m = parseInt(match[2], 10);
+            if (h !== 0 || m !== 0) {
+              return { hour: h, minute: m, timeStr: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` };
+            }
+          }
+          return null;
+        };
+
         const scheduledDateStr = extractDateStr(os.data_agenda || os.data_inicio);
-        const parsedAgendaDate = parseIXCDate(os.data_agenda || os.data_inicio || os.data_fechamento);
+        const timeInfo = extractTimeInfo(os.data_agenda || os.data_inicio || os.data_fechamento);
         let timeStart = '08:30';
         let timeEnd = '10:00';
 
-        if (parsedAgendaDate) {
-          const h = String(parsedAgendaDate.getHours()).padStart(2, '0');
-          const m = String(parsedAgendaDate.getMinutes()).padStart(2, '0');
-          if (h !== '00' || m !== '00') {
-            timeStart = `${h}:${m}`;
-            const endHourDec = parsedAgendaDate.getHours() + (parsedAgendaDate.getMinutes() + 90) / 60;
-            const endH = String(Math.floor(endHourDec) % 24).padStart(2, '0');
-            const endM = String(Math.round((endHourDec % 1) * 60) % 60).padStart(2, '0');
-            timeEnd = `${endH}:${endM}`;
-          }
+        if (timeInfo) {
+          timeStart = timeInfo.timeStr;
+          const endHourDec = timeInfo.hour + (timeInfo.minute + 90) / 60;
+          const endH = String(Math.floor(endHourDec) % 24).padStart(2, '0');
+          const endM = String(Math.round((endHourDec % 1) * 60) % 60).padStart(2, '0');
+          timeEnd = `${endH}:${endM}`;
         }
 
         const category = inferCategoryFromSubject(subjectName);
