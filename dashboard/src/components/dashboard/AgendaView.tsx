@@ -22,16 +22,16 @@ const END_HOUR = 21
 const TOTAL_HOURS = END_HOUR - START_HOUR + 1
 const HOURS_ARRAY = Array.from({ length: TOTAL_HOURS }, (_, i) => START_HOUR + i)
 
-// Color scheme mapping for categories in the timeline blocks (matching reference image)
+// Color scheme mapping for categories in the timeline blocks (optimized for high-contrast TV view on white background)
 const CATEGORY_STYLE_MAP: Record<string, { bg: string; text: string; border: string; bar: string }> = {
-  'Instalação': { bg: 'bg-emerald-500/15 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-500/40', bar: 'bg-emerald-500' },
-  'Sem conexão': { bg: 'bg-rose-500/15 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-500/40', bar: 'bg-rose-500' },
-  'Fibra rompida': { bg: 'bg-orange-500/15 dark:bg-orange-950/40', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-500/40', bar: 'bg-orange-500' },
-  'Lentidão': { bg: 'bg-amber-500/15 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-500/40', bar: 'bg-amber-500' },
-  'Mudança de endereço': { bg: 'bg-purple-500/15 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-500/40', bar: 'bg-purple-500' },
-  'Configuração de roteador': { bg: 'bg-sky-500/15 dark:bg-sky-950/40', text: 'text-sky-700 dark:text-sky-300', border: 'border-sky-500/40', bar: 'bg-sky-500' },
-  'Retirada de equipamentos': { bg: 'bg-slate-500/15 dark:bg-slate-900/40', text: 'text-slate-700 dark:text-slate-300', border: 'border-slate-500/40', bar: 'bg-slate-400' },
-  'CANCELADO': { bg: 'bg-slate-400/20 dark:bg-slate-800/40', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-400/40', bar: 'bg-slate-400' },
+  'Instalação': { bg: 'bg-emerald-100 text-emerald-950 font-black', text: 'text-emerald-950', border: 'border-emerald-600', bar: 'bg-emerald-600' },
+  'Sem conexão': { bg: 'bg-rose-100 text-rose-950 font-black', text: 'text-rose-950', border: 'border-rose-600', bar: 'bg-rose-600' },
+  'Fibra rompida': { bg: 'bg-orange-100 text-orange-950 font-black', text: 'text-orange-950', border: 'border-orange-600', bar: 'bg-orange-600' },
+  'Lentidão': { bg: 'bg-amber-100 text-amber-950 font-black', text: 'text-amber-950', border: 'border-amber-600', bar: 'bg-amber-600' },
+  'Mudança de endereço': { bg: 'bg-purple-100 text-purple-950 font-black', text: 'text-purple-950', border: 'border-purple-600', bar: 'bg-purple-600' },
+  'Configuração de roteador': { bg: 'bg-sky-100 text-sky-950 font-black', text: 'text-sky-950', border: 'border-sky-600', bar: 'bg-sky-600' },
+  'Retirada de equipamentos': { bg: 'bg-slate-200 text-slate-950 font-black', text: 'text-slate-950', border: 'border-slate-500', bar: 'bg-slate-600' },
+  'CANCELADO': { bg: 'bg-slate-100 text-slate-500 font-bold', text: 'text-slate-500 line-through', border: 'border-slate-300', bar: 'bg-slate-400' },
 }
 
 function getCategoryStyle(category: string, subject: string, status?: string) {
@@ -40,27 +40,27 @@ function getCategoryStyle(category: string, subject: string, status?: string) {
 
   if (isCancelled) {
     return {
-      bg: 'bg-slate-400/20 dark:bg-slate-800/30 opacity-70',
-      text: 'text-slate-500 dark:text-slate-400 line-through',
-      border: 'border-slate-400/40',
+      bg: 'bg-slate-100 text-slate-500 opacity-80',
+      text: 'text-slate-500 line-through font-bold',
+      border: 'border-slate-300',
       bar: 'bg-slate-400',
     }
   }
 
   if (isFinalized) {
     return {
-      bg: 'bg-slate-500/15 dark:bg-slate-900/30 opacity-75',
-      text: 'text-slate-600 dark:text-slate-400 font-medium',
-      border: 'border-slate-400/30',
-      bar: 'bg-slate-400',
+      bg: 'bg-slate-200 text-slate-800 opacity-90',
+      text: 'text-slate-900 font-extrabold',
+      border: 'border-slate-400',
+      bar: 'bg-slate-500',
     }
   }
 
   return CATEGORY_STYLE_MAP[category] || {
-    bg: 'bg-indigo-500/15 dark:bg-indigo-950/40',
-    text: 'text-indigo-700 dark:text-indigo-300',
-    border: 'border-indigo-500/40',
-    bar: 'bg-indigo-500',
+    bg: 'bg-indigo-100 text-indigo-950 font-black',
+    text: 'text-indigo-950',
+    border: 'border-indigo-600',
+    bar: 'bg-indigo-600',
   }
 }
 
@@ -365,39 +365,39 @@ function normalizeStr(str?: string): string {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background text-foreground overflow-hidden border border-border/40 rounded-2xl shadow-xl">
-      {/* HEADER / TOOLBAR (Exact replica of reference UI layout) */}
-      <header className="h-16 px-4 border-b border-border/60 bg-card/70 backdrop-blur-md flex items-center justify-between gap-3 flex-shrink-0">
+    <div className="h-full flex flex-col bg-white text-slate-900 border-2 border-slate-300 rounded-2xl shadow-2xl overflow-hidden">
+      {/* HEADER / TOOLBAR (Optimized for TV display & quick controls) */}
+      <header className="h-14 px-3 border-b-2 border-slate-200 bg-white flex items-center justify-between gap-2 flex-shrink-0 text-slate-900">
         {/* Left: Sidebar Toggle, Hoje Button, Date Navigator */}
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-xl transition-all">
-            <Menu className="w-5 h-5" />
+        <div className="flex items-center gap-1.5">
+          <button className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
+            <Menu className="w-4 h-4" />
           </button>
 
           <button
             onClick={() => setSelectedAgendaDate('2026-07-24')}
-            className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black transition-all shadow-sm active:scale-95"
           >
             Hoje
           </button>
 
           {/* Date Picker Component */}
-          <div className="flex items-center gap-1 bg-muted/40 border border-border/50 rounded-xl px-2 py-1">
+          <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-lg px-1.5 py-0.5">
             <button
               onClick={() => {
                 const [y, m, d] = selectedAgendaDate.split('-').map(Number)
                 const prev = new Date(y, m - 1, d - 1)
                 setSelectedAgendaDate(prev.toISOString().split('T')[0])
               }}
-              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition"
+              className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition"
               title="Dia anterior"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-2 px-2">
-              <CalendarIcon className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold capitalize text-foreground min-w-[150px] text-center">
+            <div className="flex items-center gap-1.5 px-1">
+              <CalendarIcon className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-black capitalize text-slate-900 min-w-[140px] text-center">
                 {formattedDateString}
               </span>
             </div>
@@ -408,7 +408,7 @@ function normalizeStr(str?: string): string {
                 const next = new Date(y, m - 1, d + 1)
                 setSelectedAgendaDate(next.toISOString().split('T')[0])
               }}
-              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition"
+              className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded transition"
               title="Próximo dia"
             >
               <ChevronRight className="w-4 h-4" />
@@ -418,21 +418,21 @@ function normalizeStr(str?: string): string {
 
         {/* Center: Search & Quick Category Filter */}
         <div className="hidden md:flex items-center gap-2">
-          <div className="relative w-48 lg:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative w-44 lg:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
               placeholder="Buscar colaborador..."
               value={colabSearch}
               onChange={(e) => setColabSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-muted/40 border border-border/50 rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs bg-muted/40 border border-border/50 rounded-xl text-foreground focus:outline-none"
+            className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold focus:outline-none"
           >
             <option value="ALL">Todas as Categorias</option>
             <option value="Instalação">🟢 Instalação</option>
@@ -443,55 +443,55 @@ function normalizeStr(str?: string): string {
           </select>
         </div>
 
-        {/* Right: View Mode Selector Tabs (Dia/Hora, Dia/Colaborador, 3 dias, Semana, Mês) */}
-        <div className="flex items-center gap-2">
-          <div className="bg-muted/50 p-1 rounded-xl border border-border/60 flex items-center gap-0.5 text-xs font-semibold">
+        {/* Right: View Mode Selector Tabs */}
+        <div className="flex items-center gap-1.5">
+          <div className="bg-slate-100 p-0.5 rounded-lg border border-slate-300 flex items-center gap-0.5 text-xs font-bold">
             <button
               onClick={() => setAgendaViewMode('diaHora')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
+              className={`px-2.5 py-1 rounded-md transition-all ${
                 agendaViewMode === 'diaHora'
-                  ? 'bg-primary text-primary-foreground shadow-md font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-slate-900 text-white shadow-sm font-black'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
               Dia/Hora
             </button>
             <button
               onClick={() => setAgendaViewMode('diaColaborador')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
+              className={`px-2.5 py-1 rounded-md transition-all ${
                 agendaViewMode === 'diaColaborador'
-                  ? 'bg-primary text-primary-foreground shadow-md font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-slate-900 text-white shadow-sm font-black'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
               Dia/Colaborador
             </button>
             <button
               onClick={() => setAgendaViewMode('3dias')}
-              className={`hidden sm:block px-3 py-1.5 rounded-lg transition-all ${
+              className={`hidden sm:block px-2.5 py-1 rounded-md transition-all ${
                 agendaViewMode === '3dias'
-                  ? 'bg-primary text-primary-foreground shadow-md font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-slate-900 text-white shadow-sm font-black'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
               3 dias
             </button>
             <button
               onClick={() => setAgendaViewMode('semana')}
-              className={`hidden md:block px-3 py-1.5 rounded-lg transition-all ${
+              className={`hidden md:block px-2.5 py-1 rounded-md transition-all ${
                 agendaViewMode === 'semana'
-                  ? 'bg-primary text-primary-foreground shadow-md font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-slate-900 text-white shadow-sm font-black'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
               Semana
             </button>
             <button
               onClick={() => setAgendaViewMode('mes')}
-              className={`hidden lg:block px-3 py-1.5 rounded-lg transition-all ${
+              className={`hidden lg:block px-2.5 py-1 rounded-md transition-all ${
                 agendaViewMode === 'mes'
-                  ? 'bg-primary text-primary-foreground shadow-md font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-slate-900 text-white shadow-sm font-black'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200'
               }`}
             >
               Mês
@@ -500,30 +500,30 @@ function normalizeStr(str?: string): string {
 
           <button
             onClick={() => setShowNewOSModal(true)}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md hover:shadow-emerald-600/30 transition-all"
+            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow transition-all"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Nova O.S.</span>
           </button>
         </div>
       </header>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 min-h-0 overflow-hidden relative flex flex-col">
-        {/* DIA / HORA VIEW MODE (Exact replica of reference schedule timeline grid) */}
+      <div className="flex-1 min-h-0 overflow-hidden relative flex flex-col bg-white">
+        {/* DIA / HORA VIEW MODE */}
         {agendaViewMode === 'diaHora' && (
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
             {/* TIMELINE GRID CONTAINER WITH HORIZONTAL & VERTICAL SCROLL */}
-            <div className="flex-1 overflow-auto relative custom-scrollbar">
-              <table className="w-full border-collapse min-w-[1200px]">
+            <div className="flex-1 overflow-auto relative custom-scrollbar bg-white">
+              <table className="w-full border-collapse min-w-[850px]">
                 {/* Table Header: Colaboradores column & Hour columns (06 to 21) */}
-                <thead className="sticky top-0 z-30 bg-card border-b border-border shadow-sm">
+                <thead className="sticky top-0 z-30 bg-slate-100 border-b-2 border-slate-300 shadow-sm">
                   <tr>
                     {/* Left Header Cell: Colaboradores */}
-                    <th className="sticky left-0 z-40 bg-card border-r border-border p-3 text-left w-64 min-w-[256px] shadow-sm">
-                      <div className="flex items-center justify-between text-xs font-extrabold tracking-wide uppercase text-primary">
-                        <span>Colaboradores</span>
-                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px]">
+                    <th className="sticky left-0 z-40 bg-slate-100 border-r-2 border-slate-300 px-2 py-1.5 text-left w-44 min-w-[170px] shadow-sm">
+                      <div className="flex items-center justify-between text-[11px] font-black tracking-wider uppercase text-slate-900">
+                        <span>Colaborador</span>
+                        <span className="px-1.5 py-0.2 rounded bg-slate-300 text-slate-900 text-[10px] font-black">
                           {collaboratorsList.length}
                         </span>
                       </div>
@@ -533,46 +533,46 @@ function normalizeStr(str?: string): string {
                     {HOURS_ARRAY.map((hour) => (
                       <th
                         key={hour}
-                        className="p-2 border-r border-border/40 text-center text-xs font-bold text-muted-foreground w-[calc((100%-256px)/16)] min-w-[64px] bg-muted/20"
+                        className="p-1 border-r border-slate-300 text-center text-xs font-black text-slate-900 w-[calc((100%-170px)/16)] min-w-[40px] bg-slate-100"
                       >
-                        {String(hour).padStart(2, '0')}
+                        {String(hour).padStart(2, '0')}h
                       </th>
                     ))}
                   </tr>
                 </thead>
 
                 {/* Table Body: Collaborator Rows with Scheduled OS Event Blocks */}
-                <tbody className="divide-y divide-border/40">
+                <tbody className="divide-y divide-slate-200">
                   {collaboratorsList.map((colab) => {
                     const colabOrders = ordersByColab[colab.id] || []
 
                     return (
-                      <tr key={colab.id} className="hover:bg-muted/20 transition-colors group h-14">
+                      <tr key={colab.id} className="hover:bg-slate-50 transition-colors group h-10">
                         {/* Sticky Collaborator Name Cell */}
-                        <td className="sticky left-0 z-20 bg-card group-hover:bg-muted/30 border-r border-border p-2.5 w-64 min-w-[256px] shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <div className="min-w-0 pr-2">
-                              <p className="text-xs font-bold truncate text-foreground uppercase tracking-tight">
+                        <td className="sticky left-0 z-20 bg-white group-hover:bg-slate-50 border-r-2 border-slate-300 px-2 py-1 w-44 min-w-[170px] shadow-sm">
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-black truncate text-slate-900 uppercase tracking-tight leading-tight">
                                 {colab.name}
                               </p>
-                              <div className="flex items-center gap-2 mt-0.5">
+                              <div className="flex items-center gap-1">
                                 <span
-                                  className={`w-2 h-2 rounded-full ${
+                                  className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                                     colab.status === 'Offline'
                                       ? 'bg-slate-400'
                                       : colab.status === 'Disponível'
-                                      ? 'bg-emerald-500 animate-pulse'
-                                      : 'bg-amber-500'
+                                      ? 'bg-emerald-600'
+                                      : 'bg-amber-600'
                                   }`}
                                 />
-                                <span className="text-[10px] text-muted-foreground truncate">
-                                  {colab.vehicle ? `${colab.vehicle}` : colab.status}
+                                <span className="text-[9px] text-slate-600 font-bold truncate">
+                                  {colab.vehicle || colab.status}
                                 </span>
                               </div>
                             </div>
 
                             {colabOrders.length > 0 && (
-                              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-muted text-muted-foreground">
+                              <span className="px-1 py-0.2 text-[9px] font-black rounded bg-slate-200 text-slate-900 flex-shrink-0">
                                 {colabOrders.length} OS
                               </span>
                             )}
@@ -580,16 +580,16 @@ function normalizeStr(str?: string): string {
                         </td>
 
                         {/* Timeline Cell spanning the entire day */}
-                        <td colSpan={TOTAL_HOURS} className="p-0 relative h-14 bg-card/40">
+                        <td colSpan={TOTAL_HOURS} className="p-0 relative h-10 bg-white">
                           {/* Hour & Half-hour Background Vertical Grid Lines */}
                           <div className="absolute inset-0 flex pointer-events-none">
                             {HOURS_ARRAY.map((h) => (
                               <div
                                 key={h}
-                                className="flex-1 border-r border-border/30 relative flex"
+                                className="flex-1 border-r border-slate-200 relative flex"
                               >
                                 {/* Dotted half-hour indicator line */}
-                                <div className="w-1/2 border-r border-dashed border-border/20 h-full" />
+                                <div className="w-1/2 border-r border-dashed border-slate-200/80 h-full" />
                               </div>
                             ))}
                           </div>
@@ -597,10 +597,10 @@ function normalizeStr(str?: string): string {
                           {/* Red "Current Time" Vertical Indicator Line */}
                           {currentTimePercent > 0 && currentTimePercent < 100 && (
                             <div
-                              className="absolute top-0 bottom-0 z-10 w-0.5 bg-rose-500 pointer-events-none shadow-[0_0_8px_rgba(244,63,94,0.8)]"
+                              className="absolute top-0 bottom-0 z-20 w-0.5 bg-red-600 pointer-events-none shadow-[0_0_8px_rgba(220,38,38,0.9)]"
                               style={{ left: `${currentTimePercent}%` }}
                             >
-                              <div className="w-2 h-2 rounded-full bg-rose-500 -ml-[3px] -mt-1 shadow" />
+                              <div className="w-2 h-2 rounded-full bg-red-600 -ml-[3px] -mt-0.5 shadow" />
                             </div>
                           )}
 
@@ -629,19 +629,19 @@ function normalizeStr(str?: string): string {
                                 animate={
                                   isExecuting
                                     ? {
-                                        scale: [1, 1.015, 1],
+                                        scale: [1, 1.02, 1],
                                         boxShadow: [
-                                          '0 0 4px rgba(249,115,22,0.4)',
-                                          '0 0 16px rgba(249,115,22,0.85)',
-                                          '0 0 4px rgba(249,115,22,0.4)',
+                                          '0 0 4px rgba(234,88,12,0.5)',
+                                          '0 0 14px rgba(234,88,12,0.9)',
+                                          '0 0 4px rgba(234,88,12,0.5)',
                                         ],
                                       }
                                     : { opacity: 1, scale: 1 }
                                 }
                                 transition={
                                   isExecuting
-                                    ? { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }
-                                    : { duration: 0.2 }
+                                    ? { repeat: Infinity, duration: 1.6, ease: 'easeInOut' }
+                                    : { duration: 0.15 }
                                 }
                                 onClick={() => {
                                   setSelectedOS(os)
@@ -649,9 +649,9 @@ function normalizeStr(str?: string): string {
                                 }}
                                 onMouseEnter={() => setHoveredOS(os)}
                                 onMouseLeave={() => setHoveredOS(null)}
-                                className={`absolute top-1.5 bottom-1.5 z-15 rounded-lg border ${style.bg} ${style.border} ${style.text} ${
-                                  isExecuting ? 'ring-2 ring-orange-500/90 z-25' : 'shadow-sm hover:shadow-md'
-                                } hover:z-30 cursor-pointer flex items-center px-1.5 transition-all overflow-hidden group/card`}
+                                className={`absolute top-0.5 bottom-0.5 z-15 rounded border-2 ${style.bg} ${style.border} ${
+                                  isExecuting ? 'ring-2 ring-orange-600 z-25' : 'shadow-sm hover:shadow-md'
+                                } hover:z-30 cursor-pointer flex items-center px-1 transition-all overflow-hidden group/card`}
                                 style={{
                                   left: `${leftPercent}%`,
                                   width: `${widthPercent}%`,
@@ -660,29 +660,29 @@ function normalizeStr(str?: string): string {
                                 {/* Left Color Accent Bar */}
                                 <div
                                   className={`w-1 h-full rounded-full ${style.bar} ${
-                                    isExecuting ? 'animate-pulse bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,1)]' : ''
-                                  } flex-shrink-0 mr-1.5`}
+                                    isExecuting ? 'animate-pulse bg-orange-600 shadow-[0_0_8px_rgba(234,88,12,1)]' : ''
+                                  } flex-shrink-0 mr-1`}
                                 />
 
                                 {/* Event Text (Category / Client Name formatted like IXC) */}
-                                <div className="min-w-0 flex-1 overflow-hidden leading-tight">
-                                  <p className="text-[10px] font-extrabold tracking-tight truncate uppercase flex items-center gap-1">
+                                <div className="min-w-0 flex-1 overflow-hidden leading-none">
+                                  <p className={`text-[10px] font-black tracking-tight truncate uppercase flex items-center gap-0.5 ${style.text}`}>
                                     {os.subject || os.category}
                                   </p>
                                   {os.client && (
-                                    <p className="text-[9px] font-semibold opacity-90 truncate">
+                                    <p className="text-[9px] font-bold text-slate-800 truncate">
                                       ::{os.client}
                                     </p>
                                   )}
                                 </div>
 
                                 {/* Status Icon Badge */}
-                                <span className="ml-1 flex-shrink-0 text-[10px]">
+                                <span className="ml-0.5 flex-shrink-0 text-[10px] font-black">
                                   {os.status === 'F' && '✓'}
                                   {isExecuting && (
                                     <span className="relative flex h-3 w-3 items-center justify-center">
                                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                                      <span className="relative text-[11px]">⚡</span>
+                                      <span className="relative text-[10px]">⚡</span>
                                     </span>
                                   )}
                                   {os.status === 'DS' && '🚗'}
@@ -702,31 +702,31 @@ function normalizeStr(str?: string): string {
 
         {/* DIA / COLABORADOR VIEW MODE (Columns per collaborator) */}
         {agendaViewMode === 'diaColaborador' && (
-          <div className="flex-1 p-4 overflow-auto custom-scrollbar">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="flex-1 p-3 overflow-auto custom-scrollbar bg-slate-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
               {collaboratorsList.map((colab) => {
                 const colabOrders = ordersByColab[colab.id] || []
                 return (
                   <div
                     key={colab.id}
-                    className="bg-card border border-border/70 rounded-2xl p-3 shadow-sm flex flex-col gap-3"
+                    className="bg-white border-2 border-slate-300 rounded-xl p-2.5 shadow-sm flex flex-col gap-2"
                   >
-                    <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
                       <div>
-                        <h4 className="text-xs font-extrabold uppercase text-foreground">
+                        <h4 className="text-xs font-black uppercase text-slate-900">
                           {colab.name}
                         </h4>
-                        <span className="text-[10px] text-muted-foreground">{colab.vehicle || 'Sem veículo'}</span>
+                        <span className="text-[9px] font-bold text-slate-500">{colab.vehicle || 'Sem veículo'}</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 text-xs font-black">
                         {colabOrders.length} O.S.
                       </span>
                     </div>
 
-                    <div className="space-y-2 flex-1">
+                    <div className="space-y-1.5 flex-1">
                       {colabOrders.length === 0 ? (
-                        <p className="text-xs text-muted-foreground italic py-4 text-center">
-                          Nenhum agendamento para hoje
+                        <p className="text-xs text-slate-400 italic py-3 text-center">
+                          Nenhum agendamento
                         </p>
                       ) : (
                         colabOrders.map((os) => {
@@ -740,39 +740,39 @@ function normalizeStr(str?: string): string {
                                   ? {
                                       scale: [1, 1.02, 1],
                                       boxShadow: [
-                                        '0 0 4px rgba(249,115,22,0.3)',
-                                        '0 0 14px rgba(249,115,22,0.7)',
-                                        '0 0 4px rgba(249,115,22,0.3)',
+                                        '0 0 4px rgba(234,88,12,0.3)',
+                                        '0 0 14px rgba(234,88,12,0.7)',
+                                        '0 0 4px rgba(234,88,12,0.3)',
                                       ],
                                     }
                                   : { scale: 1 }
                               }
                               transition={
                                 isExecuting
-                                  ? { repeat: Infinity, duration: 1.8, ease: 'easeInOut' }
-                                  : { duration: 0.2 }
+                                  ? { repeat: Infinity, duration: 1.6, ease: 'easeInOut' }
+                                  : { duration: 0.15 }
                               }
                               onClick={() => {
                                 setSelectedOS(os)
                                 setSelectedOSId(os.ixcId)
                               }}
-                              className={`p-2.5 rounded-xl border ${style.bg} ${style.border} ${
-                                isExecuting ? 'ring-2 ring-orange-500/80' : ''
-                              } cursor-pointer hover:shadow-md transition-all flex flex-col gap-1`}
+                              className={`p-2 rounded-lg border-2 ${style.bg} ${style.border} ${
+                                isExecuting ? 'ring-2 ring-orange-600' : ''
+                              } cursor-pointer hover:shadow transition-all flex flex-col gap-0.5`}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-background/60 flex items-center gap-1">
+                                <span className="text-[9px] font-black px-1 py-0.2 rounded bg-white/90 text-slate-900 border border-slate-200 flex items-center gap-1">
                                   {os.scheduledTimeStart} - {os.scheduledTimeEnd}
-                                  {isExecuting && <span className="animate-pulse text-orange-500 font-extrabold text-[10px]">⚡ EXECUÇÃO</span>}
+                                  {isExecuting && <span className="animate-pulse text-orange-600 font-black text-[9px]">⚡ EXECUÇÃO</span>}
                                 </span>
-                                <span className={`text-[10px] font-extrabold ${style.text}`}>
+                                <span className={`text-[10px] font-black ${style.text}`}>
                                   #{os.number}
                                 </span>
                               </div>
-                              <p className={`text-xs font-bold truncate ${style.text}`}>
+                              <p className={`text-[11px] font-black truncate ${style.text}`}>
                                 {os.subject}
                               </p>
-                              <p className="text-[11px] text-muted-foreground truncate">
+                              <p className="text-[10px] font-bold text-slate-700 truncate">
                                 {os.client} - {os.neighborhood}
                               </p>
                             </motion.div>
@@ -787,30 +787,30 @@ function normalizeStr(str?: string): string {
           </div>
         )}
 
-        {/* 3 DIAS / SEMANA / MÊS VIEW MODES (Summary message & planning grid) */}
+        {/* 3 DIAS / SEMANA / MÊS VIEW MODES */}
         {(agendaViewMode === '3dias' || agendaViewMode === 'semana' || agendaViewMode === 'mes') && (
-          <div className="flex-1 p-6 overflow-auto flex flex-col items-center justify-center text-center">
-            <div className="max-w-md bg-card border border-border/80 rounded-3xl p-6 shadow-xl space-y-4">
-              <CalendarIcon className="w-12 h-12 text-primary mx-auto animate-bounce" />
-              <h3 className="text-lg font-bold text-foreground capitalize">
+          <div className="flex-1 p-6 overflow-auto flex flex-col items-center justify-center text-center bg-slate-50">
+            <div className="max-w-md bg-white border-2 border-slate-300 rounded-3xl p-6 shadow-xl space-y-4 text-slate-900">
+              <CalendarIcon className="w-12 h-12 text-blue-600 mx-auto animate-bounce" />
+              <h3 className="text-lg font-black text-slate-900 capitalize">
                 Visão de {agendaViewMode === '3dias' ? '3 Dias' : agendaViewMode === 'semana' ? 'Semana' : 'Mês'}
               </h3>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs font-semibold text-slate-600">
                 Exibindo programação estendida para planejamento de equipes telecom e balanço de carga de trabalho.
               </p>
               <div className="grid grid-cols-2 gap-3 text-left pt-2">
-                <div className="p-3 rounded-xl bg-muted/40 border border-border/40">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold">Total O.S. Agendadas</span>
-                  <p className="text-lg font-black text-primary">{serviceOrders.length}</p>
+                <div className="p-3 rounded-xl bg-slate-100 border border-slate-300">
+                  <span className="text-[10px] text-slate-600 uppercase font-black">Total O.S. Agendadas</span>
+                  <p className="text-lg font-black text-blue-600">{serviceOrders.length}</p>
                 </div>
-                <div className="p-3 rounded-xl bg-muted/40 border border-border/40">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold">Técnicos Ativos</span>
-                  <p className="text-lg font-black text-emerald-500">{collaboratorsList.length - 1}</p>
+                <div className="p-3 rounded-xl bg-slate-100 border border-slate-300">
+                  <span className="text-[10px] text-slate-600 uppercase font-black">Técnicos Ativos</span>
+                  <p className="text-lg font-black text-emerald-600">{collaboratorsList.length - 1}</p>
                 </div>
               </div>
               <button
                 onClick={() => setAgendaViewMode('diaHora')}
-                className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-lg"
+                className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black shadow-lg hover:bg-slate-800"
               >
                 Voltar para Visão Dia/Hora
               </button>
@@ -826,23 +826,23 @@ function normalizeStr(str?: string): string {
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 5 }}
-            className="fixed bottom-6 right-6 z-50 bg-card border border-border rounded-2xl p-4 shadow-2xl w-80 pointer-events-none"
+            className="fixed bottom-6 right-6 z-50 bg-white border-2 border-slate-300 rounded-2xl p-4 shadow-2xl w-80 pointer-events-none text-slate-900"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-extrabold text-primary">O.S. #{hoveredOS.number}</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600">
+              <span className="text-xs font-black text-blue-600">O.S. #{hoveredOS.number}</span>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-400">
                 {hoveredOS.scheduledTimeStart} - {hoveredOS.scheduledTimeEnd}
               </span>
             </div>
-            <h4 className="text-sm font-bold text-foreground mb-1 leading-snug">{hoveredOS.subject}</h4>
-            <p className="text-xs font-medium text-muted-foreground mb-2">{hoveredOS.client}</p>
-            <div className="space-y-1 text-xs text-muted-foreground border-t border-border/50 pt-2">
+            <h4 className="text-sm font-black text-slate-900 mb-1 leading-snug">{hoveredOS.subject}</h4>
+            <p className="text-xs font-bold text-slate-700 mb-2">{hoveredOS.client}</p>
+            <div className="space-y-1 text-xs text-slate-600 font-semibold border-t border-slate-200 pt-2">
               <div className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
+                <MapPin className="w-3.5 h-3.5 text-blue-600" />
                 <span className="truncate">{hoveredOS.address}, {hoveredOS.neighborhood}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-indigo-500" />
+                <User className="w-3.5 h-3.5 text-indigo-600" />
                 <span className="truncate">{hoveredOS.collaboratorName || 'Sem Colaborador'}</span>
               </div>
             </div>
@@ -858,41 +858,41 @@ function normalizeStr(str?: string): string {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card border border-border rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-4 relative overflow-hidden"
+              className="bg-white border-2 border-slate-300 rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-4 relative overflow-hidden text-slate-900"
             >
               <button
                 onClick={() => setSelectedOS(null)}
-                className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted"
+                className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-900 rounded-full hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
 
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                <div className="p-3 rounded-2xl bg-blue-100 text-blue-700">
                   <Wrench className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Detalhes do Agendamento</span>
-                  <h3 className="text-lg font-black text-foreground">O.S. #{selectedOS.number}</h3>
+                  <span className="text-xs font-bold uppercase text-slate-500">Detalhes do Agendamento</span>
+                  <h3 className="text-lg font-black text-slate-900">O.S. #{selectedOS.number}</h3>
                 </div>
               </div>
 
-              <div className="bg-muted/40 p-4 rounded-2xl border border-border/50 space-y-2 text-xs">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-300 space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Assunto:</span>
-                  <span className="font-bold text-foreground">{selectedOS.subject}</span>
+                  <span className="text-slate-600 font-semibold">Assunto:</span>
+                  <span className="font-black text-slate-900">{selectedOS.subject}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Cliente:</span>
-                  <span className="font-bold text-foreground">{selectedOS.client}</span>
+                  <span className="text-slate-600 font-semibold">Cliente:</span>
+                  <span className="font-bold text-slate-900">{selectedOS.client}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Endereço:</span>
-                  <span className="font-medium text-foreground">{selectedOS.address}</span>
+                  <span className="text-slate-600 font-semibold">Endereço:</span>
+                  <span className="font-medium text-slate-800">{selectedOS.address}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Horário Programado:</span>
-                  <span className="font-bold text-emerald-600">
+                  <span className="text-slate-600 font-semibold">Horário Programado:</span>
+                  <span className="font-black text-emerald-600">
                     {selectedOS.scheduledTimeStart} às {selectedOS.scheduledTimeEnd}
                   </span>
                 </div>
@@ -900,7 +900,7 @@ function normalizeStr(str?: string): string {
 
               {/* Reassignment Selector */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
                   Reatribuir para outro Colaborador:
                 </label>
                 <select
@@ -922,7 +922,7 @@ function normalizeStr(str?: string): string {
                       })
                     }
                   }}
-                  className="w-full p-3 bg-muted border border-border rounded-xl text-sm font-semibold text-foreground focus:outline-none"
+                  className="w-full p-3 bg-slate-100 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none"
                 >
                   {Object.values(teams).map((colab) => (
                     <option key={colab.id} value={colab.id}>
@@ -938,13 +938,13 @@ function normalizeStr(str?: string): string {
                     setSelectedOS(null)
                     setActiveTab('monitor')
                   }}
-                  className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-md hover:bg-primary/90 transition"
+                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black shadow-md hover:bg-blue-700 transition"
                 >
                   Ver no Mapa Interativo
                 </button>
                 <button
                   onClick={() => setSelectedOS(null)}
-                  className="py-2.5 px-4 bg-muted text-foreground rounded-xl text-xs font-bold hover:bg-muted/80"
+                  className="py-2.5 px-4 bg-slate-200 text-slate-900 rounded-xl text-xs font-bold hover:bg-slate-300"
                 >
                   Fechar
                 </button>
@@ -963,49 +963,49 @@ function normalizeStr(str?: string): string {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card border border-border rounded-3xl p-6 shadow-2xl max-w-md w-full space-y-4 relative"
+              className="bg-white border-2 border-slate-300 rounded-3xl p-6 shadow-2xl max-w-md w-full space-y-4 relative text-slate-900"
             >
               <button
                 type="button"
                 onClick={() => setShowNewOSModal(false)}
-                className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted"
+                className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-900 rounded-full hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="text-lg font-black text-foreground">Novo Agendamento de O.S.</h3>
+              <h3 className="text-lg font-black text-slate-900">Novo Agendamento de O.S.</h3>
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="font-bold text-muted-foreground block mb-1">Nome do Cliente / Local</label>
+                  <label className="font-bold text-slate-700 block mb-1">Nome do Cliente / Local</label>
                   <input
                     type="text"
                     required
                     placeholder="Ex: Condomínio Grand Park"
                     value={newClient}
                     onChange={(e) => setNewClient(e.target.value)}
-                    className="w-full p-2.5 bg-muted border border-border rounded-xl text-foreground focus:outline-none"
+                    className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-slate-900 font-semibold focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-muted-foreground block mb-1">Assunto da O.S.</label>
+                  <label className="font-bold text-slate-700 block mb-1">Assunto da O.S.</label>
                   <input
                     type="text"
                     placeholder="Ex: INSTALAÇÃO VIA FIBRA"
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
-                    className="w-full p-2.5 bg-muted border border-border rounded-xl text-foreground focus:outline-none"
+                    className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-slate-900 font-semibold focus:outline-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Categoria</label>
+                    <label className="font-bold text-slate-700 block mb-1">Categoria</label>
                     <select
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value as OSSubjectCategory)}
-                      className="w-full p-2.5 bg-muted border border-border rounded-xl text-foreground"
+                      className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-slate-900 font-semibold"
                     >
                       <option value="Instalação">Instalação</option>
                       <option value="Sem conexão">Sem Conexão</option>
@@ -1016,11 +1016,11 @@ function normalizeStr(str?: string): string {
                   </div>
 
                   <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Colaborador</label>
+                    <label className="font-bold text-slate-700 block mb-1">Colaborador</label>
                     <select
                       value={newColabId}
                       onChange={(e) => setNewColabId(e.target.value)}
-                      className="w-full p-2.5 bg-muted border border-border rounded-xl text-foreground"
+                      className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-slate-900 font-semibold"
                     >
                       <option value="">Selecione...</option>
                       {Object.values(teams).map((c) => (
@@ -1034,21 +1034,21 @@ function normalizeStr(str?: string): string {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Hora Início</label>
+                    <label className="font-bold text-slate-700 block mb-1">Hora Início</label>
                     <input
                       type="time"
                       value={newStartTime}
                       onChange={(e) => setNewStartTime(e.target.value)}
-                      className="w-full p-2.5 bg-muted border border-border rounded-xl text-foreground"
+                      className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-slate-900 font-semibold"
                     />
                   </div>
                   <div>
-                    <label className="font-bold text-muted-foreground block mb-1">Hora Fim</label>
+                    <label className="font-bold text-slate-700 block mb-1">Hora Fim</label>
                     <input
                       type="time"
                       value={newEndTime}
                       onChange={(e) => setNewEndTime(e.target.value)}
-                      className="w-full p-2.5 bg-muted border border-border rounded-xl text-foreground"
+                      className="w-full p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-slate-900 font-semibold"
                     />
                   </div>
                 </div>
@@ -1057,14 +1057,14 @@ function normalizeStr(str?: string): string {
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md"
                 >
                   Salvar Agendamento
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowNewOSModal(false)}
-                  className="py-2.5 px-4 bg-muted text-foreground rounded-xl text-xs font-bold"
+                  className="py-2.5 px-4 bg-slate-200 text-slate-900 rounded-xl text-xs font-bold"
                 >
                   Cancelar
                 </button>
