@@ -424,20 +424,33 @@ async function syncIXCServiceOrders(io) {
         };
 
         const scheduledDateStr = extractDateStr(os.data_agenda || os.data_inicio);
-        const timeInfo = extractTimeInfo(os.data_agenda || os.data_inicio || os.data_fechamento);
-        let timeStart = '08:30';
-        let timeEnd = '10:00';
-
-        if (timeInfo) {
-          timeStart = timeInfo.timeStr;
-          const endHourDec = timeInfo.hour + (timeInfo.minute + 90) / 60;
-          const endH = String(Math.floor(endHourDec) % 24).padStart(2, '0');
-          const endM = String(Math.round((endHourDec % 1) * 60) % 60).padStart(2, '0');
-          timeEnd = `${endH}:${endM}`;
-        }
+        const startTimeInfo = extractTimeInfo(os.data_agenda || os.data_inicio);
+        const endTimeInfo = extractTimeInfo(os.data_agenda_final);
 
         const category = inferCategoryFromSubject(subjectName);
         const techName = await getTechnicianName(tecnicoId);
+
+        let timeStart = '08:30';
+        let timeEnd = '09:30';
+        let duration = 60;
+
+        if (startTimeInfo) {
+          timeStart = startTimeInfo.timeStr;
+          if (endTimeInfo) {
+            timeEnd = endTimeInfo.timeStr;
+            const startMins = startTimeInfo.hour * 60 + startTimeInfo.minute;
+            const endMins = endTimeInfo.hour * 60 + endTimeInfo.minute;
+            duration = Math.max(15, endMins - startMins);
+          } else {
+            const isNotif = (subjectName || '').toUpperCase().includes('NOTIFIC');
+            const defaultMins = category === 'Instalação' ? 60 : (isNotif ? 20 : 30);
+            duration = defaultMins;
+            const endHourDec = startTimeInfo.hour + (startTimeInfo.minute + defaultMins) / 60;
+            const endH = String(Math.floor(endHourDec) % 24).padStart(2, '0');
+            const endM = String(Math.round((endHourDec % 1) * 60) % 60).padStart(2, '0');
+            timeEnd = `${endH}:${endM}`;
+          }
+        }
 
         await ServiceOrder.findOneAndUpdate(
           { ixcId: os.id },
@@ -457,7 +470,7 @@ async function syncIXCServiceOrders(io) {
             scheduledDate: scheduledDateStr,
             scheduledTimeStart: timeStart,
             scheduledTimeEnd: timeEnd,
-            durationMinutes: 90,
+            durationMinutes: duration,
             lastSeen: new Date()
           },
           { upsert: true }

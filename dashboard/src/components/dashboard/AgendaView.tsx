@@ -115,14 +115,14 @@ function generateOrdersForDate(dateStr: string, collaborators: TeamMember[]): Se
   collaborators.forEach((colab, colabIndex) => {
     if (colab.id === 'colab-unassigned') return
 
-    // Every tech has morning slot + 15:00 afternoon slot + optional 16:30 slot
+    // Normal business slots strictly between 08:00 and 16:30
     const slots = [
-      (seed + colabIndex) % 2 === 0 ? { start: '08:00', end: '09:30', dur: 90 } : { start: '10:00', end: '11:30', dur: 90 },
-      { start: '15:00', end: '16:15', dur: 75 } // Always include 15:00 slot!
+      (seed + colabIndex) % 2 === 0 ? { start: '08:00', end: '09:00', dur: 60 } : { start: '10:00', end: '11:00', dur: 60 },
+      { start: '14:00', end: '15:00', dur: 60 }
     ]
 
     if ((seed + colabIndex) % 2 === 1) {
-      slots.push({ start: '16:30', end: '17:45', dur: 75 })
+      slots.push({ start: '15:30', end: '16:30', dur: 60 })
     }
 
     slots.forEach((slot, i) => {
