@@ -328,13 +328,7 @@ function normalizeStr(str?: string): string {
     return map
   }, [serviceOrders, selectedAgendaDate, collaboratorsList, categoryFilter])
 
-  // Current time line calculation
-  const now = new Date()
-  const currentDecimalHour = now.getHours() + now.getMinutes() / 60
-  const currentTimePercent = Math.max(
-    0,
-    Math.min(100, ((currentDecimalHour - START_HOUR) / TOTAL_HOURS) * 100)
-  )
+
 
   const handleCreateNewOS = (e: React.FormEvent) => {
     e.preventDefault()
