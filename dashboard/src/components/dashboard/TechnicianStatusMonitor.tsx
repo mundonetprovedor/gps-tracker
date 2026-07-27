@@ -312,10 +312,21 @@ export function TechnicianStatusMonitor() {
           )}
         </div>
 
-        {/* Footer Count */}
-        <div className={`mt-1 pt-1 border-t flex items-center justify-between text-[8px] font-bold ${isCompleted ? 'border-emerald-500 text-emerald-100' : 'border-slate-800 text-slate-400'}`}>
-          <span>O.S. Concluídas: <strong className="text-white">{colab.completedTodayOS}/{colab.totalTodayOS}</strong></span>
-          <span className="truncate max-w-[90px] text-right">{colab.phone}</span>
+        {/* Footer Count Prominent Highlight */}
+        <div className="mt-1 pt-1 border-t border-slate-800 flex items-center justify-between gap-1">
+          <div className={`px-2 py-0.5 rounded-lg font-black text-[9px] flex items-center gap-1.5 shadow-md ${
+            isCompleted
+              ? 'bg-emerald-400 text-emerald-950'
+              : colab.completedTodayOS > 0
+              ? 'bg-emerald-950 border border-emerald-400 text-emerald-200'
+              : 'bg-black/70 border border-slate-700 text-slate-200'
+          }`}>
+            <span className="uppercase text-[8px] font-extrabold tracking-tight">O.S. Concluídas:</span>
+            <span className="text-[11px] font-black px-1.5 py-0.2 rounded bg-slate-950 text-emerald-400 border border-emerald-500/40 shadow-inner">
+              {colab.completedTodayOS} / {colab.totalTodayOS}
+            </span>
+          </div>
+          <span className="text-[8px] font-bold text-slate-400 truncate max-w-[70px] text-right">{colab.phone}</span>
         </div>
       </motion.div>
     )
