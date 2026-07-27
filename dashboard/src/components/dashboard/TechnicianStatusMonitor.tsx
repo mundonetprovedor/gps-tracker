@@ -179,23 +179,23 @@ export function TechnicianStatusMonitor() {
         key={colab.id}
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={`border-3 rounded-xl p-2 flex flex-col justify-between overflow-hidden shadow-xl transition-all ${
+        className={`border-3 rounded-2xl p-3 flex flex-col justify-between overflow-hidden shadow-2xl transition-all ${
           isCompleted
-            ? 'bg-emerald-700 border-emerald-400 text-white shadow-emerald-600/40 font-black'
+            ? 'bg-emerald-700 border-emerald-400 text-white shadow-emerald-600/50 font-black'
             : isExec
-            ? 'bg-blue-950/90 border-blue-500 shadow-blue-500/30'
+            ? 'bg-blue-950/95 border-blue-500 shadow-blue-500/40'
             : isTransit
-            ? 'bg-amber-950/90 border-amber-500 shadow-amber-500/30'
+            ? 'bg-amber-950/95 border-amber-500 shadow-amber-500/40'
             : 'bg-slate-900 border-slate-700'
         }`}
       >
         {/* Tech Header Info */}
         <div>
           {/* CARD TOP BANNER WITH STATUS */}
-          <div className="flex items-center justify-between gap-1 mb-1">
-            <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <div className="flex items-center gap-2 min-w-0">
               <div
-                className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] text-white flex-shrink-0 shadow ${
+                className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs text-white flex-shrink-0 shadow-md ${
                   isCompleted
                     ? 'bg-emerald-950 text-emerald-300 border border-emerald-400'
                     : isExec
@@ -205,54 +205,54 @@ export function TechnicianStatusMonitor() {
                     : 'bg-slate-700 text-white'
                 }`}
               >
-                <User className="w-3.5 h-3.5 font-bold" />
+                <User className="w-4 h-4 font-black" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-[11px] font-black uppercase text-white truncate leading-none tracking-tight">
+                <h3 className="text-xs md:text-sm font-black uppercase text-white truncate leading-none tracking-wide">
                   {colab.name}
                 </h3>
-                <p className="text-[9px] font-bold text-slate-300 flex items-center gap-0.5 truncate leading-tight mt-0.5">
-                  <Car className="w-2.5 h-2.5 flex-shrink-0" />
+                <p className="text-[10px] md:text-[11px] font-bold text-slate-300 flex items-center gap-1 truncate leading-tight mt-0.5">
+                  <Car className="w-3 h-3 flex-shrink-0" />
                   {colab.vehicle}
                 </p>
               </div>
             </div>
 
-            {/* ULTRA HIGH CONTRAST STATUS BADGES */}
+            {/* ULTRA HIGH CONTRAST STATUS BADGES (TV TUNED) */}
             <div className="flex-shrink-0">
               {isCompleted && (
-                <span className="px-2 py-0.5 bg-emerald-400 text-emerald-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-950" />
+                <span className="px-2.5 py-1 bg-emerald-400 text-emerald-950 font-black rounded-lg text-[10px] md:text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-md">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-950 font-black" />
                   CONCLUÍDA
                 </span>
               )}
               {isExec && (
-                <span className="px-2 py-0.5 bg-blue-500 text-white font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                <span className="px-2.5 py-1 bg-blue-500 text-white font-black rounded-lg text-[10px] md:text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-md animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-white" />
                   EM EXECUÇÃO
                 </span>
               )}
               {isTransit && (
-                <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md">
-                  <Navigation className="w-2.5 h-2.5 text-slate-950" />
+                <span className="px-2.5 py-1 bg-amber-400 text-slate-950 font-black rounded-lg text-[10px] md:text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-md">
+                  <Navigation className="w-3 h-3 text-slate-950" />
                   DESLOCAMENTO
                 </span>
               )}
               {isIdle && (
-                <span className="px-1.5 py-0.5 bg-slate-700 text-slate-300 font-bold rounded text-[9px] uppercase tracking-wider">
+                <span className="px-2 py-1 bg-slate-700 text-slate-300 font-extrabold rounded-lg text-[10px] uppercase tracking-wider">
                   SEM O.S.
                 </span>
               )}
             </div>
           </div>
 
-          <hr className={`my-1 ${isCompleted ? 'border-emerald-500' : isExec ? 'border-blue-800' : isTransit ? 'border-amber-800' : 'border-slate-800'}`} />
+          <hr className={`my-1.5 ${isCompleted ? 'border-emerald-500' : isExec ? 'border-blue-800' : isTransit ? 'border-amber-800' : 'border-slate-800'}`} />
 
-          {/* ACTIVE O.S. CONTENT AREA */}
+          {/* ACTIVE O.S. CONTENT AREA (TV TUNED) */}
           {colab.activeOS ? (
             <div
               onClick={() => setSelectedOS(colab.activeOS)}
-              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+              className={`p-2 rounded-xl border transition-all cursor-pointer ${
                 isCompleted
                   ? 'bg-emerald-800 border-emerald-300 text-white hover:bg-emerald-900'
                   : isExec
@@ -263,28 +263,28 @@ export function TechnicianStatusMonitor() {
               }`}
             >
               {/* OS Number & Category */}
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-[9px] font-black uppercase text-white truncate">
+              <div className="flex items-center justify-between gap-1 mb-0.5">
+                <span className="text-[10px] md:text-[11px] font-black uppercase text-white truncate">
                   O.S. #{colab.activeOS.number}
                 </span>
-                <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-black/40 border border-white/20 text-white truncate">
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-black/40 border border-white/20 text-white truncate">
                   {colab.activeOS.category}
                 </span>
               </div>
 
               {/* Client Name */}
-              <p className="text-[10px] font-black text-white truncate mt-0.5 leading-snug">
+              <p className="text-xs md:text-sm font-black text-white truncate leading-snug">
                 {colab.activeOS.client}
               </p>
 
               {/* Subject */}
-              <p className="text-[9px] font-bold text-slate-100 truncate">
+              <p className="text-[10px] md:text-[11px] font-extrabold text-slate-100 truncate">
                 {colab.activeOS.subject}
               </p>
 
               {/* Address */}
-              <div className="flex items-center gap-0.5 text-[8px] text-slate-200 font-medium truncate mt-0.5">
-                <MapPin className="w-2.5 h-2.5 text-slate-300 flex-shrink-0" />
+              <div className="flex items-center gap-1 text-[9px] md:text-[10px] text-slate-200 font-bold truncate mt-0.5">
+                <MapPin className="w-3 h-3 text-slate-300 flex-shrink-0" />
                 <span className="truncate">
                   {colab.activeOS.neighborhood || colab.activeOS.city || colab.activeOS.address}
                 </span>
@@ -292,9 +292,9 @@ export function TechnicianStatusMonitor() {
 
               {/* Scheduled Time */}
               {colab.activeOS.scheduledTimeStart && (
-                <div className="mt-1 flex items-center justify-between text-[8px] font-black text-white bg-black/50 px-1.5 py-0.5 rounded border border-white/10">
-                  <span className="flex items-center gap-0.5">
-                    <Clock className="w-2.5 h-2.5 text-slate-300" />
+                <div className="mt-1.5 flex items-center justify-between text-[9px] md:text-[10px] font-black text-white bg-black/60 px-2 py-0.5 rounded-lg border border-white/10">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-slate-300" />
                     Horário:
                   </span>
                   <span>
@@ -304,29 +304,29 @@ export function TechnicianStatusMonitor() {
               )}
             </div>
           ) : (
-            <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-center flex flex-col items-center justify-center min-h-[60px]">
-              <CheckCircle2 className="w-4 h-4 text-slate-500" />
-              <p className="text-[10px] font-black text-slate-300 leading-tight mt-0.5">TÉCNICO LIVRE</p>
-              <p className="text-[8px] text-slate-500 font-bold">Nenhuma O.S. ativa</p>
+            <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-center flex flex-col items-center justify-center min-h-[70px]">
+              <CheckCircle2 className="w-5 h-5 text-slate-500 mb-0.5" />
+              <p className="text-xs font-black text-slate-300 leading-tight">TÉCNICO LIVRE</p>
+              <p className="text-[9px] text-slate-400 font-bold">Nenhuma O.S. ativa</p>
             </div>
           )}
         </div>
 
-        {/* Footer Count Prominent Highlight */}
-        <div className="mt-1 pt-1 border-t border-slate-800 flex items-center justify-between gap-1">
-          <div className={`px-2 py-0.5 rounded-lg font-black text-[9px] flex items-center gap-1.5 shadow-md ${
+        {/* Footer Count Prominent Highlight (43" TV TUNED) */}
+        <div className="mt-1.5 pt-1.5 border-t border-slate-800 flex items-center justify-between gap-1">
+          <div className={`px-2.5 py-1 rounded-xl font-black text-[10px] md:text-[11px] flex items-center gap-2 shadow-md ${
             isCompleted
               ? 'bg-emerald-400 text-emerald-950'
               : colab.completedTodayOS > 0
               ? 'bg-emerald-950 border border-emerald-400 text-emerald-200'
-              : 'bg-black/70 border border-slate-700 text-slate-200'
+              : 'bg-black/80 border border-slate-700 text-slate-200'
           }`}>
-            <span className="uppercase text-[8px] font-extrabold tracking-tight">O.S. Concluídas:</span>
-            <span className="text-[11px] font-black px-1.5 py-0.2 rounded bg-slate-950 text-emerald-400 border border-emerald-500/40 shadow-inner">
+            <span className="uppercase text-[9px] md:text-[10px] font-black tracking-tight">O.S. Concluídas:</span>
+            <span className="text-xs md:text-sm font-black px-2 py-0.5 rounded-lg bg-slate-950 text-emerald-400 border border-emerald-500/40 shadow-inner">
               {colab.completedTodayOS} / {colab.totalTodayOS}
             </span>
           </div>
-          <span className="text-[8px] font-bold text-slate-400 truncate max-w-[70px] text-right">{colab.phone}</span>
+          <span className="text-[9px] md:text-[10px] font-bold text-slate-400 truncate max-w-[80px] text-right">{colab.phone}</span>
         </div>
       </motion.div>
     )
@@ -334,51 +334,51 @@ export function TechnicianStatusMonitor() {
 
   return (
     <div className="h-full flex flex-col bg-slate-900 text-slate-900 overflow-hidden rounded-2xl border border-slate-800 shadow-2xl">
-      {/* TOP HEADER: MONITOR TITLE & KPIs (HIGH CONTRAST DARK TV THEME) */}
-      <header className="bg-slate-950 border-b border-slate-800 px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-emerald-500 text-slate-950 rounded-lg shadow-md shadow-emerald-500/20">
-            <Activity className="w-4 h-4 font-black" />
+      {/* TOP HEADER: MONITOR TITLE & KPIs (HIGH CONTRAST DARK 43" TV THEME) */}
+      <header className="bg-slate-950 border-b border-slate-800 px-5 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-emerald-500 text-slate-950 rounded-xl shadow-md shadow-emerald-500/20">
+            <Activity className="w-5 h-5 font-black" />
           </div>
           <div>
-            <h1 className="text-sm font-black tracking-tight text-white leading-none">
+            <h1 className="text-base md:text-lg font-black tracking-tight text-white leading-none">
               MONITORAMENTO DE STATUS DAS O.S. POR TÉCNICO
             </h1>
-            <p className="text-[10px] font-extrabold text-slate-400 mt-0.5 uppercase tracking-wider">
-              Painel em Tempo Real de Acompanhamento das O.S.
+            <p className="text-xs font-black text-slate-400 mt-0.5 uppercase tracking-widest">
+              Painel em Tempo Real de Acompanhamento das O.S. (TV 43")
             </p>
           </div>
         </div>
 
-        {/* KPI COUNTERS */}
-        <div className="flex items-center gap-1.5">
-          <div className="bg-slate-800 border-2 border-slate-700 px-2.5 py-1 rounded-xl text-center min-w-[65px]">
-            <span className="block text-[9px] font-black uppercase text-slate-400">Total</span>
-            <span className="text-xs font-black text-white">{kpis.total}</span>
+        {/* KPI COUNTERS (TV TUNED) */}
+        <div className="flex items-center gap-2">
+          <div className="bg-slate-800 border-2 border-slate-700 px-3.5 py-1.5 rounded-xl text-center min-w-[75px]">
+            <span className="block text-[10px] font-black uppercase text-slate-400">Total</span>
+            <span className="text-sm md:text-base font-black text-white">{kpis.total}</span>
           </div>
 
           {/* COMPLETED (VERDE FORTE) */}
-          <div className="bg-emerald-600 text-white border-2 border-emerald-400 px-2.5 py-1 rounded-xl text-center min-w-[95px] shadow-lg shadow-emerald-600/30">
-            <span className="block text-[9px] font-black uppercase text-emerald-100">🟩 CONCLUÍDAS</span>
-            <span className="text-xs font-black text-white">{kpis.completed}</span>
+          <div className="bg-emerald-600 text-white border-2 border-emerald-400 px-3.5 py-1.5 rounded-xl text-center min-w-[105px] shadow-lg shadow-emerald-600/30">
+            <span className="block text-[10px] font-black uppercase text-emerald-100">🟩 CONCLUÍDAS</span>
+            <span className="text-sm md:text-base font-black text-white">{kpis.completed}</span>
           </div>
 
           {/* EXECUTION (AZUL) */}
-          <div className="bg-blue-600 text-white border-2 border-blue-400 px-2.5 py-1 rounded-xl text-center min-w-[95px] shadow-lg shadow-blue-600/30">
-            <span className="block text-[9px] font-black uppercase text-blue-100">🟦 EM EXECUÇÃO</span>
-            <span className="text-xs font-black text-white">{kpis.execution}</span>
+          <div className="bg-blue-600 text-white border-2 border-blue-400 px-3.5 py-1.5 rounded-xl text-center min-w-[105px] shadow-lg shadow-blue-600/30">
+            <span className="block text-[10px] font-black uppercase text-blue-100">🟦 EM EXECUÇÃO</span>
+            <span className="text-sm md:text-base font-black text-white">{kpis.execution}</span>
           </div>
 
           {/* TRANSIT (AMARELO) */}
-          <div className="bg-amber-500 text-slate-950 border-2 border-amber-300 px-2.5 py-1 rounded-xl text-center min-w-[95px] shadow-lg shadow-amber-500/30">
-            <span className="block text-[9px] font-black uppercase text-amber-950">🟨 DESLOCAMENTO</span>
-            <span className="text-xs font-black text-slate-950">{kpis.transit}</span>
+          <div className="bg-amber-500 text-slate-950 border-2 border-amber-300 px-3.5 py-1.5 rounded-xl text-center min-w-[105px] shadow-lg shadow-amber-500/30">
+            <span className="block text-[10px] font-black uppercase text-amber-950">🟨 DESLOCAMENTO</span>
+            <span className="text-sm md:text-base font-black text-slate-950">{kpis.transit}</span>
           </div>
 
           {/* IDLE (CINZA) */}
-          <div className="bg-slate-700 text-white border-2 border-slate-500 px-2.5 py-1 rounded-xl text-center min-w-[75px] shadow-md">
-            <span className="block text-[9px] font-black uppercase text-slate-300">⚪ SEM O.S.</span>
-            <span className="text-xs font-black text-white">{kpis.idle}</span>
+          <div className="bg-slate-700 text-white border-2 border-slate-500 px-3 py-1.5 rounded-xl text-center min-w-[85px] shadow-md">
+            <span className="block text-[10px] font-black uppercase text-slate-300">⚪ SEM O.S.</span>
+            <span className="text-sm md:text-base font-black text-white">{kpis.idle}</span>
           </div>
         </div>
       </header>
