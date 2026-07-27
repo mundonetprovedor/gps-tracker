@@ -107,7 +107,11 @@ const loginStatusCache = {};
 
 async function getClientLoginStatus(clientId) {
   if (!clientId) return 'online';
-  if (loginStatusCache[clientId] !== undefined) return loginStatusCache[clientId];
+  const now = Date.now();
+  const cached = loginStatusCache[clientId];
+  if (cached && (now - cached.timestamp < 30000)) { // 30s cache TTL
+    return cached.status;
+  }
   try {
     const response = await fetch(`${IXC_URL}/radusuarios`, {
       method: 'POST',
@@ -121,12 +125,13 @@ async function getClientLoginStatus(clientId) {
     const data = await response.json();
     if (data && data.registros && data.registros.length > 0) {
       const reg = data.registros[0];
-      const isOnline = reg.online === 'S' || reg.online === 'online' || reg.status === 'online';
+      // No IXC Soft, radusuarios.online = 'S' ou 'SS' indica conexao ativa no Radius
+      const isOnline = String(reg.online || '').toUpperCase().startsWith('S') || reg.online === 'online';
       const status = isOnline ? 'online' : 'offline';
-      loginStatusCache[clientId] = status;
+      loginStatusCache[clientId] = { status, timestamp: now };
       return status;
     }
-    loginStatusCache[clientId] = 'online';
+    loginStatusCache[clientId] = { status: 'online', timestamp: now };
     return 'online';
   } catch (e) {
     return 'online';
