@@ -161,10 +161,10 @@ export function TechnicianStatusMonitor() {
     const idleList = filteredList.filter((t) => t.status === 'IDLE').sort((a, b) => a.name.localeCompare(b.name))
 
     return [
-      { id: 'EXECUTION', title: '🟦 TÉCNICOS EM EXECUÇÃO (AZUL)', count: execList.length, items: execList },
-      { id: 'TRANSIT', title: '🟨 TÉCNICOS EM DESLOCAMENTO (AMARELO)', count: transitList.length, items: transitList },
-      { id: 'COMPLETED', title: '🟩 O.S. CONCLUÍDAS COM SUCESSO (VERDE FORTE)', count: completedList.length, items: completedList },
-      { id: 'IDLE', title: '⚪ TÉCNICOS LIVRES (SEM O.S. ATIVA)', count: idleList.length, items: idleList }
+      { id: 'EXECUTION', title: '🟦 TÉCNICOS EM EXECUÇÃO', count: execList.length, items: execList },
+      { id: 'TRANSIT', title: '🟨 TÉCNICOS EM DESLOCAMENTO', count: transitList.length, items: transitList },
+      { id: 'COMPLETED', title: '🟩 O.S. CONCLUÍDAS COM SUCESSO', count: completedList.length, items: completedList },
+      { id: 'IDLE', title: '⚪ TÉCNICOS LIVRES', count: idleList.length, items: idleList }
     ].filter((group) => statusFilter === 'ALL' || statusFilter === group.id)
   }, [filteredList, statusFilter])
 
@@ -334,7 +334,7 @@ export function TechnicianStatusMonitor() {
               MONITORAMENTO DE STATUS DAS O.S. POR TÉCNICO
             </h1>
             <p className="text-[10px] font-extrabold text-slate-400 mt-0.5 uppercase tracking-wider">
-              Painel em Tempo Real (Verde Forte = Concluída | Azul = Execução | Amarelo = Deslocamento)
+              Painel em Tempo Real de Acompanhamento das O.S.
             </p>
           </div>
         </div>
