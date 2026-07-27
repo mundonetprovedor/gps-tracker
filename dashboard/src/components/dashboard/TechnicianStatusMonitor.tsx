@@ -144,6 +144,159 @@ export function TechnicianStatusMonitor() {
     return { total, execution, transit, idle }
   }, [colabStatusList])
 
+  // Group technicians by status
+  const groupedTechs = useMemo(() => {
+    const execList = filteredList.filter((t) => t.status === 'EXECUTION').sort((a, b) => a.name.localeCompare(b.name))
+    const transitList = filteredList.filter((t) => t.status === 'TRANSIT').sort((a, b) => a.name.localeCompare(b.name))
+    const idleList = filteredList.filter((t) => t.status === 'IDLE').sort((a, b) => a.name.localeCompare(b.name))
+
+    return [
+      { id: 'EXECUTION', title: '🟢 TÉCNICOS EM ATENDIMENTO (EXECUÇÃO DE O.S.)', count: execList.length, color: 'emerald', items: execList },
+      { id: 'TRANSIT', title: '🟡 TÉCNICOS EM DESLOCAMENTO PARA O.S.', count: transitList.length, color: 'amber', items: transitList },
+      { id: 'IDLE', title: '⚪ TÉCNICOS LIVRES (SEM O.S. ATIVA)', count: idleList.length, color: 'slate', items: idleList }
+    ].filter((group) => statusFilter === 'ALL' || statusFilter === group.id)
+  }, [filteredList, statusFilter])
+
+  const renderCard = (colab: typeof colabStatusList[0]) => {
+    const isExec = colab.status === 'EXECUTION'
+    const isTransit = colab.status === 'TRANSIT'
+    const isIdle = colab.status === 'IDLE'
+
+    return (
+      <motion.div
+        key={colab.id}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`border-3 rounded-xl p-2 flex flex-col justify-between overflow-hidden shadow-lg transition-all ${
+          isExec
+            ? 'bg-emerald-950/90 border-emerald-500 shadow-emerald-500/30'
+            : isTransit
+            ? 'bg-amber-950/90 border-amber-500 shadow-amber-500/30'
+            : 'bg-slate-900 border-slate-700'
+        }`}
+      >
+        {/* Tech Header Info */}
+        <div>
+          {/* CARD TOP BANNER WITH STATUS */}
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div
+                className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] text-white flex-shrink-0 shadow ${
+                  isExec
+                    ? 'bg-emerald-500 text-slate-950'
+                    : isTransit
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'bg-slate-700 text-white'
+                }`}
+              >
+                <User className="w-3.5 h-3.5 font-bold" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-[11px] font-black uppercase text-white truncate leading-none tracking-tight">
+                  {colab.name}
+                </h3>
+                <p className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5 truncate leading-tight mt-0.5">
+                  <Car className="w-2.5 h-2.5 flex-shrink-0" />
+                  {colab.vehicle}
+                </p>
+              </div>
+            </div>
+
+            {/* ULTRA HIGH CONTRAST STATUS BADGES */}
+            <div className="flex-shrink-0">
+              {isExec && (
+                <span className="px-2 py-0.5 bg-emerald-500 text-slate-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                  ATENDIMENTO
+                </span>
+              )}
+              {isTransit && (
+                <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md">
+                  <Navigation className="w-2.5 h-2.5 text-slate-950" />
+                  DESLOCAMENTO
+                </span>
+              )}
+              {isIdle && (
+                <span className="px-1.5 py-0.5 bg-slate-700 text-slate-300 font-bold rounded text-[9px] uppercase tracking-wider">
+                  SEM O.S.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <hr className={`my-1 ${isExec ? 'border-emerald-800' : isTransit ? 'border-amber-800' : 'border-slate-800'}`} />
+
+          {/* ACTIVE O.S. CONTENT AREA */}
+          {colab.activeOS ? (
+            <div
+              onClick={() => setSelectedOS(colab.activeOS)}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                isExec
+                  ? 'bg-emerald-900/90 border-emerald-400 text-emerald-50 hover:bg-emerald-800'
+                  : isTransit
+                  ? 'bg-amber-900/90 border-amber-400 text-amber-50 hover:bg-amber-800'
+                  : 'bg-slate-800 border-slate-700 text-slate-200'
+              }`}
+            >
+              {/* OS Number & Category */}
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[9px] font-black uppercase text-white truncate">
+                  O.S. #{colab.activeOS.number}
+                </span>
+                <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-black/40 border border-white/20 text-white truncate">
+                  {colab.activeOS.category}
+                </span>
+              </div>
+
+              {/* Client Name */}
+              <p className="text-[10px] font-black text-white truncate mt-0.5 leading-snug">
+                {colab.activeOS.client}
+              </p>
+
+              {/* Subject */}
+              <p className="text-[9px] font-bold text-slate-200 truncate">
+                {colab.activeOS.subject}
+              </p>
+
+              {/* Address */}
+              <div className="flex items-center gap-0.5 text-[8px] text-slate-300 font-medium truncate mt-0.5">
+                <MapPin className="w-2.5 h-2.5 text-slate-400 flex-shrink-0" />
+                <span className="truncate">
+                  {colab.activeOS.neighborhood || colab.activeOS.city || colab.activeOS.address}
+                </span>
+              </div>
+
+              {/* Scheduled Time */}
+              {colab.activeOS.scheduledTimeStart && (
+                <div className="mt-1 flex items-center justify-between text-[8px] font-black text-white bg-black/50 px-1.5 py-0.5 rounded border border-white/10">
+                  <span className="flex items-center gap-0.5">
+                    <Clock className="w-2.5 h-2.5 text-slate-300" />
+                    Horário:
+                  </span>
+                  <span>
+                    {colab.activeOS.scheduledTimeStart} - {colab.activeOS.scheduledTimeEnd || '--:--'}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-center flex flex-col items-center justify-center min-h-[60px]">
+              <CheckCircle2 className="w-4 h-4 text-slate-500" />
+              <p className="text-[10px] font-black text-slate-300 leading-tight mt-0.5">TÉCNICO LIVRE</p>
+              <p className="text-[8px] text-slate-500 font-bold">Nenhuma O.S. ativa</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Count */}
+        <div className="mt-1 pt-1 border-t border-slate-800 flex items-center justify-between text-[8px] font-bold text-slate-400">
+          <span>O.S. Hoje: <strong className="text-white">{colab.totalTodayOS}</strong></span>
+          <span className="text-slate-400 truncate max-w-[90px] text-right">{colab.phone}</span>
+        </div>
+      </motion.div>
+    )
+  }
+
   return (
     <div className="h-full flex flex-col bg-slate-900 text-slate-900 overflow-hidden rounded-2xl border border-slate-800 shadow-2xl">
       {/* TOP HEADER: MONITOR TITLE & KPIs (HIGH CONTRAST DARK TV THEME) */}
@@ -157,12 +310,12 @@ export function TechnicianStatusMonitor() {
               MONITORAMENTO DE STATUS DAS O.S. POR TÉCNICO
             </h1>
             <p className="text-[10px] font-extrabold text-slate-400 mt-0.5 uppercase tracking-wider">
-              Painel de Alta Visibilidade (20 Técnicos em Campo)
+              Painel Agrupado por Status de O.S. (20 Técnicos em Campo)
             </p>
           </div>
         </div>
 
-        {/* KPI COUNTERS (ULTRA VIBRANT HIGH CONTRAST) */}
+        {/* KPI COUNTERS */}
         <div className="flex items-center gap-2">
           <div className="bg-slate-800 border-2 border-slate-700 px-3 py-1 rounded-xl text-center min-w-[70px]">
             <span className="block text-[9px] font-black uppercase text-slate-400">Total</span>
@@ -248,149 +401,39 @@ export function TechnicianStatusMonitor() {
         </div>
       </div>
 
-      {/* TECHNICIAN MONITORING CARDS GRID (BOLD VIBRANT COLORS FOR FAR-DISTANCE VISIBILITY) */}
-      <div className="flex-1 overflow-hidden p-2.5 bg-slate-950">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 h-full">
-          {filteredList.map((colab) => {
-            const isExec = colab.status === 'EXECUTION'
-            const isTransit = colab.status === 'TRANSIT'
-            const isIdle = colab.status === 'IDLE'
+      {/* TECHNICIAN MONITORING GROUPED SECTIONS */}
+      <div className="flex-1 overflow-y-auto p-2.5 bg-slate-950 space-y-4 custom-scrollbar">
+        {groupedTechs.map((group) => {
+          if (group.items.length === 0) return null
 
-            return (
-              <motion.div
-                key={colab.id}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={`border-3 rounded-xl p-2 flex flex-col justify-between overflow-hidden shadow-lg transition-all ${
-                  isExec
-                    ? 'bg-emerald-950/80 border-emerald-500 shadow-emerald-500/30'
-                    : isTransit
-                    ? 'bg-amber-950/80 border-amber-500 shadow-amber-500/30'
-                    : 'bg-slate-900 border-slate-700'
-                }`}
-              >
-                {/* Tech Header Info */}
-                <div>
-                  {/* CARD TOP BANNER WITH STATUS */}
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <div
-                        className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] text-white flex-shrink-0 shadow ${
-                          isExec
-                            ? 'bg-emerald-500 text-slate-950'
-                            : isTransit
-                            ? 'bg-amber-400 text-slate-950'
-                            : 'bg-slate-700 text-white'
-                        }`}
-                      >
-                        <User className="w-3.5 h-3.5 font-bold" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-[11px] font-black uppercase text-white truncate leading-none tracking-tight">
-                          {colab.name}
-                        </h3>
-                        <p className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5 truncate leading-tight mt-0.5">
-                          <Car className="w-2.5 h-2.5 flex-shrink-0" />
-                          {colab.vehicle}
-                        </p>
-                      </div>
-                    </div>
+          const isExecGroup = group.id === 'EXECUTION'
+          const isTransitGroup = group.id === 'TRANSIT'
 
-                    {/* ULTRA HIGH CONTRAST STATUS BADGES */}
-                    <div className="flex-shrink-0">
-                      {isExec && (
-                        <span className="px-2 py-0.5 bg-emerald-500 text-slate-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md animate-pulse">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-950" />
-                          ATENDIMENTO
-                        </span>
-                      )}
-                      {isTransit && (
-                        <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md">
-                          <Navigation className="w-2.5 h-2.5 text-slate-950" />
-                          DESLOCAMENTO
-                        </span>
-                      )}
-                      {isIdle && (
-                        <span className="px-1.5 py-0.5 bg-slate-700 text-slate-300 font-bold rounded text-[9px] uppercase tracking-wider">
-                          SEM O.S.
-                        </span>
-                      )}
-                    </div>
-                  </div>
+          return (
+            <div key={group.id} className="space-y-2">
+              {/* GROUP SECTION HEADER BANNER */}
+              <div className={`px-3 py-1 rounded-lg border flex items-center justify-between text-xs font-black uppercase tracking-wider ${
+                isExecGroup
+                  ? 'bg-emerald-950/90 border-emerald-500 text-emerald-400 shadow-md shadow-emerald-950'
+                  : isTransitGroup
+                  ? 'bg-amber-950/90 border-amber-500 text-amber-400 shadow-md shadow-amber-950'
+                  : 'bg-slate-900 border-slate-700 text-slate-300'
+              }`}>
+                <span className="flex items-center gap-2">
+                  {group.title}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-black/40 text-[10px] font-black border border-white/10">
+                  {group.count} {group.count === 1 ? 'Técnico' : 'Técnicos'}
+                </span>
+              </div>
 
-                  <hr className={`my-1 ${isExec ? 'border-emerald-800' : isTransit ? 'border-amber-800' : 'border-slate-800'}`} />
-
-                  {/* ACTIVE O.S. CONTENT AREA */}
-                  {colab.activeOS ? (
-                    <div
-                      onClick={() => setSelectedOS(colab.activeOS)}
-                      className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                        isExec
-                          ? 'bg-emerald-900/90 border-emerald-400 text-emerald-50 hover:bg-emerald-800'
-                          : isTransit
-                          ? 'bg-amber-900/90 border-amber-400 text-amber-50 hover:bg-amber-800'
-                          : 'bg-slate-800 border-slate-700 text-slate-200'
-                      }`}
-                    >
-                      {/* OS Number & Category */}
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[9px] font-black uppercase text-white truncate">
-                          O.S. #{colab.activeOS.number}
-                        </span>
-                        <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-black/40 border border-white/20 text-white truncate">
-                          {colab.activeOS.category}
-                        </span>
-                      </div>
-
-                      {/* Client Name */}
-                      <p className="text-[10px] font-black text-white truncate mt-0.5 leading-snug">
-                        {colab.activeOS.client}
-                      </p>
-
-                      {/* Subject */}
-                      <p className="text-[9px] font-bold text-slate-200 truncate">
-                        {colab.activeOS.subject}
-                      </p>
-
-                      {/* Address */}
-                      <div className="flex items-center gap-0.5 text-[8px] text-slate-300 font-medium truncate mt-0.5">
-                        <MapPin className="w-2.5 h-2.5 text-slate-400 flex-shrink-0" />
-                        <span className="truncate">
-                          {colab.activeOS.neighborhood || colab.activeOS.city || colab.activeOS.address}
-                        </span>
-                      </div>
-
-                      {/* Scheduled Time */}
-                      {colab.activeOS.scheduledTimeStart && (
-                        <div className="mt-1 flex items-center justify-between text-[8px] font-black text-white bg-black/50 px-1.5 py-0.5 rounded border border-white/10">
-                          <span className="flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5 text-slate-300" />
-                            Horário:
-                          </span>
-                          <span>
-                            {colab.activeOS.scheduledTimeStart} - {colab.activeOS.scheduledTimeEnd || '--:--'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700 text-center flex flex-col items-center justify-center min-h-[60px]">
-                      <CheckCircle2 className="w-4 h-4 text-slate-500" />
-                      <p className="text-[10px] font-black text-slate-300 leading-tight mt-0.5">TÉCNICO LIVRE</p>
-                      <p className="text-[8px] text-slate-500 font-bold">Nenhuma O.S. ativa</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer Count */}
-                <div className="mt-1 pt-1 border-t border-slate-800 flex items-center justify-between text-[8px] font-bold text-slate-400">
-                  <span>O.S. Hoje: <strong className="text-white">{colab.totalTodayOS}</strong></span>
-                  <span className="text-slate-400 truncate max-w-[90px] text-right">{colab.phone}</span>
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
+              {/* GROUP CARDS GRID */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+                {group.items.map(renderCard)}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* O.S. DETAILS MODAL */}
