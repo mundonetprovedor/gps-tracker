@@ -56,7 +56,7 @@ export function TechnicianStatusMonitor() {
   const selectedAgendaDate = useDashboardStore((s) => s.selectedAgendaDate)
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'EXECUTION' | 'TRANSIT' | 'IDLE'>('ALL')
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'EXECUTION' | 'TRANSIT' | 'COMPLETED' | 'IDLE'>('ALL')
   const [selectedOS, setSelectedOS] = useState<ServiceOrder | null>(null)
 
   // Map active O.S. to collaborators
@@ -74,7 +74,7 @@ export function TechnicianStatusMonitor() {
         (t) => normalizeStr(t.name) === normalizeStr(name)
       )
 
-      // Find active O.S. (Execution or Transit or Assigned)
+      // Find O.S. assigned to this collaborator today
       const colabOrders = todayOrders.filter((os) => {
         if (os.teamId && teamMatch && os.teamId === teamMatch.id) return true
         const osNorm = normalizeStr(os.collaboratorName || os.teamName)
@@ -87,20 +87,26 @@ export function TechnicianStatusMonitor() {
         return false
       })
 
-      // Active O.S. prioritized: EX (Executing) > DS (In Transit) > AG/A (Assigned)
+      // Check O.S. statuses
       const executingOS = colabOrders.find((o) => o.status === 'EX')
       const transitOS = colabOrders.find((o) => o.status === 'DS')
+      const completedOS = colabOrders.find((o) => o.status === 'F')
       const assignedOS = colabOrders.find((o) => o.status === 'AG' || o.status === 'A' || o.status === 'AS' || o.status === 'EN')
 
-      const activeOS = executingOS || transitOS || assignedOS || null
+      const activeOS = executingOS || transitOS || completedOS || assignedOS || null
 
-      let currentStatus: 'EXECUTION' | 'TRANSIT' | 'IDLE' = 'IDLE'
+      let currentStatus: 'COMPLETED' | 'EXECUTION' | 'TRANSIT' | 'IDLE' = 'IDLE'
+
       if (executingOS || (teamMatch?.status === 'Executando atendimento')) {
-        currentStatus = 'EXECUTION'
+        currentStatus = 'EXECUTION' // 🟦 AZUL
       } else if (transitOS || (teamMatch?.status === 'Em deslocamento')) {
-        currentStatus = 'TRANSIT'
+        currentStatus = 'TRANSIT' // 🟨 AMARELO
+      } else if (colabOrders.length > 0 && colabOrders.every((o) => o.status === 'F')) {
+        currentStatus = 'COMPLETED' // 🟩 VERDE FORTE (Todas do dia concluídas)
+      } else if (completedOS && !executingOS && !transitOS && !assignedOS) {
+        currentStatus = 'COMPLETED' // 🟩 VERDE FORTE
       } else {
-        currentStatus = 'IDLE'
+        currentStatus = 'IDLE' // ⚪ CINZA
       }
 
       return {
@@ -111,7 +117,8 @@ export function TechnicianStatusMonitor() {
         phone: teamMatch?.phone || '(98) 98812-1000',
         status: currentStatus,
         activeOS,
-        totalTodayOS: colabOrders.length
+        totalTodayOS: colabOrders.length,
+        completedTodayOS: colabOrders.filter((o) => o.status === 'F').length
       }
     })
   }, [teams, serviceOrders, selectedAgendaDate])
@@ -137,27 +144,32 @@ export function TechnicianStatusMonitor() {
   // KPI Counters
   const kpis = useMemo(() => {
     const total = colabStatusList.length
+    const completed = colabStatusList.filter((c) => c.status === 'COMPLETED').length
     const execution = colabStatusList.filter((c) => c.status === 'EXECUTION').length
     const transit = colabStatusList.filter((c) => c.status === 'TRANSIT').length
     const idle = colabStatusList.filter((c) => c.status === 'IDLE').length
+    const isAllCompleted = total > 0 && (completed + idle === total) && completed > 0
 
-    return { total, execution, transit, idle }
+    return { total, completed, execution, transit, idle, isAllCompleted }
   }, [colabStatusList])
 
   // Group technicians by status
   const groupedTechs = useMemo(() => {
+    const completedList = filteredList.filter((t) => t.status === 'COMPLETED').sort((a, b) => a.name.localeCompare(b.name))
     const execList = filteredList.filter((t) => t.status === 'EXECUTION').sort((a, b) => a.name.localeCompare(b.name))
     const transitList = filteredList.filter((t) => t.status === 'TRANSIT').sort((a, b) => a.name.localeCompare(b.name))
     const idleList = filteredList.filter((t) => t.status === 'IDLE').sort((a, b) => a.name.localeCompare(b.name))
 
     return [
-      { id: 'EXECUTION', title: '🟢 TÉCNICOS EM ATENDIMENTO (EXECUÇÃO DE O.S.)', count: execList.length, color: 'emerald', items: execList },
-      { id: 'TRANSIT', title: '🟡 TÉCNICOS EM DESLOCAMENTO PARA O.S.', count: transitList.length, color: 'amber', items: transitList },
-      { id: 'IDLE', title: '⚪ TÉCNICOS LIVRES (SEM O.S. ATIVA)', count: idleList.length, color: 'slate', items: idleList }
+      { id: 'EXECUTION', title: '🟦 TÉCNICOS EM EXECUÇÃO (AZUL)', count: execList.length, items: execList },
+      { id: 'TRANSIT', title: '🟨 TÉCNICOS EM DESLOCAMENTO (AMARELO)', count: transitList.length, items: transitList },
+      { id: 'COMPLETED', title: '🟩 O.S. CONCLUÍDAS COM SUCESSO (VERDE FORTE)', count: completedList.length, items: completedList },
+      { id: 'IDLE', title: '⚪ TÉCNICOS LIVRES (SEM O.S. ATIVA)', count: idleList.length, items: idleList }
     ].filter((group) => statusFilter === 'ALL' || statusFilter === group.id)
   }, [filteredList, statusFilter])
 
   const renderCard = (colab: typeof colabStatusList[0]) => {
+    const isCompleted = colab.status === 'COMPLETED'
     const isExec = colab.status === 'EXECUTION'
     const isTransit = colab.status === 'TRANSIT'
     const isIdle = colab.status === 'IDLE'
@@ -167,9 +179,11 @@ export function TechnicianStatusMonitor() {
         key={colab.id}
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={`border-3 rounded-xl p-2 flex flex-col justify-between overflow-hidden shadow-lg transition-all ${
-          isExec
-            ? 'bg-emerald-950/90 border-emerald-500 shadow-emerald-500/30'
+        className={`border-3 rounded-xl p-2 flex flex-col justify-between overflow-hidden shadow-xl transition-all ${
+          isCompleted
+            ? 'bg-emerald-700 border-emerald-400 text-white shadow-emerald-600/40 font-black'
+            : isExec
+            ? 'bg-blue-950/90 border-blue-500 shadow-blue-500/30'
             : isTransit
             ? 'bg-amber-950/90 border-amber-500 shadow-amber-500/30'
             : 'bg-slate-900 border-slate-700'
@@ -182,8 +196,10 @@ export function TechnicianStatusMonitor() {
             <div className="flex items-center gap-1.5 min-w-0">
               <div
                 className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] text-white flex-shrink-0 shadow ${
-                  isExec
-                    ? 'bg-emerald-500 text-slate-950'
+                  isCompleted
+                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-400'
+                    : isExec
+                    ? 'bg-blue-500 text-slate-950'
                     : isTransit
                     ? 'bg-amber-400 text-slate-950'
                     : 'bg-slate-700 text-white'
@@ -195,7 +211,7 @@ export function TechnicianStatusMonitor() {
                 <h3 className="text-[11px] font-black uppercase text-white truncate leading-none tracking-tight">
                   {colab.name}
                 </h3>
-                <p className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5 truncate leading-tight mt-0.5">
+                <p className="text-[9px] font-bold text-slate-300 flex items-center gap-0.5 truncate leading-tight mt-0.5">
                   <Car className="w-2.5 h-2.5 flex-shrink-0" />
                   {colab.vehicle}
                 </p>
@@ -204,10 +220,16 @@ export function TechnicianStatusMonitor() {
 
             {/* ULTRA HIGH CONTRAST STATUS BADGES */}
             <div className="flex-shrink-0">
+              {isCompleted && (
+                <span className="px-2 py-0.5 bg-emerald-400 text-emerald-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-950" />
+                  CONCLUÍDA
+                </span>
+              )}
               {isExec && (
-                <span className="px-2 py-0.5 bg-emerald-500 text-slate-950 font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-950" />
-                  ATENDIMENTO
+                <span className="px-2 py-0.5 bg-blue-500 text-white font-black rounded text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                  EM EXECUÇÃO
                 </span>
               )}
               {isTransit && (
@@ -224,15 +246,17 @@ export function TechnicianStatusMonitor() {
             </div>
           </div>
 
-          <hr className={`my-1 ${isExec ? 'border-emerald-800' : isTransit ? 'border-amber-800' : 'border-slate-800'}`} />
+          <hr className={`my-1 ${isCompleted ? 'border-emerald-500' : isExec ? 'border-blue-800' : isTransit ? 'border-amber-800' : 'border-slate-800'}`} />
 
           {/* ACTIVE O.S. CONTENT AREA */}
           {colab.activeOS ? (
             <div
               onClick={() => setSelectedOS(colab.activeOS)}
               className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                isExec
-                  ? 'bg-emerald-900/90 border-emerald-400 text-emerald-50 hover:bg-emerald-800'
+                isCompleted
+                  ? 'bg-emerald-800 border-emerald-300 text-white hover:bg-emerald-900'
+                  : isExec
+                  ? 'bg-blue-900/90 border-blue-400 text-blue-50 hover:bg-blue-800'
                   : isTransit
                   ? 'bg-amber-900/90 border-amber-400 text-amber-50 hover:bg-amber-800'
                   : 'bg-slate-800 border-slate-700 text-slate-200'
@@ -254,13 +278,13 @@ export function TechnicianStatusMonitor() {
               </p>
 
               {/* Subject */}
-              <p className="text-[9px] font-bold text-slate-200 truncate">
+              <p className="text-[9px] font-bold text-slate-100 truncate">
                 {colab.activeOS.subject}
               </p>
 
               {/* Address */}
-              <div className="flex items-center gap-0.5 text-[8px] text-slate-300 font-medium truncate mt-0.5">
-                <MapPin className="w-2.5 h-2.5 text-slate-400 flex-shrink-0" />
+              <div className="flex items-center gap-0.5 text-[8px] text-slate-200 font-medium truncate mt-0.5">
+                <MapPin className="w-2.5 h-2.5 text-slate-300 flex-shrink-0" />
                 <span className="truncate">
                   {colab.activeOS.neighborhood || colab.activeOS.city || colab.activeOS.address}
                 </span>
@@ -289,9 +313,9 @@ export function TechnicianStatusMonitor() {
         </div>
 
         {/* Footer Count */}
-        <div className="mt-1 pt-1 border-t border-slate-800 flex items-center justify-between text-[8px] font-bold text-slate-400">
-          <span>O.S. Hoje: <strong className="text-white">{colab.totalTodayOS}</strong></span>
-          <span className="text-slate-400 truncate max-w-[90px] text-right">{colab.phone}</span>
+        <div className={`mt-1 pt-1 border-t flex items-center justify-between text-[8px] font-bold ${isCompleted ? 'border-emerald-500 text-emerald-100' : 'border-slate-800 text-slate-400'}`}>
+          <span>O.S. Concluídas: <strong className="text-white">{colab.completedTodayOS}/{colab.totalTodayOS}</strong></span>
+          <span className="truncate max-w-[90px] text-right">{colab.phone}</span>
         </div>
       </motion.div>
     )
@@ -310,34 +334,51 @@ export function TechnicianStatusMonitor() {
               MONITORAMENTO DE STATUS DAS O.S. POR TÉCNICO
             </h1>
             <p className="text-[10px] font-extrabold text-slate-400 mt-0.5 uppercase tracking-wider">
-              Painel Agrupado por Status de O.S. (20 Técnicos em Campo)
+              Painel em Tempo Real (Verde Forte = Concluída | Azul = Execução | Amarelo = Deslocamento)
             </p>
           </div>
         </div>
 
         {/* KPI COUNTERS */}
-        <div className="flex items-center gap-2">
-          <div className="bg-slate-800 border-2 border-slate-700 px-3 py-1 rounded-xl text-center min-w-[70px]">
+        <div className="flex items-center gap-1.5">
+          <div className="bg-slate-800 border-2 border-slate-700 px-2.5 py-1 rounded-xl text-center min-w-[65px]">
             <span className="block text-[9px] font-black uppercase text-slate-400">Total</span>
-            <span className="text-sm font-black text-white">{kpis.total}</span>
+            <span className="text-xs font-black text-white">{kpis.total}</span>
           </div>
 
-          <div className="bg-emerald-600 text-white border-2 border-emerald-400 px-3 py-1 rounded-xl text-center min-w-[105px] shadow-lg shadow-emerald-600/30">
-            <span className="block text-[9px] font-black uppercase text-emerald-100">🟢 ATENDIMENTO</span>
-            <span className="text-sm font-black text-white">{kpis.execution}</span>
+          {/* COMPLETED (VERDE FORTE) */}
+          <div className="bg-emerald-600 text-white border-2 border-emerald-400 px-2.5 py-1 rounded-xl text-center min-w-[95px] shadow-lg shadow-emerald-600/30">
+            <span className="block text-[9px] font-black uppercase text-emerald-100">🟩 CONCLUÍDAS</span>
+            <span className="text-xs font-black text-white">{kpis.completed}</span>
           </div>
 
-          <div className="bg-amber-500 text-white border-2 border-amber-300 px-3 py-1 rounded-xl text-center min-w-[105px] shadow-lg shadow-amber-500/30">
-            <span className="block text-[9px] font-black uppercase text-amber-100">🟡 DESLOCAMENTO</span>
-            <span className="text-sm font-black text-white">{kpis.transit}</span>
+          {/* EXECUTION (AZUL) */}
+          <div className="bg-blue-600 text-white border-2 border-blue-400 px-2.5 py-1 rounded-xl text-center min-w-[95px] shadow-lg shadow-blue-600/30">
+            <span className="block text-[9px] font-black uppercase text-blue-100">🟦 EM EXECUÇÃO</span>
+            <span className="text-xs font-black text-white">{kpis.execution}</span>
           </div>
 
-          <div className="bg-slate-700 text-white border-2 border-slate-500 px-3 py-1 rounded-xl text-center min-w-[85px] shadow-md">
+          {/* TRANSIT (AMARELO) */}
+          <div className="bg-amber-500 text-slate-950 border-2 border-amber-300 px-2.5 py-1 rounded-xl text-center min-w-[95px] shadow-lg shadow-amber-500/30">
+            <span className="block text-[9px] font-black uppercase text-amber-950">🟨 DESLOCAMENTO</span>
+            <span className="text-xs font-black text-slate-950">{kpis.transit}</span>
+          </div>
+
+          {/* IDLE (CINZA) */}
+          <div className="bg-slate-700 text-white border-2 border-slate-500 px-2.5 py-1 rounded-xl text-center min-w-[75px] shadow-md">
             <span className="block text-[9px] font-black uppercase text-slate-300">⚪ SEM O.S.</span>
-            <span className="text-sm font-black text-white">{kpis.idle}</span>
+            <span className="text-xs font-black text-white">{kpis.idle}</span>
           </div>
         </div>
       </header>
+
+      {/* SUCCESS ALL COMPLETED BANNER */}
+      {kpis.isAllCompleted && (
+        <div className="bg-emerald-600 border-b-2 border-emerald-400 px-4 py-2 text-center text-white font-black text-sm uppercase tracking-widest animate-pulse shadow-lg flex items-center justify-center gap-2">
+          <CheckCircle2 className="w-5 h-5 text-white" />
+          🎉 TODAS AS O.S. DO DIA FORAM CONCLUÍDAS COM SUCESSO! 🎉
+        </div>
+      )}
 
       {/* FILTER & SEARCH BAR */}
       <div className="bg-slate-950 px-4 py-1.5 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 flex-shrink-0">
@@ -370,11 +411,11 @@ export function TechnicianStatusMonitor() {
             onClick={() => setStatusFilter('EXECUTION')}
             className={`px-3 py-0.5 rounded transition-all ${
               statusFilter === 'EXECUTION'
-                ? 'bg-emerald-600 text-white font-black'
-                : 'text-emerald-400 hover:bg-emerald-950'
+                ? 'bg-blue-600 text-white font-black'
+                : 'text-blue-400 hover:bg-blue-950'
             }`}
           >
-            🟢 Em Atendimento ({kpis.execution})
+            🟦 Em Execução ({kpis.execution})
           </button>
 
           <button
@@ -385,7 +426,18 @@ export function TechnicianStatusMonitor() {
                 : 'text-amber-400 hover:bg-amber-950'
             }`}
           >
-            🟡 Deslocamento ({kpis.transit})
+            🟨 Deslocamento ({kpis.transit})
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('COMPLETED')}
+            className={`px-3 py-0.5 rounded transition-all ${
+              statusFilter === 'COMPLETED'
+                ? 'bg-emerald-600 text-white font-black'
+                : 'text-emerald-400 hover:bg-emerald-950'
+            }`}
+          >
+            🟩 Concluídas ({kpis.completed})
           </button>
 
           <button
@@ -406,6 +458,7 @@ export function TechnicianStatusMonitor() {
         {groupedTechs.map((group) => {
           if (group.items.length === 0) return null
 
+          const isCompletedGroup = group.id === 'COMPLETED'
           const isExecGroup = group.id === 'EXECUTION'
           const isTransitGroup = group.id === 'TRANSIT'
 
@@ -413,8 +466,10 @@ export function TechnicianStatusMonitor() {
             <div key={group.id} className="space-y-2">
               {/* GROUP SECTION HEADER BANNER */}
               <div className={`px-3 py-1 rounded-lg border flex items-center justify-between text-xs font-black uppercase tracking-wider ${
-                isExecGroup
-                  ? 'bg-emerald-950/90 border-emerald-500 text-emerald-400 shadow-md shadow-emerald-950'
+                isCompletedGroup
+                  ? 'bg-emerald-800 border-emerald-400 text-white shadow-md shadow-emerald-950'
+                  : isExecGroup
+                  ? 'bg-blue-950/90 border-blue-500 text-blue-400 shadow-md shadow-blue-950'
                   : isTransitGroup
                   ? 'bg-amber-950/90 border-amber-500 text-amber-400 shadow-md shadow-amber-950'
                   : 'bg-slate-900 border-slate-700 text-slate-300'
