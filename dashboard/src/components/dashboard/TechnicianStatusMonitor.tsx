@@ -272,10 +272,32 @@ export function TechnicianStatusMonitor() {
                 </span>
               </div>
 
-              {/* Client Name */}
-              <p className="text-xs md:text-sm font-black text-white truncate leading-snug">
-                {colab.activeOS.client}
-              </p>
+              {/* Client Name & Login Status */}
+              <div className="flex items-center justify-between gap-1 mt-0.5">
+                <p className="text-xs md:text-sm font-black text-white truncate leading-snug">
+                  {colab.activeOS.client}
+                </p>
+
+                {/* LOGIN STATUS BADGE (ONLINE / OFFLINE) */}
+                {(() => {
+                  const isOnline = colab.activeOS.loginStatus === 'online' ||
+                                   colab.activeOS.status === 'F' ||
+                                   (colab.activeOS.rxSignal && colab.activeOS.rxSignal > -27) ||
+                                   colab.status === 'COMPLETED'
+
+                  return isOnline ? (
+                    <span className="px-1.5 py-0.5 bg-emerald-400 text-emerald-950 font-black rounded text-[9px] uppercase tracking-tight flex items-center gap-1 shadow flex-shrink-0 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-950" />
+                      🟢 ONLINE
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 bg-red-600 text-white font-black rounded text-[9px] uppercase tracking-tight flex items-center gap-1 shadow flex-shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      🔴 OFFLINE
+                    </span>
+                  )
+                })()}
+              </div>
 
               {/* Subject */}
               <p className="text-[10px] md:text-[11px] font-extrabold text-slate-100 truncate">

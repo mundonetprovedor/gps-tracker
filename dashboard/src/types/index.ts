@@ -95,6 +95,7 @@ export interface ServiceOrder {
   equipment?: string
   type?: string
   delay?: number
+  loginStatus?: 'online' | 'offline'
 }
 
 export interface IncidentCluster {
