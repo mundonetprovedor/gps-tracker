@@ -408,7 +408,10 @@ async function syncIXCServiceOrders(io, force = false) {
 
             if (msg && !isInitialSync) {
                 await Alert.create({ type: 'Warning', message: msg, device: techName, timestamp: new Date() });
-                if (io) io.emit('status_notification', { message: msg, type: os.status, tech: techName });
+                if (io) {
+                    io.emit('status_notification', { message: msg, type: os.status, tech: techName });
+                    io.emit('os_synced');
+                }
             }
         }
 

@@ -4,9 +4,45 @@ import { useDashboardStore } from '@/store/dashboard'
 let socket: Socket | null = null
 
 export function initSocket(): Socket {
-  if (socket?.connected) return socket
+  if (socket) return socket
 
-  socket = io(window.location.origin)
+  socket = io(window.location.origin, {
+    transports: ['websocket', 'polling'],
+    autoConnect: true,
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+  })
+
+  const refreshAll = () => {
+    import('@/services/api').then((api) => {
+      Promise.all([
+        api.fetchServiceOrders(),
+        api.fetchStats(),
+        api.fetchTeams(),
+      ]).then(([orders, stats, teams]) => {
+        const store = useDashboardStore.getState()
+        if (orders && Array.isArray(orders)) store.setServiceOrders(orders)
+        if (stats) store.setStats(stats)
+        if (teams && Array.isArray(teams)) {
+          const teamsMap: Record<string, typeof teams[0]> = {}
+          teams.forEach((t) => {
+            teamsMap[t.id] = t
+          })
+          if (Object.keys(teamsMap).length > 0) {
+            store.setTeams(teamsMap)
+          }
+        }
+      }).catch((err) => {
+        console.warn('Real-time sync error:', err)
+      })
+    })
+  }
+
+  socket.on('connect', () => {
+    console.log('⚡ Socket.io conectado com sucesso!')
+    refreshAll()
+  })
 
   socket.on('update_teams', (data) => {
     const store = useDashboardStore.getState()
@@ -39,11 +75,7 @@ export function initSocket(): Socket {
   })
 
   socket.on('os_synced', () => {
-    import('@/services/api').then((api) => {
-      api.fetchServiceOrders().then((orders) => {
-        useDashboardStore.getState().setServiceOrders(orders)
-      })
-    })
+    refreshAll()
   })
 
   socket.on('status_notification', (data) => {
@@ -54,6 +86,7 @@ export function initSocket(): Socket {
       message: data.message,
       timestamp: new Date(),
     })
+    refreshAll()
   })
 
   return socket
@@ -62,3 +95,4 @@ export function initSocket(): Socket {
 export function getSocket(): Socket | null {
   return socket
 }
+

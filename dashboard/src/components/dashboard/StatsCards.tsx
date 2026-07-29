@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Wifi,
@@ -14,6 +15,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react'
+import { useDashboardStore } from '@/store/dashboard'
 
 interface StatCardProps {
   icon: React.ElementType
@@ -66,36 +68,60 @@ function StatCard({ icon: Icon, label, value, color, trend, trendValue }: StatCa
 }
 
 export function StatsCards() {
-  const stats = {
-    onlineTechs: 12,
-    attendingTechs: 5,
-    drivingTechs: 4,
-    stoppedTechs: 2,
-    offlineTechs: 3,
-    osOpen: 45,
-    osDone: 28,
-    osProgress: 10,
-    osOverdue: 7,
-    clientsWaiting: 15,
-    avgTime: 42,
-    completionRate: 62,
-  }
+  const storeStats = useDashboardStore((s) => s.stats)
+  const teams = useDashboardStore((s) => s.teams)
+  const serviceOrders = useDashboardStore((s) => s.serviceOrders)
+
+  const computedStats = useMemo(() => {
+    const teamList = Object.values(teams)
+    const onlineTechs = storeStats?.active ?? teamList.filter((t) => t.status !== 'Offline').length
+    const attendingTechs = teamList.filter((t) => t.status === 'Executando atendimento').length
+    const drivingTechs = teamList.filter((t) => t.status === 'Em deslocamento').length
+    const stoppedTechs = teamList.filter((t) => t.status === 'Aguardando cliente' || t.status === 'Em intervalo').length
+    const offlineTechs = teamList.filter((t) => t.status === 'Offline').length
+
+    const osDone = storeStats?.osDone ?? serviceOrders.filter((o) => o.status === 'F').length
+    const osProgress = storeStats?.osProgress ?? serviceOrders.filter((o) => o.status === 'DS' || o.status === 'EX').length
+    const osPending = storeStats?.osPending ?? serviceOrders.filter((o) => ['AG', 'A', 'AN', 'EN', 'AS'].includes(o.status)).length
+    const osOpen = storeStats?.osToday ?? serviceOrders.length
+    const osOverdue = serviceOrders.filter((o) => o.slaRemainingMinutes !== undefined && o.slaRemainingMinutes <= 0).length
+    const clientsWaiting = serviceOrders.filter((o) => o.status === 'A' || o.status === 'AG').length
+    const avgTime = storeStats?.avgTime ?? 0
+    const completionRate = storeStats?.completionRate ?? (osOpen > 0 ? Math.round((osDone / osOpen) * 100) : 0)
+
+    return {
+      onlineTechs,
+      attendingTechs,
+      drivingTechs,
+      stoppedTechs,
+      offlineTechs,
+      osOpen,
+      osDone,
+      osProgress,
+      osPending,
+      osOverdue,
+      clientsWaiting,
+      avgTime,
+      completionRate,
+    }
+  }, [storeStats, teams, serviceOrders])
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-      <StatCard icon={Wifi} label="Técnicos Online" value={stats.onlineTechs} color="#10b981" trend="up" trendValue="+2" />
-      <StatCard icon={Wrench} label="Em Atendimento" value={stats.attendingTechs} color="#f97316" />
-      <StatCard icon={MapPin} label="Em Deslocamento" value={stats.drivingTechs} color="#3b82f6" />
-      <StatCard icon={PauseCircle} label="Parados" value={stats.stoppedTechs} color="#eab308" />
-      <StatCard icon={WifiOff} label="Offline" value={stats.offlineTechs} color="#6b7280" />
+      <StatCard icon={Wifi} label="Técnicos Online" value={computedStats.onlineTechs} color="#10b981" />
+      <StatCard icon={Wrench} label="Em Atendimento" value={computedStats.attendingTechs} color="#f97316" />
+      <StatCard icon={MapPin} label="Em Deslocamento" value={computedStats.drivingTechs} color="#3b82f6" />
+      <StatCard icon={PauseCircle} label="Parados" value={computedStats.stoppedTechs} color="#eab308" />
+      <StatCard icon={WifiOff} label="Offline" value={computedStats.offlineTechs} color="#6b7280" />
       <div className="w-px bg-border self-stretch" />
-      <StatCard icon={ClipboardList} label="O.S. Abertas" value={stats.osOpen} color="#8b5cf6" />
-      <StatCard icon={CheckCircle2} label="Concluídas" value={stats.osDone} color="#10b981" trend="up" trendValue="83%" />
-      <StatCard icon={Clock} label="Em Andamento" value={stats.osProgress} color="#f97316" />
-      <StatCard icon={AlertTriangle} label="Atrasadas" value={stats.osOverdue} color="#ef4444" trend="down" trendValue="+3" />
-      <StatCard icon={Users} label="Aguardando" value={stats.clientsWaiting} color="#f59e0b" />
-      <StatCard icon={Timer} label="T. Médio" value={`${stats.avgTime}min`} color="#06b6d4" />
-      <StatCard icon={TrendingUp} label="Conclusão" value={`${stats.completionRate}%`} color="#14b8a6" trend="up" trendValue="5%" />
+      <StatCard icon={ClipboardList} label="O.S. Agendadas" value={computedStats.osOpen} color="#8b5cf6" />
+      <StatCard icon={CheckCircle2} label="Concluídas" value={computedStats.osDone} color="#10b981" trend="up" trendValue={`${computedStats.completionRate}%`} />
+      <StatCard icon={Clock} label="Em Andamento" value={computedStats.osProgress} color="#f97316" />
+      <StatCard icon={AlertTriangle} label="Atrasadas" value={computedStats.osOverdue} color="#ef4444" />
+      <StatCard icon={Users} label="Aguardando" value={computedStats.clientsWaiting} color="#f59e0b" />
+      <StatCard icon={Timer} label="T. Médio" value={`${computedStats.avgTime}min`} color="#06b6d4" />
+      <StatCard icon={TrendingUp} label="Conclusão" value={`${computedStats.completionRate}%`} color="#14b8a6" trend="up" trendValue={`${computedStats.completionRate}%`} />
     </div>
   )
 }
+

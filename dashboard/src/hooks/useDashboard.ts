@@ -15,9 +15,9 @@ export function useDashboard() {
     async function load() {
       try {
         const [teams, stats, orders] = await Promise.all([
-          fetchTeams(),
-          fetchStats(),
-          fetchServiceOrders(),
+          fetchTeams().catch(() => null),
+          fetchStats().catch(() => null),
+          fetchServiceOrders().catch(() => null),
         ])
 
         if (teams && Array.isArray(teams)) {
@@ -25,7 +25,9 @@ export function useDashboard() {
           teams.forEach((t) => {
             teamsMap[t.id] = t
           })
-          setTeams(Object.keys(teamsMap).length > 0 ? teamsMap : MOCK_TEAMS)
+          if (Object.keys(teamsMap).length > 0) {
+            setTeams(teamsMap)
+          }
         }
 
         if (stats) setStats(stats)
@@ -33,11 +35,14 @@ export function useDashboard() {
           setServiceOrders(orders)
         }
       } catch (err) {
-        console.warn('Servidor backend ou IXC indisponível, usando dados de simulação:', err)
-        setTeams(MOCK_TEAMS)
-        setStats(MOCK_STATS)
-        setServiceOrders(MOCK_ORDERS)
-        MOCK_ALERTS.forEach((alert) => addAlert(alert))
+        console.warn('Servidor backend ou IXC indisponível:', err)
+        const currentTeams = useDashboardStore.getState().teams
+        if (Object.keys(currentTeams).length === 0) {
+          setTeams(MOCK_TEAMS)
+          setStats(MOCK_STATS)
+          setServiceOrders(MOCK_ORDERS)
+          MOCK_ALERTS.forEach((alert) => addAlert(alert))
+        }
       } finally {
         setLoading(false)
       }
@@ -46,10 +51,11 @@ export function useDashboard() {
     load()
     initSocket()
 
-    const interval = setInterval(load, 30000)
+    const interval = setInterval(load, 15000)
     return () => clearInterval(interval)
   }, [setTeams, setServiceOrders, setStats, addAlert, setAuthenticated])
 
   return { loading }
 }
+
 
