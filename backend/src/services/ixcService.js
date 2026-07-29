@@ -1,3 +1,4 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const Team = require('../models/Team');
 const ServiceOrder = require('../models/ServiceOrder');
 const ServiceHistory = require('../models/ServiceHistory');
