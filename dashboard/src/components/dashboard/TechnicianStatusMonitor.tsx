@@ -61,21 +61,46 @@ export function TechnicianStatusMonitor() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'EXECUTION' | 'TRANSIT' | 'COMPLETED' | 'IDLE'>('ALL')
   const [selectedOS, setSelectedOS] = useState<ServiceOrder | null>(null)
   const [audioEnabled, setAudioEnabled] = useState(true)
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
 
   const announcedOneLeftRef = useRef<Set<string>>(new Set())
 
-  // Funcao para anunciar mensagem de voz em português
-  const announceVoice = (text: string) => {
-    if (!('speechSynthesis' in window)) return
+  // Desbloqueia permissao de audio no navegador da Smart TV LG (webOS)
+  const unlockTVAudio = () => {
     try {
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'pt-BR'
-      utterance.rate = 1.0
-      utterance.pitch = 1.0
-      window.speechSynthesis.speak(utterance)
+      setAudioUnlocked(true)
+      setAudioEnabled(true)
+      announceVoice('Áudio ativado para a TV LG')
     } catch (e) {
-      console.warn('Erro na síntese de voz:', e)
+      console.warn('Erro ao desbloquear áudio:', e)
+    }
+  }
+
+  // Funcao universal de voz compativel com Smart TVs LG (webOS), Samsung e Desktop
+  const announceVoice = (text: string) => {
+    try {
+      // 1. Tenta reproduzir audio via HTML5 Audio (Google TTS MP3) - Garantido para Smart TVs LG
+      const encodedText = encodeURIComponent(text)
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=pt-BR&client=tw-ob`
+      const audio = new Audio(ttsUrl)
+      audio.play().catch(() => {
+        // 2. Fallback para síntese de voz nativa Web Speech
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel()
+          const utterance = new SpeechSynthesisUtterance(text)
+          utterance.lang = 'pt-BR'
+          utterance.rate = 1.0
+          utterance.pitch = 1.0
+          window.speechSynthesis.speak(utterance)
+        }
+      })
+    } catch (e) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+        const utterance = new SpeechSynthesisUtterance(text)
+        utterance.lang = 'pt-BR'
+        window.speechSynthesis.speak(utterance)
+      }
     }
   }
 
@@ -389,6 +414,17 @@ export function TechnicianStatusMonitor() {
 
   return (
     <div className="h-full flex flex-col bg-slate-900 text-slate-900 overflow-hidden rounded-2xl border border-slate-800 shadow-2xl">
+      {/* BANNER PARA DESBLOQUEAR ÁUDIO NA TV LG (webOS Autoplay Policy) */}
+      {!audioUnlocked && (
+        <div
+          onClick={unlockTVAudio}
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 text-center font-black text-xs md:text-sm uppercase tracking-wider cursor-pointer transition-all flex items-center justify-center gap-2 border-b-2 border-amber-300 shadow-xl animate-pulse flex-shrink-0"
+        >
+          <Volume2 className="w-5 h-5 text-slate-950 font-black animate-bounce" />
+          <span>🔊 CLIQUE AQUI UMA VEZ PARA ATIVAR O SOM DA VOZ NA TV LG</span>
+        </div>
+      )}
+
       {/* TOP HEADER: MONITOR TITLE & KPIs (HIGH CONTRAST DARK 43" TV THEME) */}
       <header className="bg-slate-950 border-b border-slate-800 px-5 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-2.5">
