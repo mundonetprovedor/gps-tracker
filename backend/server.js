@@ -639,15 +639,24 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(dashboardPath, 'index.html'));
 });
 
+app.post('/api/sync-ixc', auth, async (req, res) => {
+  try {
+    await syncIXCServiceOrders(io, true);
+    res.json({ message: 'Sincronização iniciada com sucesso' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Mundonet Fleet rodando na porta ${PORT}`);
   
   // Sincronização Inicial Imediata
-  syncIXCServiceOrders(io);
-  setTimeout(() => syncIXCServiceOrders(io), 5000);
-  // Sincronização Periódica (2 min)
-  setInterval(() => syncIXCServiceOrders(io), 2 * 60 * 1000);
+  syncIXCServiceOrders(io, true);
+  setTimeout(() => syncIXCServiceOrders(io, true), 3000);
+  // Sincronização Periódica (a cada 1 min)
+  setInterval(() => syncIXCServiceOrders(io, true), 60 * 1000);
 
   // A cada 5 minutos, verifica técnicos offline por inatividade (mais de 15 min)
   cron.schedule('*/5 * * * *', async () => {

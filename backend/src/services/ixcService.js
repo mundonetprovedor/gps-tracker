@@ -285,11 +285,16 @@ async function syncIXCTeamCollaborators() {
   }
 }
 
-async function syncIXCServiceOrders(io) {
+async function syncIXCServiceOrders(io, force = false) {
   const now = Date.now();
-  if (now - lastOSSyncTime < OS_CACHE_TTL) {
+  if (!force && (now - lastOSSyncTime < OS_CACHE_TTL)) {
     logger.info('[IXC Cache] Ignorando sincronização de O.S. (último sync há menos de 1.5 min)');
     return;
+  }
+  lastOSSyncTime = now;
+  // Limpa cache de status de logins a cada nova sincronizacao para forcar re-avaliacao em tempo real
+  for (const k of Object.keys(loginStatusCache)) {
+    delete loginStatusCache[k];
   }
   await syncIXCTeamCollaborators();
   try {
