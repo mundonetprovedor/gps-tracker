@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDashboardStore } from '@/store/dashboard'
 import type { ServiceOrder } from '@/types'
@@ -11,7 +11,9 @@ import {
   Clock,
   FileText,
   Car,
-  Activity
+  Activity,
+  Volume2,
+  VolumeX
 } from 'lucide-react'
 
 // 20 Exact Collaborators List
@@ -58,6 +60,24 @@ export function TechnicianStatusMonitor() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'EXECUTION' | 'TRANSIT' | 'COMPLETED' | 'IDLE'>('ALL')
   const [selectedOS, setSelectedOS] = useState<ServiceOrder | null>(null)
+  const [audioEnabled, setAudioEnabled] = useState(true)
+
+  const announcedOneLeftRef = useRef<Set<string>>(new Set())
+
+  // Funcao para anunciar mensagem de voz em português
+  const announceVoice = (text: string) => {
+    if (!('speechSynthesis' in window)) return
+    try {
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'pt-BR'
+      utterance.rate = 1.0
+      utterance.pitch = 1.0
+      window.speechSynthesis.speak(utterance)
+    } catch (e) {
+      console.warn('Erro na síntese de voz:', e)
+    }
+  }
 
   // Map active O.S. to collaborators
   const colabStatusList = useMemo(() => {
@@ -122,6 +142,22 @@ export function TechnicianStatusMonitor() {
       }
     }).filter((item) => item.totalTodayOS > 0)
   }, [teams, serviceOrders, selectedAgendaDate])
+
+  // Monitora técnicos e avisa em voz quando um técnico tiver apenas 1 O.S. restante
+  useEffect(() => {
+    colabStatusList.forEach((colab) => {
+      const remaining = colab.totalTodayOS - colab.completedTodayOS
+      if (remaining === 1 && colab.totalTodayOS > 0) {
+        const key = `${selectedAgendaDate}_${colab.name}_one_left`
+        if (!announcedOneLeftRef.current.has(key)) {
+          announcedOneLeftRef.current.add(key)
+          if (audioEnabled) {
+            announceVoice(`Atenção: Técnico ${colab.name} possui 1 O.S. restante`)
+          }
+        }
+      }
+    })
+  }, [colabStatusList, selectedAgendaDate, audioEnabled])
 
   // Filtered List
   const filteredList = useMemo(() => {
@@ -412,16 +448,46 @@ export function TechnicianStatusMonitor() {
 
       {/* FILTER & SEARCH BAR */}
       <div className="bg-slate-950 px-4 py-1.5 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 flex-shrink-0">
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar técnico ou O.S...."
-            className="w-full pl-8 pr-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[11px] font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
-          />
+        {/* Search & Audio Toggle */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar técnico ou O.S...."
+              className="w-full pl-8 pr-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[11px] font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+            />
+          </div>
+
+          <button
+            onClick={() => {
+              const next = !audioEnabled
+              setAudioEnabled(next)
+              if (next) {
+                announceVoice('Avisos de voz ativados')
+              }
+            }}
+            className={`px-3 py-1 rounded-lg border flex items-center gap-1.5 text-[11px] font-black transition-all flex-shrink-0 ${
+              audioEnabled
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+            title={audioEnabled ? "Avisos de voz ativados" : "Clique para ativar avisos de voz"}
+          >
+            {audioEnabled ? (
+              <>
+                <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span>Voz Ativada</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                <span>Voz Desativada</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Filter Tabs */}
