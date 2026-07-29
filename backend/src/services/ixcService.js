@@ -105,37 +105,63 @@ async function getClientName(id) {
 
 const loginStatusCache = {};
 
-async function getClientLoginStatus(clientId) {
-  if (!clientId) return 'offline';
+async function getClientLoginStatus(clientId, loginId) {
+  if (!clientId && !loginId) return 'offline';
+  const cacheKey = loginId && String(loginId) !== '0' ? `login_${loginId}` : `client_${clientId}`;
   const now = Date.now();
-  const cached = loginStatusCache[clientId];
+  const cached = loginStatusCache[cacheKey];
   if (cached && (now - cached.timestamp < 30000)) { // 30s cache TTL
     return cached.status;
   }
   try {
-    const response = await fetch(`${IXC_URL}/radusuarios`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'ixcsoft': 'listar',
-        'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
-      },
-      body: JSON.stringify({ qtype: 'radusuarios.id_cliente', query: String(clientId), oper: '=', rp: '10' })
-    });
-    const data = await response.json();
-    if (data && data.registros && data.registros.length > 0) {
-      // Verifica se o cliente tem algum login ativo (online === 'S' ou 'SS')
-      const hasOnline = data.registros.some(reg => {
-        const onlineVal = String(reg.online || '').toUpperCase();
-        return onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE';
+    // 1. Tenta buscar pelo ID de login específico se disponível
+    if (loginId && String(loginId) !== '0') {
+      const respLogin = await fetch(`${IXC_URL}/radusuarios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ixcsoft': 'listar',
+          'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+        },
+        body: JSON.stringify({ qtype: 'radusuarios.id', query: String(loginId), oper: '=', rp: '1' })
       });
-      const status = hasOnline ? 'online' : 'offline';
-      loginStatusCache[clientId] = { status, timestamp: now };
-      return status;
+      const dataLogin = await respLogin.json();
+      if (dataLogin && dataLogin.registros && dataLogin.registros.length > 0) {
+        const reg = dataLogin.registros[0];
+        const onlineVal = String(reg.online || '').toUpperCase();
+        const status = (onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE') ? 'online' : 'offline';
+        loginStatusCache[cacheKey] = { status, timestamp: now };
+        return status;
+      }
     }
-    loginStatusCache[clientId] = { status: 'offline', timestamp: now };
+
+    // 2. Fallback: Busca por id_cliente caso não encontre pelo id_login
+    if (clientId && String(clientId) !== '0') {
+      const response = await fetch(`${IXC_URL}/radusuarios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ixcsoft': 'listar',
+          'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+        },
+        body: JSON.stringify({ qtype: 'radusuarios.id_cliente', query: String(clientId), oper: '=', rp: '10' })
+      });
+      const data = await response.json();
+      if (data && data.registros && data.registros.length > 0) {
+        const hasOnline = data.registros.some(reg => {
+          const onlineVal = String(reg.online || '').toUpperCase();
+          return onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE';
+        });
+        const status = hasOnline ? 'online' : 'offline';
+        loginStatusCache[cacheKey] = { status, timestamp: now };
+        return status;
+      }
+    }
+
+    loginStatusCache[cacheKey] = { status: 'offline', timestamp: now };
     return 'offline';
   } catch (e) {
+    logger.error(`[IXC] Erro ao buscar status radusuarios: ${e.message}`);
     return 'offline';
   }
 }
@@ -495,7 +521,7 @@ async function syncIXCServiceOrders(io) {
           }
         }
 
-        const clientLoginStatus = await getClientLoginStatus(os.id_cliente);
+        const clientLoginStatus = await getClientLoginStatus(os.id_cliente, os.id_login);
 
         await ServiceOrder.findOneAndUpdate(
           { ixcId: os.id },

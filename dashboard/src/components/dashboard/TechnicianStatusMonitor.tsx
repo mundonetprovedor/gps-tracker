@@ -280,7 +280,8 @@ export function TechnicianStatusMonitor() {
 
                 {/* LOGIN STATUS BADGE (ONLINE / OFFLINE) */}
                 {(() => {
-                  const isOnline = colab.activeOS.loginStatus === 'online'
+                  const raw = String(colab.activeOS.loginStatus || (colab.activeOS as any).online || (colab.activeOS as any).status_conexao || '').toUpperCase()
+                  const isOnline = raw === 'ONLINE' || raw === 'S' || raw === 'SS'
 
                   return isOnline ? (
                     <span className="px-1.5 py-0.5 bg-emerald-400 text-emerald-950 font-black rounded text-[9px] uppercase tracking-tight flex items-center gap-1 shadow flex-shrink-0 animate-pulse">
