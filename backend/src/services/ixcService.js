@@ -516,7 +516,7 @@ async function syncIXCServiceOrders(io) {
             scheduledTimeStart: timeStart,
             scheduledTimeEnd: timeEnd,
             durationMinutes: duration,
-            loginStatus: (os.online === 'S' || os.status_conexao === 'online') ? 'online' : clientLoginStatus,
+            loginStatus: clientLoginStatus,
             lastSeen: new Date()
           },
           { upsert: true }
