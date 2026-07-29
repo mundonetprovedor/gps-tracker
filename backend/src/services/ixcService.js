@@ -107,14 +107,37 @@ const loginStatusCache = {};
 
 async function getClientLoginStatus(clientId, loginId) {
   if (!clientId && !loginId) return 'offline';
-  const cacheKey = loginId && String(loginId) !== '0' ? `login_${loginId}` : `client_${clientId}`;
+  const cacheKey = `client_${clientId || loginId}`;
   const now = Date.now();
   const cached = loginStatusCache[cacheKey];
   if (cached && (now - cached.timestamp < 30000)) { // 30s cache TTL
     return cached.status;
   }
   try {
-    // 1. Tenta buscar pelo ID de login específico se disponível
+    // 1. Busca por id_cliente para obter todos os logins do cliente
+    if (clientId && String(clientId) !== '0') {
+      const response = await fetch(`${IXC_URL}/radusuarios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ixcsoft': 'listar',
+          'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+        },
+        body: JSON.stringify({ qtype: 'radusuarios.id_cliente', query: String(clientId), oper: '=', rp: '20' })
+      });
+      const data = await response.json();
+      if (data && data.registros && data.registros.length > 0) {
+        const hasOnline = data.registros.some(reg => {
+          const onlineVal = String(reg.online || '').toUpperCase();
+          return onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE';
+        });
+        const status = hasOnline ? 'online' : 'offline';
+        loginStatusCache[cacheKey] = { status, timestamp: now };
+        return status;
+      }
+    }
+
+    // 2. Fallback: Busca por id_login específico se não retornou por id_cliente
     if (loginId && String(loginId) !== '0') {
       const respLogin = await fetch(`${IXC_URL}/radusuarios`, {
         method: 'POST',
@@ -130,29 +153,6 @@ async function getClientLoginStatus(clientId, loginId) {
         const reg = dataLogin.registros[0];
         const onlineVal = String(reg.online || '').toUpperCase();
         const status = (onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE') ? 'online' : 'offline';
-        loginStatusCache[cacheKey] = { status, timestamp: now };
-        return status;
-      }
-    }
-
-    // 2. Fallback: Busca por id_cliente caso não encontre pelo id_login
-    if (clientId && String(clientId) !== '0') {
-      const response = await fetch(`${IXC_URL}/radusuarios`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ixcsoft': 'listar',
-          'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
-        },
-        body: JSON.stringify({ qtype: 'radusuarios.id_cliente', query: String(clientId), oper: '=', rp: '10' })
-      });
-      const data = await response.json();
-      if (data && data.registros && data.registros.length > 0) {
-        const hasOnline = data.registros.some(reg => {
-          const onlineVal = String(reg.online || '').toUpperCase();
-          return onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE';
-        });
-        const status = hasOnline ? 'online' : 'offline';
         loginStatusCache[cacheKey] = { status, timestamp: now };
         return status;
       }
