@@ -105,6 +105,20 @@ async function getClientName(id) {
 
 const loginStatusCache = {};
 
+function isRadUsuarioOnline(reg) {
+  if (!reg) return false;
+  const onlineVal = String(reg.online || '').toUpperCase();
+  if (onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE' || onlineVal === '1') {
+    return true;
+  }
+  // Se possuir um IP atribuido (ex: faixa CGNAT 100.x.x.x ou IP fixo/publico) indica conexao ativa no IXC
+  const ip = String(reg.online_ip || reg.ip || '').trim();
+  if (ip && ip !== '0.0.0.0' && ip !== 'N/A' && ip !== '0' && ip !== 'null' && ip !== 'undefined') {
+    return true;
+  }
+  return false;
+}
+
 async function getClientLoginStatus(clientId, loginId) {
   if (!clientId && !loginId) return 'offline';
   const cacheKey = `client_${clientId || loginId}`;
@@ -127,10 +141,7 @@ async function getClientLoginStatus(clientId, loginId) {
       });
       const data = await response.json();
       if (data && data.registros && data.registros.length > 0) {
-        const hasOnline = data.registros.some(reg => {
-          const onlineVal = String(reg.online || '').toUpperCase();
-          return onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE';
-        });
+        const hasOnline = data.registros.some(reg => isRadUsuarioOnline(reg));
         const status = hasOnline ? 'online' : 'offline';
         loginStatusCache[cacheKey] = { status, timestamp: now };
         return status;
@@ -150,9 +161,7 @@ async function getClientLoginStatus(clientId, loginId) {
       });
       const dataLogin = await respLogin.json();
       if (dataLogin && dataLogin.registros && dataLogin.registros.length > 0) {
-        const reg = dataLogin.registros[0];
-        const onlineVal = String(reg.online || '').toUpperCase();
-        const status = (onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE') ? 'online' : 'offline';
+        const status = isRadUsuarioOnline(dataLogin.registros[0]) ? 'online' : 'offline';
         loginStatusCache[cacheKey] = { status, timestamp: now };
         return status;
       }
