@@ -109,15 +109,7 @@ const loginStatusCache = {};
 function isRadUsuarioOnline(reg) {
   if (!reg) return false;
   const onlineVal = String(reg.online || '').toUpperCase();
-  if (onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE' || onlineVal === '1') {
-    return true;
-  }
-  // Se possuir um IP atribuido (ex: faixa CGNAT 100.x.x.x ou IP fixo/publico) indica conexao ativa no IXC
-  const ip = String(reg.online_ip || reg.ip || '').trim();
-  if (ip && ip !== '0.0.0.0' && ip !== 'N/A' && ip !== '0' && ip !== 'null' && ip !== 'undefined') {
-    return true;
-  }
-  return false;
+  return onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE' || onlineVal === '1';
 }
 
 async function getClientLoginStatus(clientId, loginId) {
