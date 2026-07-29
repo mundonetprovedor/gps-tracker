@@ -175,12 +175,23 @@ function OSListItem({
               {os.category}
             </Badge>
           </div>
-          <span
-            className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
-            style={{ backgroundColor: `${statusInfo.color}15`, color: statusInfo.color }}
-          >
-            {statusInfo.label}
-          </span>
+          <div className="flex items-center gap-1">
+            {os.loginStatus && (
+              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                os.loginStatus === 'online'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
+              }`}>
+                {os.loginStatus === 'online' ? '🟢 ONLINE' : '🔴 OFFLINE'}
+              </span>
+            )}
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+              style={{ backgroundColor: `${statusInfo.color}15`, color: statusInfo.color }}
+            >
+              {statusInfo.label}
+            </span>
+          </div>
         </div>
 
         <p className="text-xs font-semibold text-foreground truncate mt-0.5">{os.client}</p>

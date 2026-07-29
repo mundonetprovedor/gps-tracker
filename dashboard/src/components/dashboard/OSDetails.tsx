@@ -81,7 +81,18 @@ export function OSDetails() {
         <div className="space-y-3">
           {/* Client & Address Info */}
           <div>
-            <h4 className="text-sm font-extrabold text-foreground">{os.client}</h4>
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-sm font-extrabold text-foreground">{os.client}</h4>
+              {os.loginStatus && (
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
+                  os.loginStatus === 'online'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                }`}>
+                  {os.loginStatus === 'online' ? '🟢 CLIENTE ONLINE' : '🔴 CLIENTE OFFLINE'}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
               <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-primary" />
               {os.address} {os.neighborhood ? `- ${os.neighborhood}` : ''}

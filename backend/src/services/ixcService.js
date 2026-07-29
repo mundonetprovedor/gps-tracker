@@ -108,20 +108,42 @@ const loginStatusCache = {};
 
 function isRadUsuarioOnline(reg) {
   if (!reg) return false;
+  // Logins inativos (ativo === 'N') não estão online
+  if (String(reg.ativo || '').toUpperCase() === 'N') return false;
   const onlineVal = String(reg.online || '').toUpperCase();
   return onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE' || onlineVal === '1';
 }
 
-async function getClientLoginStatus(clientId, loginId) {
+async function getClientLoginStatus(clientId, loginId, forceRefresh = false) {
   if (!clientId && !loginId) return 'offline';
-  const cacheKey = `client_${clientId || loginId}`;
+  const cacheKey = `client_${clientId}_login_${loginId}`;
   const now = Date.now();
   const cached = loginStatusCache[cacheKey];
-  if (cached && (now - cached.timestamp < 30000)) { // 30s cache TTL
+  if (!forceRefresh && cached && (now - cached.timestamp < 15000)) { // 15s cache TTL
     return cached.status;
   }
   try {
-    // 1. Busca por id_cliente para obter todos os logins do cliente
+    // 1. Tenta buscar pelo ID de login específico da O.S. em primeiro lugar (máxima precisão)
+    if (loginId && String(loginId) !== '0') {
+      const respLogin = await fetch(`${IXC_URL}/radusuarios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ixcsoft': 'listar',
+          'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
+        },
+        body: JSON.stringify({ qtype: 'radusuarios.id', query: String(loginId), oper: '=', rp: '1' })
+      });
+      const dataLogin = await respLogin.json();
+      if (dataLogin && dataLogin.registros && dataLogin.registros.length > 0) {
+        const reg = dataLogin.registros[0];
+        const status = isRadUsuarioOnline(reg) ? 'online' : 'offline';
+        loginStatusCache[cacheKey] = { status, timestamp: now };
+        return status;
+      }
+    }
+
+    // 2. Se não encontrou pelo loginId ou se não tinha loginId, busca por id_cliente
     if (clientId && String(clientId) !== '0') {
       const response = await fetch(`${IXC_URL}/radusuarios`, {
         method: 'POST',
@@ -136,25 +158,6 @@ async function getClientLoginStatus(clientId, loginId) {
       if (data && data.registros && data.registros.length > 0) {
         const hasOnline = data.registros.some(reg => isRadUsuarioOnline(reg));
         const status = hasOnline ? 'online' : 'offline';
-        loginStatusCache[cacheKey] = { status, timestamp: now };
-        return status;
-      }
-    }
-
-    // 2. Fallback: Busca por id_login específico se não retornou por id_cliente
-    if (loginId && String(loginId) !== '0') {
-      const respLogin = await fetch(`${IXC_URL}/radusuarios`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ixcsoft': 'listar',
-          'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
-        },
-        body: JSON.stringify({ qtype: 'radusuarios.id', query: String(loginId), oper: '=', rp: '1' })
-      });
-      const dataLogin = await respLogin.json();
-      if (dataLogin && dataLogin.registros && dataLogin.registros.length > 0) {
-        const status = isRadUsuarioOnline(dataLogin.registros[0]) ? 'online' : 'offline';
         loginStatusCache[cacheKey] = { status, timestamp: now };
         return status;
       }
@@ -394,7 +397,8 @@ async function syncIXCServiceOrders(io, force = false) {
                 
                 // Usa a data de fechamento real do IXC se disponível, senão usa 'now'
                 const completionDate = parseIXCDate(os.data_fechamento) || new Date();
-                await ServiceOrder.updateOne({ ixcId: os.id }, { finishedAt: completionDate });
+                const freshLoginStatus = await getClientLoginStatus(os.id_cliente, os.id_login, true);
+                await ServiceOrder.updateOne({ ixcId: os.id }, { finishedAt: completionDate, loginStatus: freshLoginStatus });
                 
                 // Finaliza histórico e calcula tempo de atendimento
                 const hist = await ServiceHistory.findOne({ osId: String(os.id) });
