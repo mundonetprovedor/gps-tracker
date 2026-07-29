@@ -106,7 +106,7 @@ async function getClientName(id) {
 const loginStatusCache = {};
 
 async function getClientLoginStatus(clientId) {
-  if (!clientId) return 'online';
+  if (!clientId) return 'offline';
   const now = Date.now();
   const cached = loginStatusCache[clientId];
   if (cached && (now - cached.timestamp < 30000)) { // 30s cache TTL
@@ -120,21 +120,23 @@ async function getClientLoginStatus(clientId) {
         'ixcsoft': 'listar',
         'Authorization': 'Basic ' + Buffer.from(IXC_TOKEN).toString('base64')
       },
-      body: JSON.stringify({ qtype: 'radusuarios.id_cliente', query: String(clientId), oper: '=', rp: '1' })
+      body: JSON.stringify({ qtype: 'radusuarios.id_cliente', query: String(clientId), oper: '=', rp: '10' })
     });
     const data = await response.json();
     if (data && data.registros && data.registros.length > 0) {
-      const reg = data.registros[0];
-      // No IXC Soft, radusuarios.online = 'S' ou 'SS' indica conexao ativa no Radius
-      const isOnline = String(reg.online || '').toUpperCase().startsWith('S') || reg.online === 'online';
-      const status = isOnline ? 'online' : 'offline';
+      // Verifica se o cliente tem algum login ativo (online === 'S' ou 'SS')
+      const hasOnline = data.registros.some(reg => {
+        const onlineVal = String(reg.online || '').toUpperCase();
+        return onlineVal === 'S' || onlineVal === 'SS' || onlineVal === 'ONLINE';
+      });
+      const status = hasOnline ? 'online' : 'offline';
       loginStatusCache[clientId] = { status, timestamp: now };
       return status;
     }
-    loginStatusCache[clientId] = { status: 'online', timestamp: now };
-    return 'online';
+    loginStatusCache[clientId] = { status: 'offline', timestamp: now };
+    return 'offline';
   } catch (e) {
-    return 'online';
+    return 'offline';
   }
 }
 
@@ -429,10 +431,11 @@ async function syncIXCServiceOrders(io) {
         const inferCategoryFromSubject = (subj) => {
           if (!subj) return 'Instalação';
           const s = subj.toUpperCase();
-          if (s.includes('ROMP') || s.includes('FIBRA') || s.includes('CABO')) return 'Fibra rompida';
+          if (s.includes('INSTAL') || s.includes('ATIVAC') || s.includes('ATIVAÇ') || s.includes('NOVO PONTO') || s.includes('ATIVAÇÃO')) return 'Instalação';
+          if (s.includes('ROMP') || s.includes('ROMPIMENTO') || s.includes('CABO ROMPIDO') || s.includes('FIBRA ROMPIDA')) return 'Fibra rompida';
           if (s.includes('SEM INTERNET') || s.includes('SEM CONEX') || s.includes('PARADO') || s.includes('LOS') || s.includes('SEM SINAL')) return 'Sem conexão';
           if (s.includes('LENT') || s.includes('OSCIL') || s.includes('LENTO') || s.includes('SINAL FRACO')) return 'Lentidão';
-          if (s.includes('MUDAN') || s.includes('ENDEREÇO') || s.includes('TRANSFER')) return 'Mudança de endereço';
+          if (s.includes('MUDAN') || s.includes('ENDEREÇO') || s.includes('ENDERECO') || s.includes('TRANSFER')) return 'Mudança de endereço';
           if (s.includes('CONFIG') || s.includes('ROTEADOR') || s.includes('WIFI') || s.includes('MESH') || s.includes('SENHA')) return 'Configuração de roteador';
           if (s.includes('RETIR') || s.includes('CANCEL') || s.includes('RECOLH')) return 'Retirada de equipamentos';
           return 'Instalação';
@@ -513,7 +516,7 @@ async function syncIXCServiceOrders(io) {
             scheduledTimeStart: timeStart,
             scheduledTimeEnd: timeEnd,
             durationMinutes: duration,
-            loginStatus: os.status === 'F' ? 'online' : (os.online === 'S' || os.status_conexao === 'online' ? 'online' : clientLoginStatus),
+            loginStatus: (os.online === 'S' || os.status_conexao === 'online') ? 'online' : clientLoginStatus,
             lastSeen: new Date()
           },
           { upsert: true }
