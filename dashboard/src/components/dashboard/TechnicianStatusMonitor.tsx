@@ -207,8 +207,8 @@ export function TechnicianStatusMonitor() {
               >
                 <User className="w-4 h-4 font-black" />
               </div>
-              <div className="min-w-0">
-                <h3 className="text-xs md:text-sm font-black uppercase text-white truncate leading-none tracking-wide">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm md:text-base font-black uppercase text-amber-300 leading-snug tracking-wide break-words drop-shadow-sm">
                   {colab.name}
                 </h3>
                 <p className="text-[10px] md:text-[11px] font-bold text-slate-300 flex items-center gap-1 truncate leading-tight mt-0.5">
